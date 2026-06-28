@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN SYSTEM — Industrial Precision
@@ -92,6 +92,23 @@ const WASTE_DATA = [
   { m:"T4", ctnh:0.78, cn:11.8, sh:4.1 },
   { m:"T5", ctnh:0.91, cn:10.9, sh:3.9 },
 ];
+
+// ─── ESG / CARBON DATA ───────────────────────────────────────────
+// Hệ số phát thải (minh họa — cập nhật theo công bố mới nhất Bộ TN&MT / IPCC)
+const EF = {
+  dien: 0.4457,  // kg CO₂e/kWh — Hệ số phát thải EVN VN
+  do:   2.556,   // kg CO₂/lít  — Dầu DO (Scope 1)
+  than: 2.20,    // kg CO₂e/kg  — Than đá (Scope 1, minh họa)
+  ctnh: 0.50,    // kg CO₂e/kg  — Xử lý CTNH (Scope 3, minh họa)
+};
+
+const ESG_HISTORY = [
+  { month:"T3", dien:172000, do:3800, than:10500, ctnh:390 },
+  { month:"T4", dien:178000, do:3950, than:10800, ctnh:410 },
+  { month:"T5", dien:180000, do:4000, than:11000, ctnh:420 },
+];
+
+const ESG_TARGET = { total: 85000, baseline: 95000 }; // kg CO₂e/tháng
 
 const CL_ITEMS = [
   "Biển cảnh báo nguy hiểm đầy đủ, rõ ràng","Lối thoát hiểm không bị chặn",
@@ -1333,6 +1350,224 @@ function GRIModule() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// MODULE: ESG / CARBON — Dashboard kiểm kê phát thải
+// ═══════════════════════════════════════════════════════════════
+function EsgModule() {
+  const [inputs, setInputs] = useState({ dien:185000, do:4200, than:12000, ctnh:465 });
+
+  const calcScope = (m) => ({
+    s1: m.do * EF.do + m.than * EF.than,
+    s2: m.dien * EF.dien,
+    s3: m.ctnh * EF.ctnh,
+  });
+
+  const cur = calcScope(inputs);
+  cur.total = cur.s1 + cur.s2 + cur.s3;
+
+  const allMonthly = [
+    ...ESG_HISTORY.map(m => { const r = calcScope(m); return { ...m, ...r, total: r.s1+r.s2+r.s3 }; }),
+    { month:"T6", ...inputs, ...cur },
+  ];
+
+  const fmt = (v, d=1) => Number(v).toFixed(d);
+  const kg2t = (kg) => kg / 1000;
+
+  const targetT    = kg2t(ESG_TARGET.total);
+  const baselineT  = kg2t(ESG_TARGET.baseline);
+  const totalT     = kg2t(cur.total);
+  const reduction  = ((baselineT - totalT) / baselineT * 100);
+  const progressPct = Math.min((totalT / targetT) * 100, 150);
+
+  const pieData = [
+    { name:"Scope 1 — Đốt trực tiếp", v:cur.s1, color:T.orange },
+    { name:"Scope 2 — Điện lưới",      v:cur.s2, color:T.violet },
+    { name:"Scope 3 — Xử lý CTNH",     v:cur.s3, color:T.green },
+  ];
+
+  const lineData = allMonthly.map(m => ({ month:m.month, total:+kg2t(m.total).toFixed(2) }));
+  const barData  = allMonthly.map(m => ({
+    month:  m.month,
+    scope1: +kg2t(m.s1).toFixed(2),
+    scope2: +kg2t(m.s2).toFixed(2),
+    scope3: +kg2t(m.s3).toFixed(2),
+  }));
+
+  const INPUT_DEFS = [
+    { key:"dien", label:"Điện lưới",              unit:"kWh/tháng",  ef:EF.dien, efu:"kgCO₂e/kWh", scope:2 },
+    { key:"do",   label:"Dầu DO (lò hơi, xe nâng)",unit:"lít/tháng", ef:EF.do,   efu:"kgCO₂/lít",  scope:1 },
+    { key:"than", label:"Than (lò hơi)",           unit:"kg/tháng",   ef:EF.than, efu:"kgCO₂e/kg",  scope:1 },
+    { key:"ctnh", label:"CTNH chuyển xử lý",       unit:"kg/tháng",   ef:EF.ctnh, efu:"kgCO₂e/kg",  scope:3 },
+  ];
+
+  const SCOPE_COLOR = { 1:T.orange, 2:T.violet, 3:T.green };
+
+  return (
+    <div className="anim-fade">
+      {totalT > targetT && (
+        <AlertBox level="warn" msg={`Phát thải T6 (${fmt(totalT)} tCO₂e) vượt mục tiêu ${targetT} t — Kiểm tra điện tiêu thụ và tối ưu lò hơi`} />
+      )}
+      <AlertBox level="info" msg="Kiểm kê KNK theo GHG Protocol · Scope 1/2/3 · Hệ số EVN HF VN 2023 · GRI 305-1&2" compact />
+
+      {/* KPI row */}
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:16 }}>
+        <KPICard icon="🌫" label="Tổng phát thải T6" value={fmt(totalT)} unit="tCO₂e" color={T.violet} sub="Scope 1 + 2 + 3" trend={totalT > kg2t(allMonthly[allMonthly.length-2]?.total||0) ? 2.1 : -1.8} />
+        <KPICard icon="📊" label="Cường độ phát thải" value={fmt(totalT/1000, 3)} unit="t/1k tấn NPK" color={T.cyan} sub="tCO₂e · sản lượng" />
+        <KPICard icon="🎯" label="Mục tiêu tháng" value={`${targetT} t`} color={totalT<=targetT?T.green:T.amber} sub={totalT<=targetT?"✓ Đạt mục tiêu":"Cần cải thiện"} />
+        <KPICard icon="📉" label="Giảm vs baseline" value={`${fmt(reduction)}%`} color={reduction>0?T.green:T.red} sub={`Baseline 2025: ${baselineT} t`} />
+      </div>
+
+      {/* Nhập liệu + Pie */}
+      <div style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr", gap:14, marginBottom:14 }}>
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.text, marginBottom:14 }}>📋 Dữ liệu tiêu thụ — Tháng 6/2026</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+            {INPUT_DEFS.map(d => (
+              <div key={d.key} style={{ display:"flex", alignItems:"center", gap:10, background:T.ghost, borderRadius:10, padding:"10px 13px" }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:T.text }}>{d.label}</div>
+                  <div style={{ fontSize:9, color:T.dim, marginTop:1 }}>
+                    <span style={{ color:SCOPE_COLOR[d.scope], fontWeight:700 }}>Scope {d.scope}</span> · Hệ số: {d.ef} {d.efu}
+                  </div>
+                </div>
+                <input
+                  type="number"
+                  value={inputs[d.key]}
+                  onChange={e => setInputs(v => ({ ...v, [d.key]: +e.target.value || 0 }))}
+                  style={{ width:105, background:T.surface, border:`1px solid ${T.border2}`, borderRadius:8, padding:"7px 9px", color:T.text, fontSize:12, fontFamily:"'DM Mono',monospace", textAlign:"right", outline:"none" }}
+                />
+                <span style={{ fontSize:9, color:T.sub, width:68, flexShrink:0 }}>{d.unit}</span>
+                <span style={{ fontSize:13, fontWeight:700, color:SCOPE_COLOR[d.scope], width:62, textAlign:"right", flexShrink:0, fontFamily:"'DM Mono',monospace" }}>
+                  {fmt(kg2t(inputs[d.key] * d.ef))} t
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, display:"flex", flexDirection:"column" }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.text, marginBottom:2 }}>Cơ cấu phát thải T6</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, fontWeight:800, color:T.violet, lineHeight:1.1 }}>
+            {fmt(totalT)} <span style={{ fontSize:13, fontWeight:500, color:T.sub }}>tCO₂e</span>
+          </div>
+          <div style={{ flex:1, minHeight:140 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} dataKey="v" nameKey="name" innerRadius={38} outerRadius={62} paddingAngle={3}>
+                  {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                </Pie>
+                <Tooltip content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:10, padding:"8px 12px", fontSize:11 }}>
+                      <div style={{ color:T.sub, marginBottom:3 }}>{payload[0].name}</div>
+                      <div style={{ color:T.text, fontWeight:700 }}>{fmt(kg2t(payload[0].value))} tCO₂e</div>
+                      <div style={{ color:T.dim, fontSize:9 }}>{fmt(payload[0].value/cur.total*100)}% tổng</div>
+                    </div>
+                  );
+                }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:7, marginTop:4 }}>
+            {pieData.map((e, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:7, fontSize:11 }}>
+                <span style={{ width:9, height:9, borderRadius:2, background:e.color, flexShrink:0 }} />
+                <span style={{ flex:1, color:T.sub }}>{e.name}</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontWeight:700, color:T.text }}>{fmt(kg2t(e.v))} t</span>
+                <span style={{ color:T.dim, fontSize:9, width:30, textAlign:"right" }}>{fmt(e.v/cur.total*100)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Biểu đồ so sánh theo tháng */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:"16px 16px 10px" }}>
+          <div style={{ fontSize:12, fontWeight:700, marginBottom:3 }}>📈 Xu hướng tổng CO₂e</div>
+          <div style={{ fontSize:10, color:T.sub, marginBottom:10 }}>Tấn CO₂e / tháng · Mục tiêu: {targetT} t</div>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={lineData} margin={{ top:6, right:28, left:-20, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize:9, fill:T.dim }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize:9, fill:T.dim }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTip/>} />
+              <ReferenceLine y={targetT} stroke={T.green} strokeDasharray="4 3"
+                label={{ value:`MỤC TIÊU`, position:"right", fontSize:7, fill:T.green, fontWeight:700 }} />
+              <Line type="monotone" dataKey="total" stroke={T.violet} strokeWidth={2.5}
+                dot={{ r:4, fill:T.violet, strokeWidth:0 }} name="tCO₂e" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:"16px 16px 10px" }}>
+          <div style={{ fontSize:12, fontWeight:700, marginBottom:3 }}>📊 Phân bổ Scope 1 / 2 / 3</div>
+          <div style={{ fontSize:10, color:T.sub, marginBottom:10 }}>Tấn CO₂e / tháng (stacked bar)</div>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={barData} margin={{ top:6, right:6, left:-20, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize:9, fill:T.dim }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize:9, fill:T.dim }} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTip/>} />
+              <Bar dataKey="scope1" fill={T.orange} name="Scope 1" stackId="s" />
+              <Bar dataKey="scope2" fill={T.violet} name="Scope 2" stackId="s" />
+              <Bar dataKey="scope3" fill={T.green}  name="Scope 3" stackId="s" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display:"flex", gap:14, marginTop:8, justifyContent:"center" }}>
+            {[["Scope 1",T.orange],["Scope 2",T.violet],["Scope 3",T.green]].map(([l,c])=>(
+              <div key={l} style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, color:T.sub }}>
+                <span style={{ width:8, height:8, borderRadius:2, background:c }} />{l}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Mục tiêu ESG */}
+      <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:T.text, marginBottom:14 }}>🎯 Mục tiêu giảm phát thải — Năm 2026</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1.4fr", gap:20 }}>
+          <div>
+            <div style={{ fontSize:9, color:T.sub, textTransform:"uppercase", letterSpacing:".6px", marginBottom:5 }}>Baseline 2025</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:800, color:T.sub }}>{baselineT} t</div>
+            <div style={{ fontSize:10, color:T.dim, marginTop:2 }}>tCO₂e / tháng</div>
+          </div>
+          <div>
+            <div style={{ fontSize:9, color:T.sub, textTransform:"uppercase", letterSpacing:".6px", marginBottom:5 }}>Mục tiêu 2026</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:800, color:T.green }}>{targetT} t</div>
+            <div style={{ fontSize:10, color:T.dim, marginTop:2 }}>Giảm {fmt((1-targetT/baselineT)*100)}% vs 2025</div>
+          </div>
+          <div>
+            <div style={{ fontSize:9, color:T.sub, textTransform:"uppercase", letterSpacing:".6px", marginBottom:8 }}>
+              Tiến độ T6 · {fmt(totalT)} t / {targetT} t mục tiêu
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+              <div style={{ flex:1, height:9, background:T.border, borderRadius:5, overflow:"hidden" }}>
+                <div style={{
+                  width:`${Math.min(progressPct, 100)}%`, height:"100%", borderRadius:5,
+                  background:totalT<=targetT ? T.green : T.amber,
+                  transition:"width .6s ease",
+                }} />
+              </div>
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, fontWeight:800, color:totalT<=targetT?T.green:T.amber, flexShrink:0 }}>
+                {fmt(progressPct)}%
+              </span>
+            </div>
+            <div style={{ fontSize:9, color:reduction>0?T.green:T.red }}>
+              {reduction>0?"▼":"▲"} Đã giảm {fmt(Math.abs(reduction))}% so với baseline 2025
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop:14, paddingTop:10, borderTop:`1px solid ${T.border}`, fontSize:10, color:T.dim, lineHeight:1.7 }}>
+          * Hệ số phát thải mang tính minh họa. Triển khai thực tế cần cập nhật theo công bố mới nhất Bộ TN&MT / IPCC AR6 và phân tách Scope 3 chi tiết (vận chuyển, nguyên liệu đầu vào, v.v.).
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════
 const NAV_GROUPS = [
@@ -1345,6 +1580,7 @@ const NAV_GROUPS = [
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
+      { id:"esg",        icon:"🌱", label:"Carbon / ESG" },
     ]
   },
   {
@@ -1465,6 +1701,7 @@ export default function App() {
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;
+      case "esg":         return <EsgModule/>;
       case "contractors": return <ContractorModule contractors={contractors} setContractors={setContractors} ptw={ptw} setPTW={setPTW}/>;
       case "safety":      return <SafetyModule checklists={checklists} setChecklists={setChecklists} incidents={incidents} setIncidents={setIncidents}/>;
       case "incidents":   return <SafetyModule checklists={checklists} setChecklists={setChecklists} incidents={incidents} setIncidents={setIncidents}/>;
