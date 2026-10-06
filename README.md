@@ -12,6 +12,7 @@ Nền tảng quản lý Môi trường – An toàn (HSE) cho doanh nghiệp SME
 npm ci
 npm run dev        # http://localhost:3000
 npm run build      # xuất web tĩnh vào thư mục out/
+npm run build:standalone   # đóng gói thành 1 file dist/hse-platform.html
 ```
 
 Yêu cầu Node.js ≥ 18.17.
@@ -22,6 +23,7 @@ App xuất ra web tĩnh (`output: "export"`), không cần Next.js server khi ch
 
 - **Vercel (khuyến nghị):** vercel.com → New Project → Import repo `HSE-SME` → Deploy. Mỗi lần push lên `main` tự deploy lại. Cấu hình sẵn trong `vercel.json` (region `sin1`).
 - **Vercel CLI:** `./deploy.sh`
+- **1 file HTML:** `npm run build:standalone` → mở `dist/hse-platform.html` bằng trình duyệt (cần Internet chỉ để tải font), hoặc gửi/đặt file này lên bất kỳ hosting tĩnh nào.
 - **Netlify / hosting tĩnh bất kỳ:** `npm run build` rồi upload thư mục `out/` (Netlify: `netlify deploy --prod --dir=out`).
 
 ## Cấu trúc
