@@ -14,5 +14,6 @@ npm install
 npm run dev        # mở http://localhost:5173 → "Vào bản dùng thử"
 ```
 
-Khi triển khai Vercel, đặt **Root Directory = `ehsviet`** và khai báo `VITE_SUPABASE_URL`,
-`VITE_SUPABASE_ANON_KEY` (không khai báo thì trang chạy ở chế độ dùng thử).
+Triển khai Vercel: `vercel.json` ở thư mục gốc tự build `ehsviet/` (đặt Root Directory = `ehsviet`
+cũng được). Khai báo `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` trong Environment Variables
+(không khai báo thì trang chạy ở chế độ dùng thử).

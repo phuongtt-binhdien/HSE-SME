@@ -119,7 +119,8 @@ npm run dev             # http://localhost:5173
 
 **Bước 6 — Đưa lên Internet.** Push mã nguồn lên GitHub → import vào **Vercel** hoặc
 **Netlify** (framework: Vite, build `npm run build`, output `dist`), khai báo 2 biến môi
-trường ở bước 4. Cấu hình SPA đã kèm sẵn (`vercel.json`, `public/_redirects`).
+trường ở bước 4. Cấu hình SPA đã kèm sẵn (`vercel.json`, `public/_redirects`). Với Vercel,
+`vercel.json` ở thư mục gốc repo đã trỏ build vào `ehsviet/`, không cần đổi Root Directory.
 
 **Bước 7 — Cài lên điện thoại.** Mở trang web bằng Chrome/Safari → *Thêm vào màn hình
 chính*. Ứng dụng chạy toàn màn hình như app, có icon riêng.
