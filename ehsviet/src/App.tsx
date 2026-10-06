@@ -3,7 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import CompliancePage from './modules/compliance/CompliancePage'
+import EsgPage from './modules/esg/EsgPage'
 import OperationsPage from './modules/operations/OperationsPage'
+import PersonnelPage from './modules/personnel/PersonnelPage'
+import RulesPage from './modules/rules/RulesPage'
 import SafetyPage from './modules/safety/SafetyPage'
 import WastePage from './modules/waste/WastePage'
 import Dashboard from './pages/Dashboard'
@@ -37,7 +40,10 @@ function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="chat-thai" element={<WastePage />} />
         <Route path="van-hanh" element={<OperationsPage />} />
+        <Route path="nhan-su" element={<PersonnelPage />} />
         <Route path="an-toan" element={<SafetyPage />} />
+        <Route path="noi-quy" element={<RulesPage />} />
+        <Route path="esg" element={<EsgPage />} />
         <Route path="tuan-thu" element={<CompliancePage />} />
         <Route path="cai-dat" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

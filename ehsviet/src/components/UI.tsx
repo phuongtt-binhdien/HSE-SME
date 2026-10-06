@@ -24,7 +24,7 @@ export function Button({
   return (
     <button
       className={cls(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors',
         styles[variant],
         className
       )}
@@ -242,4 +242,62 @@ export function ErrorNote({ message }: { message: string }) {
       {message}
     </div>
   )
+}
+
+/* ---------------- Ô chỉ số (KPI) ---------------- */
+export function Kpi({
+  label,
+  value,
+  sub,
+  tone = 'gray',
+}: {
+  label: string
+  value: ReactNode
+  sub?: ReactNode
+  tone?: Tone
+}) {
+  const bar: Record<Tone, string> = {
+    green: 'bg-viridian-500',
+    amber: 'bg-amber-500',
+    red: 'bg-red-500',
+    gray: 'bg-pine-800/20',
+    blue: 'bg-steel-600',
+  }
+  return (
+    <div className="relative min-w-[150px] flex-1 overflow-hidden rounded-xl border border-pine-800/10 bg-white px-3.5 py-3">
+      <span className={cls('absolute inset-y-0 left-0 w-1', bar[tone])} />
+      <div className="text-[11px] font-medium uppercase tracking-wide text-pine-800/50">{label}</div>
+      <div className="mt-1 text-lg font-bold leading-tight text-pine-800 [font-variant-numeric:tabular-nums]">
+        {value}
+      </div>
+      {sub && <div className="mt-0.5 text-xs text-pine-800/50">{sub}</div>}
+    </div>
+  )
+}
+
+/* ---------------- Thanh tiến độ ---------------- */
+export function Progress({ value, tone = 'green' }: { value: number; tone?: Tone }) {
+  const fill: Record<Tone, string> = {
+    green: 'bg-viridian-600',
+    amber: 'bg-amber-500',
+    red: 'bg-red-500',
+    gray: 'bg-pine-800/30',
+    blue: 'bg-steel-600',
+  }
+  const pct = Math.max(0, Math.min(100, value))
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-pine-800/10">
+      <div className={cls('h-full rounded-full transition-all', fill[tone])} style={{ width: pct + '%' }} />
+    </div>
+  )
+}
+
+/* ---------------- Ghi chú căn cứ / hướng dẫn ---------------- */
+export function Note({ children, tone = 'gray' }: { children: ReactNode; tone?: 'gray' | 'amber' | 'blue' }) {
+  const tones = {
+    gray: 'border-pine-800/10 bg-pine-800/[0.03] text-pine-800/70',
+    amber: 'border-amber-600/25 bg-amber-50 text-amber-800',
+    blue: 'border-steel-600/20 bg-steel-50 text-steel-600',
+  }
+  return <div className={cls('rounded-lg border px-3 py-2 text-xs leading-relaxed', tones[tone])}>{children}</div>
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, ErrorNote, Field, Input } from '../components/UI'
-import { isConfigured, supabase } from '../lib/supabase'
+import { isDemo, supabase } from '../lib/supabase'
 import { errMsg } from '../lib/utils'
 
 export default function Login() {
@@ -78,10 +78,19 @@ export default function Login() {
               : 'Tài khoản mới sẽ khởi tạo tổ chức riêng ở bước tiếp theo.'}
           </p>
 
-          {!isConfigured && (
-            <div className="mt-4 rounded-lg border border-amber-600/25 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Chưa cấu hình kết nối Supabase. Sao chép <b>.env.example</b> thành <b>.env</b> và điền
-              VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (xem README).
+          {isDemo && (
+            <div className="mt-4 space-y-2 rounded-lg border border-amber-600/25 bg-amber-50 px-3 py-3 text-xs text-amber-800">
+              <p>
+                <b>Bản dùng thử</b> — chưa kết nối máy chủ Supabase. Dữ liệu mẫu nhà máy phân bón NPK (số liệu minh họa) lưu
+                ngay trên trình duyệt này. Để cả nhà máy dùng chung, cấu hình <b>VITE_SUPABASE_URL</b>,{' '}
+                <b>VITE_SUPABASE_ANON_KEY</b> (xem README).
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => supabase.auth.signInWithPassword({ email: 'dungthu', password: 'dungthu' })}
+              >
+                Vào bản dùng thử
+              </Button>
             </div>
           )}
 
