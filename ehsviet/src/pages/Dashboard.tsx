@@ -1,5 +1,6 @@
 import { format, parseISO, subMonths } from 'date-fns'
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -9,10 +10,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Badge, Card, CardHeader, EmptyState, type Tone } from '../components/UI'
+import { Badge, Card, CardHeader, EmptyState, Progress, type Tone } from '../components/UI'
 import { useAuth } from '../contexts/AuthContext'
 import { useList } from '../hooks/useCrud'
-import { ALERT_LEVEL_LABELS, SEVERITY_LABELS } from '../lib/constants'
+import { ALERT_LEVEL_LABELS, SEVERITY_LABELS, TRAINING_CATEGORY_LABELS } from '../lib/constants'
+import { summarize, type GhgActivity } from '../lib/ghg'
+import { evaluateUnits, gradeOf, type Violation } from '../lib/rules'
+import { coverage, isValid, MATRIX_CATEGORIES } from '../lib/training'
+import { usePersonnelData } from '../modules/personnel/shared'
 import { cls, daysUntil, fmtDate, fmtNum } from '../lib/utils'
 
 function Pulse({ label, value, tone }: { label: string; value: string; tone: Tone }) {
@@ -84,6 +89,25 @@ export default function Dashboard() {
 
   const monitoringExceeded = openAlerts.some((a: any) => a.source === 'quan_trac')
 
+  // Huấn luyện ATVSLĐ – PCCC – sự cố chất thải
+  const people = usePersonnelData(fid)
+  const activeEmp = people.employees.filter((e) => e.status === 'active')
+  const cov = MATRIX_CATEGORIES.map((c) => ({ c, ...coverage(people.employees, people.matrix, c) }))
+  const needTraining = activeEmp.filter((e) => MATRIX_CATEGORIES.some((c) => !isValid(people.matrix.get(e.id)![c]))).length
+
+  // Vi phạm nội quy tháng này
+  const violations = useList<Violation>('rule_violations', { match: { facility_id: fid }, order: 'violation_date', enabled: on })
+  const now = new Date()
+  const monthFrom = format(now, 'yyyy-MM') + '-01'
+  const monthTo = format(now, 'yyyy-MM') + '-31'
+  const vMonth = (violations.data ?? []).filter((v) => v.violation_date >= monthFrom && v.violation_date <= monthTo)
+  const vOpen = (violations.data ?? []).filter((v) => v.status !== 'closed').length
+  const unitEval = evaluateUnits(violations.data ?? [], monthFrom, monthTo)
+
+  // Khí nhà kính năm nay (lũy kế)
+  const ghg = useList<GhgActivity>('ghg_activities', { match: { facility_id: fid }, order: 'year', enabled: on })
+  const ghgYear = summarize(ghg.data ?? [], now.getFullYear())
+
   const chartData = useMemo(() => {
     const buckets: { key: string; label: string; total: number }[] = []
     for (let i = 5; i >= 0; i--) {
@@ -148,10 +172,86 @@ export default function Dashboard() {
             value={fireOverdue.length > 0 ? fireOverdue.length + ' quá hạn kiểm tra' : 'Đạt'}
             tone={fireOverdue.length > 0 ? 'amber' : 'green'}
           />
+          <Pulse
+            label="Huấn luyện"
+            value={activeEmp.length === 0 ? 'Chưa có nhân sự' : needTraining > 0 ? needTraining + ' người cần huấn luyện' : 'Đủ, còn hạn'}
+            tone={activeEmp.length === 0 ? 'gray' : needTraining > 0 ? 'red' : 'green'}
+          />
+          <Pulse
+            label="Vi phạm nội quy"
+            value={vMonth.length + ' trong tháng · ' + vOpen + ' chưa khắc phục'}
+            tone={vOpen > 0 ? 'amber' : 'green'}
+          />
+          <Pulse
+            label={'KNK ' + now.getFullYear()}
+            value={ghgYear.hasData ? fmtNum(ghgYear.total12, 0) + ' tCO₂e (PV1+2)' : 'Chưa nhập'}
+            tone="blue"
+          />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader
+            title="Huấn luyện an toàn – PCCC – sự cố chất thải"
+            hint={`Tỷ lệ người lao động còn hiệu lực huấn luyện · ${activeEmp.length} người đang làm việc`}
+            action={
+              <Link to="/nhan-su" className="text-xs font-medium text-viridian-700 hover:underline">
+                Ma trận huấn luyện →
+              </Link>
+            }
+          />
+          {activeEmp.length === 0 ? (
+            <EmptyState title="Chưa có nhân sự" hint="Nhập danh sách tại Nhân sự & Huấn luyện" />
+          ) : (
+            <div className="space-y-3 px-4 py-4">
+              {cov.map(({ c, pct, ok, total }) => (
+                <div key={c}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-pine-800">{TRAINING_CATEGORY_LABELS[c]}</span>
+                    <span className="text-pine-800/60">
+                      {ok}/{total} · <b className="text-pine-800">{pct}%</b>
+                    </span>
+                  </div>
+                  <Progress value={pct} tone={pct >= 95 ? 'green' : pct >= 80 ? 'amber' : 'red'} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Xếp loại đơn vị tháng này"
+            hint="Theo số lần không đạt (thông số, khu vực, điểm thu gom, hành vi)"
+            action={
+              <Link to="/noi-quy" className="text-xs font-medium text-viridian-700 hover:underline">
+                Nội quy & Vi phạm →
+              </Link>
+            }
+          />
+          {unitEval.length === 0 ? (
+            <EmptyState title="Chưa có vi phạm trong tháng" hint="Các đơn vị được xếp loại A" />
+          ) : (
+            <ul className="divide-y divide-pine-800/5">
+              {unitEval.slice(0, 5).map((u) => {
+                const g = gradeOf(u.total).grade
+                return (
+                  <li key={u.department} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div>
+                      <div className="text-sm font-medium text-pine-800">{u.department}</div>
+                      <div className="text-xs text-pine-800/45">
+                        {u.total} lần không đạt{u.open ? ' · ' + u.open + ' chưa khắc phục' : ''}
+                      </div>
+                    </div>
+                    <Badge tone={g === 'A' ? 'green' : g === 'B' ? 'blue' : g === 'C' ? 'amber' : 'red'}>Loại {g}</Badge>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Card>
+
         <Card>
           <CardHeader title="Hạn tuân thủ sắp đến" hint="Báo cáo, quan trắc, phí, giấy phép" />
           {pendingTasks.length === 0 ? (

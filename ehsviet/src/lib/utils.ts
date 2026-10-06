@@ -11,6 +11,12 @@ export const fmtNum = (n?: number | null, digits = 2) =>
     ? '—'
     : new Intl.NumberFormat('vi-VN', { maximumFractionDigits: digits }).format(n)
 
+/** Số với đúng `digits` chữ số thập phân (chỉ số cường độ) */
+export const fmtFixed = (n?: number | null, digits = 4) =>
+  n === null || n === undefined
+    ? '—'
+    : new Intl.NumberFormat('vi-VN', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
+
 export const todayISO = () => format(new Date(), 'yyyy-MM-dd')
 
 /** số ngày từ hôm nay đến d (âm = đã quá hạn) */

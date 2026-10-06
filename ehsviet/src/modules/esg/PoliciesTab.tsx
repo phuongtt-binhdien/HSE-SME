@@ -24,7 +24,7 @@ import { PILLAR_LABELS, POLICY_STATUS_LABELS } from '../../lib/constants'
 import { metricByKey, TARGET_METRICS, type GriContext } from '../../lib/gri'
 import { supabase } from '../../lib/supabase'
 import { policyRows, targetRows } from '../../lib/templates'
-import { cls, daysUntil, errMsg, fmtDate, fmtNum } from '../../lib/utils'
+import { cls, daysUntil, errMsg, fmtDate, fmtFixed, fmtNum } from '../../lib/utils'
 import type { useEsgData } from './useEsgData'
 
 type EsgData = ReturnType<typeof useEsgData>
@@ -70,7 +70,8 @@ function evaluate(t: any, ctxFor: (y: number) => GriContext, years: number[]): T
   return { baseline, target, current, currentYear, progress, achieved }
 }
 
-const num = (v: number | null, unit?: string) => (v == null ? '—' : fmtNum(v, unit?.includes('/t') ? 4 : Math.abs(v) < 100 ? 1 : 0))
+const num = (v: number | null, unit?: string) =>
+  v == null ? '—' : unit?.includes('/t') ? fmtFixed(v, 4) : fmtNum(v, Math.abs(v) < 100 ? 1 : 0)
 
 export default function PoliciesTab({ data, base, canEdit }: { data: EsgData; base: any; canEdit: boolean }) {
   const qc = useQueryClient()

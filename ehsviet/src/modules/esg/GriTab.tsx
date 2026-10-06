@@ -23,7 +23,7 @@ import {
 } from '../../components/UI'
 import { GRI_ITEMS, GRI_PILLAR_LABELS, TT96_GROUPS, type GriItem } from '../../lib/gri'
 import { supabase } from '../../lib/supabase'
-import { errMsg, fmtNum } from '../../lib/utils'
+import { errMsg, fmtFixed, fmtNum } from '../../lib/utils'
 import { saveMetric, type EsgMetric, type useEsgData } from './useEsgData'
 
 type EsgData = ReturnType<typeof useEsgData>
@@ -38,8 +38,8 @@ interface Row {
 
 const fmtValue = (v: number | null, unit?: string) => {
   if (v == null) return null
-  const digits = unit?.includes('/t') ? 4 : Math.abs(v) < 10 ? 2 : Math.abs(v) < 1000 ? 1 : 0
-  return fmtNum(v, digits)
+  if (unit?.includes('/t')) return fmtFixed(v, 4)
+  return fmtNum(v, Math.abs(v) < 10 ? 2 : Math.abs(v) < 1000 ? 1 : 0)
 }
 
 export default function GriTab({ data, base, canEdit }: { data: EsgData; base: any; canEdit: boolean }) {

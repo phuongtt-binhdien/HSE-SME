@@ -82,9 +82,10 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     [wXi, 41000],
     [wSH, 7100],
   ]
-  for (let m = -9; m <= -1; m++) {
+  const firstMonth = -(now.getMonth() + 12) // tháng 1 năm trước
+  for (let m = firstMonth; m <= -1; m++) {
     monthly.forEach(([t, q], i) => {
-      const factor = 0.85 + (((m + 12) * 7 + i * 3) % 10) / 33
+      const factor = 0.85 + ((((m + 24) * 7 + i * 3) % 10) + 10) % 10 / 33
       waste_logs.push({
         id: uuid(),
         ...base,
@@ -103,8 +104,14 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
   const waste_contractors = [cCaoGiaQuy, cChanLy]
   const tr1 = { id: uuid(), ...base, contractor_id: cCaoGiaQuy.id, transfer_date: md(-4, 12), manifest_no: 'Chứng từ minh họa', status: 'completed', note: MINH_HOA }
   const tr2 = { id: uuid(), ...base, contractor_id: cChanLy.id, transfer_date: md(-1, 18), manifest_no: null, status: 'signed', note: MINH_HOA }
-  const waste_transfers = [tr1, tr2]
+  const tr0 = { id: uuid(), ...base, contractor_id: cCaoGiaQuy.id, transfer_date: `${year - 1}-11-14`, manifest_no: 'Chứng từ minh họa', status: 'completed', note: MINH_HOA }
+  const waste_transfers = [tr0, tr1, tr2]
   const waste_transfer_items = [
+    { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr0.id, waste_type_id: wDau.id, quantity: 540 },
+    { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr0.id, waste_type_id: wGie.id, quantity: 30 },
+    { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr0.id, waste_type_id: wDen.id, quantity: 95 },
+    { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr0.id, waste_type_id: wBaoBiKL.id, quantity: 230 },
+    { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr0.id, waste_type_id: wMuc.id, quantity: 20 },
     { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr1.id, waste_type_id: wDau.id, quantity: 260 },
     { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr1.id, waste_type_id: wDen.id, quantity: 45 },
     { id: uuid(), org_id: DEMO_ORG_ID, transfer_id: tr1.id, waste_type_id: wBaoBiKL.id, quantity: 120 },
@@ -224,8 +231,8 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
   ]
 
   const fire_equipment = [
-    { id: uuid(), ...base, name: 'Bình bột chữa cháy', type: 'binh_bot', location: 'Các xưởng, kho, văn phòng', quantity: 42, last_inspection: md(-1, 5), next_inspection: md(0, 5), status: 'tot', note: 'Kiểm tra thẻ hằng tháng (MT-HD01)' },
-    { id: uuid(), ...base, name: 'Bình CO₂ chữa cháy', type: 'binh_co2', location: 'Phòng điện, tủ điện, phòng máy', quantity: 48, last_inspection: md(-1, 5), next_inspection: md(0, 5), status: 'tot', note: null },
+    { id: uuid(), ...base, name: 'Bình bột chữa cháy', type: 'binh_bot', location: 'Các xưởng, kho, văn phòng', quantity: 42, last_inspection: d(-24), next_inspection: d(6), status: 'tot', note: 'Kiểm tra thẻ hằng tháng (MT-HD01)' },
+    { id: uuid(), ...base, name: 'Bình CO₂ chữa cháy', type: 'binh_co2', location: 'Phòng điện, tủ điện, phòng máy', quantity: 48, last_inspection: d(-24), next_inspection: d(6), status: 'tot', note: null },
     { id: uuid(), ...base, name: 'Tủ chữa cháy vách tường', type: 'hong_nuoc', location: 'Nhà xưởng, kho', quantity: 76, last_inspection: md(-2, 10), next_inspection: d(12), status: 'tot', note: null },
     { id: uuid(), ...base, name: 'Trạm bơm chữa cháy bờ sông', type: 'may_bom', location: 'Bờ sông Vàm Cỏ Đông', quantity: 1, last_inspection: md(-1, 15), next_inspection: d(-3), status: 'can_bao_tri', note: 'Bơm bù áp rò rỉ phớt' },
     { id: uuid(), ...base, name: 'Trạm bơm chữa cháy kho bao bì', type: 'may_bom', location: 'Kho bao bì', quantity: 1, last_inspection: md(-1, 15), next_inspection: d(20), status: 'tot', note: null },
@@ -410,6 +417,7 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     metric(year, 'production_t', Math.round(37000 * Math.max(ytdMonths, 1)), 't', `Lũy kế ${Math.max(ytdMonths, 1)} tháng`),
     metric(year - 1, 'GRI 303-3', 78000, 'm³'),
     metric(year - 1, 'GRI 2-27', 0, 'vụ', 'Không bị xử phạt vi phạm hành chính về môi trường'),
+    metric(year - 1, 'GRI 303-4', 17500, 'm³', 'Theo nhật ký vận hành HTXLNT'),
   ]
 
   const activity = (y: number, month: number | null, key: string, value: number, note = MINH_HOA) => {
@@ -487,7 +495,7 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     created_by: null,
     ...o,
   })
-  const rule_violations = [
+  const rule_violations: Row[] = [
     v({ violation_date: md(0, 2), rule_id: rVSCN, category: 'vscn', kind: 'khu_vuc', department: 'Xưởng Tạo hạt 1', location: 'Sàn thao tác lò sấy TH1', description: 'Sàn thao tác đóng bụi dày, chưa vệ sinh sau ca', record_no: 'BB-01 (mẫu)', measure: 'khac_phuc', corrective_action: 'Vệ sinh sàn, bổ sung lịch vệ sinh cuối ca', responsible: 'Quản đốc TH1', due_date: d(3), status: 'fixing' }),
     v({ violation_date: md(0, 3), rule_id: rTTMT, category: 'moi_truong', kind: 'diem_thu_gom', department: 'Kho nguyên liệu – thành phẩm', location: 'Điểm thùng rác kho thành phẩm', description: 'Giẻ lau dính dầu bỏ lẫn vào thùng CTRSH', measure: 'giai_trinh', corrective_action: 'Thu gom về kho CTNH; nhắc nhở, đào tạo lại', responsible: 'Thủ kho', due_date: d(1), status: 'open' }),
     v({ violation_date: md(0, 3), rule_id: rTTMT, category: 'moi_truong', kind: 'hanh_vi', subject_type: 'ca_nhan', department: 'Tổ Cơ điện', employee_id: emp('NV017').id, location: 'Xưởng cơ khí', description: 'Đổ dầu nhớt thải vào thùng chứa không dán nhãn', measure: 'nhac_nho', corrective_action: 'Chuyển dầu vào phuy CTNH có nhãn tại kho CTNH', responsible: 'Tổ trưởng Cơ điện', status: 'closed', closed_date: md(0, 3) }),
@@ -501,6 +509,31 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     v({ violation_date: md(-2, 19), rule_id: rTTMT, category: 'moi_truong', kind: 'hanh_vi', subject_type: 'ca_nhan', department: 'Tổ Cơ điện', employee_id: emp('NV017').id, location: 'Xưởng cơ khí', description: 'Bỏ giẻ lau dính dầu vào thùng rác sinh hoạt', measure: 'nhac_nho', status: 'closed', closed_date: md(-2, 19) }),
     v({ violation_date: md(-3, 6), rule_id: rVSCN, category: 'vscn', kind: 'khu_vuc', department: 'Xưởng Trộn', location: 'Khu xả liệu', description: 'Bao rách, nguyên liệu rơi vãi tại khu xả liệu', measure: 'khac_phuc', status: 'closed', closed_date: md(-3, 7) }),
   ]
+  const pastKinds: [string, string, string, string][] = [
+    ['vscn', 'khu_vuc', 'Xưởng Tạo hạt 1', 'Sàn thao tác đóng bụi, chưa vệ sinh cuối ca'],
+    ['moi_truong', 'diem_thu_gom', 'Kho nguyên liệu – thành phẩm', 'Thùng rác không phân loại 3 nhóm'],
+    ['vscn', 'khu_vuc', 'Cầu cảng', 'Phân bón rơi vãi khi bốc xếp'],
+    ['moi_truong', 'hanh_vi', 'Tổ Cơ điện', 'Giẻ lau dính dầu bỏ thùng rác sinh hoạt'],
+    ['vscn', 'khu_vuc', 'Tổ Lò hơi', 'Xỉ than tràn ra ngoài khu chứa'],
+    ['moi_truong', 'diem_thu_gom', 'Nhà ăn', 'Thùng thực phẩm thừa không có nắp'],
+    ['vscn', 'khu_vuc', 'Xưởng Trộn', 'Bao rách, nguyên liệu rơi vãi khu xả liệu'],
+    ['moi_truong', 'hanh_vi', 'Xưởng Tạo hạt 2', 'Không ghi nhật ký vận hành hệ lọc bụi trong ca'],
+  ]
+  for (let i = 0; i < 22; i++) {
+    const [category, kind, department, description] = pastKinds[i % pastKinds.length]
+    rule_violations.push(
+      v({
+        violation_date: `${year - 1}-${String((i % 12) + 1).padStart(2, '0')}-${String(5 + ((i * 7) % 20)).padStart(2, '0')}`,
+        rule_id: category === 'vscn' ? rVSCN : rTTMT,
+        category,
+        kind,
+        department,
+        description,
+        measure: 'khac_phuc',
+        status: 'closed',
+      })
+    )
+  }
 
   return {
     organizations,

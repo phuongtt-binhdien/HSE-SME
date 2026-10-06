@@ -86,11 +86,12 @@ function ChecklistTab({ fid, base, canEdit }: any) {
 
   const submitTpl = async () => {
     setErr('')
+    const previous = new Map<string, any>((tplForm.items ?? []).map((i: any) => [i.label, i]))
     const items = (tplForm.itemsText ?? '')
       .split('\n')
       .map((s: string) => s.trim())
       .filter(Boolean)
-      .map((label: string) => ({ label }))
+      .map((label: string) => previous.get(label) ?? { label })
     if (!tplForm.name?.trim() || items.length === 0)
       return setErr('Nhập tên checklist và ít nhất một hạng mục (mỗi dòng một mục).')
     try {
@@ -113,7 +114,7 @@ function ChecklistTab({ fid, base, canEdit }: any) {
       run_date: todayISO(),
       inspector: '',
       note: '',
-      results: (t.items ?? []).map((i: any) => ({ label: i.label, status: 'dat', note: '' })),
+      results: (t.items ?? []).map((i: any) => ({ label: i.label, hint: i.hint, fix: i.fix, status: 'dat', note: '' })),
     })
 
   const runScore = (results: any[]) => {
@@ -343,13 +344,16 @@ function ChecklistTab({ fid, base, canEdit }: any) {
             {(runForm?.results ?? []).map((r: any, i: number) => (
               <div key={i} className="rounded-lg border border-pine-800/10 p-2.5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="text-sm text-pine-800">{r.label}</div>
+                  <div>
+                    <div className="text-sm text-pine-800">{r.label}</div>
+                    {r.hint && <div className="mt-0.5 text-[11px] text-pine-800/45">{r.hint}</div>}
+                  </div>
                   <Seg value={r.status} onChange={(v) => setResult(i, { status: v })} />
                 </div>
                 {r.status === 'khong_dat' && (
                   <Input
                     className="mt-2"
-                    placeholder="Ghi chú tồn tại / yêu cầu khắc phục"
+                    placeholder={r.fix ? 'Tồn tại / khắc phục — đề xuất: ' + r.fix : 'Ghi chú tồn tại / yêu cầu khắc phục'}
                     value={r.note}
                     onChange={(e) => setResult(i, { note: e.target.value })}
                   />

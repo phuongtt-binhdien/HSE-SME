@@ -8,10 +8,10 @@
 insert into public.organizations (id, name, tax_code, plan) values
 ('11111111-1111-1111-1111-111111111111', 'Công ty CP Phân bón Bình Điền (Demo)', null, 'pro');
 
-insert into public.facilities (id, org_id, name, address, gpmt_number, gpmt_issuer, gpmt_issued_date) values
+insert into public.facilities (id, org_id, name, address, gpmt_number, gpmt_issuer, gpmt_issued_date, gpmt_expiry) values
 ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111',
- 'Nhà máy Long Định', 'KCN Long Định – Long Cang, Cần Đước, Long An',
- '2986/GPMT-STNMT', 'Sở TN&MT Long An (nay: Sở Nông nghiệp và Môi trường)', null);
+ 'Nhà máy Phân bón Bình Điền – Long An', 'CCN Long Định – Long Cang, xã Long Cang, tỉnh Tây Ninh',
+ '2986/GPMT-STNMT', 'Sở TN&MT Long An (nay: Sở NN&MT Tây Ninh)', '2023-04-28', '2033-04-27');
 
 -- ---------- Danh mục chất thải (mã CTNH theo TT 02/2022/TT-BTNMT) ----------
 insert into public.waste_types (org_id, facility_id, code, name, category, physical_state, unit, storage_location) values
@@ -23,8 +23,8 @@ insert into public.waste_types (org_id, facility_id, code, name, category, physi
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222',null,'Chất thải rắn sinh hoạt','CTRSH','ran','kg','Điểm tập kết CTRSH');
 
 insert into public.waste_contractors (org_id, name, license_no, scope, contact_person) values
-('11111111-1111-1111-1111-111111111111','Công ty TNHH MTV Môi trường Chân Lý', null, 'Thu gom, vận chuyển, xử lý CTNH', null),
-('11111111-1111-1111-1111-111111111111','Công ty Cao Gia Quý', null, 'Thu gom, xử lý chất thải công nghiệp', null);
+('11111111-1111-1111-1111-111111111111','Công ty TNHH Môi trường Cao Gia Quý', null, 'Thu gom, vận chuyển, xử lý chất thải nguy hại', null),
+('11111111-1111-1111-1111-111111111111','Công ty TNHH Môi trường Chân Lý', null, 'Thu gom, xử lý chất thải rắn công nghiệp thông thường', null);
 
 -- ---------- Hệ thống xử lý & điểm quan trắc ----------
 insert into public.treatment_systems (org_id, facility_id, name, kind, capacity, description) values
@@ -74,7 +74,7 @@ insert into public.fire_equipment (org_id, facility_id, name, type, location, qu
 
 -- ---------- Hồ sơ pháp lý & lịch tuân thủ mẫu ----------
 insert into public.legal_documents (org_id, facility_id, doc_no, title, category, issuer) values
-('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','2986/GPMT-STNMT','Giấy phép môi trường','GPMT','Sở TN&MT Long An (nay: Sở Nông nghiệp và Môi trường)'),
+('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','2986/GPMT-STNMT','Giấy phép môi trường','GPMT','Sở TN&MT Long An (nay: Sở NN&MT Tây Ninh)'),
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222',null,'Hợp đồng thu gom, xử lý CTNH','hop_dong','Ký với đơn vị có chức năng'),
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222',null,'Chứng nhận ISO 14001:2015','giay_phep',null);
 
@@ -95,6 +95,11 @@ insert into public.chemicals (org_id, facility_id, name, storage_location, unit,
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','PAC (Poly Aluminium Chloride)','Kho hóa chất HTXLNT','kg',true),
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','Polymer anion','Kho hóa chất HTXLNT','kg',true),
 ('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222','Chlorine (Ca(OCl)₂)','Kho hóa chất HTXLNT','kg',true);
+
+-- ---------- Nhân sự, ESG, nội quy ----------
+-- Chính sách – mục tiêu ESG, danh mục nội quy và checklist tự kiểm tra tuân thủ được nạp
+-- trong ứng dụng: Cài đặt › "Bộ mẫu nghiệp vụ nhà máy phân bón NPK". Danh sách nhân sự và
+-- lượt huấn luyện nhập tại Nhân sự & Huấn luyện › Nhập từ Excel.
 
 -- ============================================================
 -- BƯỚC CUỐI: gán tài khoản đăng nhập đầu tiên vào tổ chức demo.

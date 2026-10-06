@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Plus, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import {
   Badge,
@@ -17,6 +18,9 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { useList, useSave } from '../hooks/useCrud'
 import { ROLE_LABELS } from '../lib/constants'
+import { resetDemoData } from '../lib/demo/client'
+import { isDemo, supabase } from '../lib/supabase'
+import { checklistRows, ESG_POLICY_TEMPLATES, ESG_TARGET_TEMPLATES, INTERNAL_RULE_TEMPLATES, CHECKLIST_TEMPLATES, policyRows, ruleRows, targetRows } from '../lib/templates'
 import { errMsg } from '../lib/utils'
 
 export default function SettingsPage() {
@@ -172,6 +176,29 @@ export default function SettingsPage() {
         </Table>
       </Card>
 
+      {role !== 'viewer' && <TemplatesCard />}
+
+      {isDemo && (
+        <Card>
+          <CardHeader
+            title="Dữ liệu dùng thử"
+            hint="Bản dùng thử lưu dữ liệu trên trình duyệt này. Khôi phục để xóa mọi thay đổi và nạp lại dữ liệu mẫu minh họa."
+            action={
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!window.confirm('Xóa toàn bộ dữ liệu đã nhập trong bản dùng thử và nạp lại dữ liệu mẫu?')) return
+                  resetDemoData()
+                  window.location.reload()
+                }}
+              >
+                <RotateCcw size={15} /> Khôi phục dữ liệu mẫu
+              </Button>
+            }
+          />
+        </Card>
+      )}
+
       <Modal
         open={!!facForm}
         onClose={() => setFacForm(null)}
@@ -215,6 +242,120 @@ export default function SettingsPage() {
           </Field>
         </div>
       </Modal>
+    </div>
+  )
+}
+
+/** Nạp bộ mẫu nghiệp vụ nhà máy phân bón NPK vào nhà máy đang chọn */
+function TemplatesCard() {
+  const qc = useQueryClient()
+  const { profile, facilityId, facility } = useAuth()
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
+  const base = { org_id: profile!.org_id, facility_id: facilityId ?? '' }
+
+  const run = async (key: string, fn: () => Promise<string>) => {
+    if (!facilityId) return
+    setBusy(key)
+    setMsg('')
+    setError('')
+    try {
+      setMsg(await fn())
+      await qc.invalidateQueries()
+    } catch (e) {
+      setError(errMsg(e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  /** Tên các mục đã có — mẫu trùng tên được bỏ qua để nạp lại không sinh bản trùng */
+  const titles = async (table: string) => {
+    const { data, error } = await supabase.from(table).select('title').eq('facility_id', facilityId!)
+    if (error) throw error
+    return new Set((data ?? []).map((r: any) => r.title as string))
+  }
+
+  const loadEsg = () =>
+    run('esg', async () => {
+      const [hp, ht] = await Promise.all([titles('esg_policies'), titles('esg_targets')])
+      const policies = policyRows(base).filter((p) => !hp.has(p.title))
+      const targets = targetRows(base).filter((t) => !ht.has(t.title))
+      if (!policies.length && !targets.length) return 'Bộ chính sách và mục tiêu ESG mẫu đã có sẵn.'
+      if (policies.length) {
+        const r = await supabase.from('esg_policies').insert(policies)
+        if (r.error) throw r.error
+      }
+      if (targets.length) {
+        const r = await supabase.from('esg_targets').insert(targets)
+        if (r.error) throw r.error
+      }
+      return `Đã nạp ${policies.length}/${ESG_POLICY_TEMPLATES.length} chính sách và ${targets.length}/${ESG_TARGET_TEMPLATES.length} mục tiêu ESG (dự thảo).`
+    })
+
+  const loadRules = () =>
+    run('rules', async () => {
+      const have = await titles('internal_rules')
+      const rows = ruleRows(base).filter((r) => !have.has(r.title))
+      if (!rows.length) return 'Danh mục nội quy mẫu đã có sẵn.'
+      const { error } = await supabase.from('internal_rules').insert(rows)
+      if (error) throw error
+      return `Đã nạp ${rows.length}/${INTERNAL_RULE_TEMPLATES.length} nội quy, quy định nội bộ.`
+    })
+
+  const loadChecklists = () =>
+    run('checklists', async () => {
+      const { data, error } = await supabase.from('checklist_templates').select('name').eq('facility_id', facilityId!)
+      if (error) throw error
+      const have = new Set((data ?? []).map((t: any) => t.name))
+      const rows = checklistRows(base).filter((t) => !have.has(t.name))
+      if (!rows.length) return 'Các checklist mẫu đã có sẵn.'
+      const r = await supabase.from('checklist_templates').insert(rows)
+      if (r.error) throw r.error
+      const items = rows.reduce((s, t) => s + t.items.length, 0)
+      return `Đã nạp ${rows.length}/${CHECKLIST_TEMPLATES.length} checklist (${items} hạng mục).`
+    })
+
+  return (
+    <Card>
+      <CardHeader
+        title="Bộ mẫu nghiệp vụ nhà máy phân bón NPK"
+        hint={'Nạp vào: ' + (facility?.name ?? '—') + '. Nội dung là dự thảo — rà soát, chỉnh sửa và ban hành theo thẩm quyền.'}
+      />
+      <div className="grid gap-3 p-4 md:grid-cols-3">
+        <TemplateItem
+          title="Chính sách & mục tiêu ESG"
+          desc="8 chính sách E – S – G (môi trường ISO 14001, khí hậu, ATVSLĐ – PCCC, nhà thầu, người lao động, PCTN, công bố ESG, tuân thủ) và 11 mục tiêu gắn chỉ số tự tính."
+          busy={busy === 'esg'}
+          onClick={loadEsg}
+        />
+        <TemplateItem
+          title="Danh mục nội quy nội bộ"
+          desc="Quy định tuân thủ MT nội bộ, VSCN mặt bằng, MT-HD01…07, nội quy ATVSLĐ – PCCC, nội quy lao động."
+          busy={busy === 'rules'}
+          onClick={loadRules}
+        />
+        <TemplateItem
+          title="Checklist kiểm tra & tự kiểm tra tuân thủ"
+          desc="VSCN hằng tháng 12 khu vực; bảng tự kiểm tra theo NĐ 45/2022 (34 mục), NĐ 106/2025 (18), NĐ 12/2022 (15), hóa chất (6) — kèm căn cứ, mức phạt, bằng chứng."
+          busy={busy === 'checklists'}
+          onClick={loadChecklists}
+        />
+      </div>
+      {(msg || error) && <div className="px-4 pb-4">{error ? <ErrorNote message={error} /> : <div className="text-sm text-viridian-700">{msg}</div>}</div>}
+    </Card>
+  )
+}
+
+function TemplateItem({ title, desc, busy, onClick }: { title: string; desc: string; busy: boolean; onClick: () => void }) {
+  return (
+    <div className="flex flex-col rounded-lg border border-pine-800/10 p-3">
+      <div className="text-sm font-semibold text-pine-800">{title}</div>
+      <p className="mt-1 flex-1 text-xs text-pine-800/55">{desc}</p>
+      <Button variant="outline" className="mt-3 self-start" onClick={onClick} disabled={busy}>
+        {busy ? 'Đang nạp…' : 'Nạp vào nhà máy'}
+      </Button>
     </div>
   )
 }

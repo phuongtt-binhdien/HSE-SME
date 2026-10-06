@@ -18,6 +18,7 @@ import {
   Note,
   Select,
   Table,
+  Tabs,
   Td,
   Textarea,
 } from '../../components/UI'
@@ -35,7 +36,7 @@ import {
   type GhgActivity,
 } from '../../lib/ghg'
 import { supabase } from '../../lib/supabase'
-import { errMsg, fmtNum } from '../../lib/utils'
+import { errMsg, fmtFixed, fmtNum } from '../../lib/utils'
 import { saveMetric, type useEsgData } from './useEsgData'
 
 type EsgData = ReturnType<typeof useEsgData>
@@ -56,6 +57,7 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
   const [prodForm, setProdForm] = useState<any>(null)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [detail, setDetail] = useState(false)
 
   const sum = useMemo(() => summarize(activities, year), [activities, year])
   const prodRow = metric(year, 'production_t')
@@ -69,6 +71,22 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
         .sort((a, b) => (a.month ?? 0) - (b.month ?? 0) || a.scope - b.scope || a.source_name.localeCompare(b.source_name, 'vi')),
     [activities, year]
   )
+
+  // tổng hợp theo nguồn trong năm (cùng nguồn, cùng phạm vi, cùng đơn vị)
+  const aggregated = useMemo(() => {
+    const m = new Map<string, { scope: number; name: string; unit: string; value: number; t: number; bio: number; months: number }>()
+    for (const a of rows) {
+      const k = a.scope + '|' + a.source_name + '|' + a.activity_unit
+      const x = m.get(k) ?? { scope: a.scope, name: a.source_name, unit: a.activity_unit, value: 0, t: 0, bio: 0, months: 0 }
+      x.value += Number(a.activity_value)
+      x.t += emissionT(a)
+      x.bio += Number(a.biogenic_co2_t ?? 0)
+      x.months += a.month ? 1 : 0
+      m.set(k, x)
+    }
+    return [...m.values()].sort((a, b) => a.scope - b.scope || b.t - a.t)
+  }, [rows])
+  const totalAll = sum.s1 + sum.s2 + sum.s3
 
   // cảnh báo tính trùng: cùng nguồn vừa có số liệu cả năm vừa có số liệu tháng
   const doubleCount = useMemo(() => {
@@ -276,7 +294,7 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
         <Kpi label="Tổng PV1 + PV2" value={t1(sum.total12)} sub={sum.s3 ? `+ PV3 ${t1(sum.s3)} t` : 'tCO₂e'} tone="gray" />
         <Kpi
           label="Cường độ phát thải"
-          value={intensity != null ? fmtNum(intensity, 4) : '—'}
+          value={intensity != null ? fmtFixed(intensity, 4) : '—'}
           sub={intensity != null ? 'tCO₂e/t thành phẩm' : 'Nhập sản lượng để tính'}
           tone="gray"
         />
@@ -308,13 +326,13 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
                 <BarChart data={bySource} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }} barCategoryGap={6}>
                   <CartesianGrid stroke={GRID} horizontal={false} />
                   <XAxis type="number" tick={TICK} axisLine={{ stroke: '#C9CEC9' }} tickLine={false} tickFormatter={(v) => fmtNum(v, 0)} />
-                  <YAxis type="category" dataKey="short" width={190} tick={{ ...TICK, fill: '#3F4642' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="short" width={220} tick={{ ...TICK, fill: '#3F4642' }} axisLine={false} tickLine={false} />
                   <Tooltip
                     cursor={{ fill: 'rgba(20,38,31,0.04)' }}
                     formatter={(v: any, _n: any, p: any) => [t1(Number(v)) + ' tCO₂e', SCOPE_LABELS[String(p?.payload?.scope)]]}
                     labelFormatter={(_l: any, p: any) => p?.[0]?.payload?.name ?? ''}
                   />
-                  <Bar dataKey="t" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                  <Bar isAnimationActive={false} dataKey="t" radius={[0, 4, 4, 0]} maxBarSize={22}>
                     {bySource.map((s) => (
                       <Cell key={s.name + s.scope} fill={SCOPE_COLORS[s.scope]} />
                     ))}
@@ -337,8 +355,8 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
                   <XAxis dataKey={monthData.length ? 'label' : 'year'} tick={TICK} axisLine={{ stroke: '#C9CEC9' }} tickLine={false} />
                   <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => fmtNum(v, 0)} width={56} />
                   <Tooltip cursor={{ fill: 'rgba(20,38,31,0.04)' }} formatter={(v: any, n: any) => [t1(Number(v)) + ' tCO₂e', n]} />
-                  <Bar dataKey="s1" name="Phạm vi 1" stackId="s" fill={SCOPE_COLORS[1]} stroke="#fff" strokeWidth={2} maxBarSize={40} />
-                  <Bar
+                  <Bar isAnimationActive={false} dataKey="s1" name="Phạm vi 1" stackId="s" fill={SCOPE_COLORS[1]} stroke="#fff" strokeWidth={2} maxBarSize={40} />
+                  <Bar isAnimationActive={false}
                     dataKey="s2"
                     name="Phạm vi 2"
                     stackId="s"
@@ -348,7 +366,7 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
                     maxBarSize={40}
                     radius={sum.s3 ? undefined : [4, 4, 0, 0]}
                   />
-                  {sum.s3 > 0 && <Bar dataKey="s3" name="Phạm vi 3" stackId="s" fill={SCOPE_COLORS[3]} stroke="#fff" strokeWidth={2} maxBarSize={40} radius={[4, 4, 0, 0]} />}
+                  {sum.s3 > 0 && <Bar isAnimationActive={false} dataKey="s3" name="Phạm vi 3" stackId="s" fill={SCOPE_COLORS[3]} stroke="#fff" strokeWidth={2} maxBarSize={40} radius={[4, 4, 0, 0]} />}
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -366,8 +384,8 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
                 <XAxis dataKey="year" tick={TICK} axisLine={{ stroke: '#C9CEC9' }} tickLine={false} />
                 <YAxis tick={TICK} axisLine={false} tickLine={false} tickFormatter={(v) => fmtNum(v, 0)} width={56} />
                 <Tooltip cursor={{ fill: 'rgba(20,38,31,0.04)' }} formatter={(v: any, n: any) => [t1(Number(v)) + ' tCO₂e', n]} />
-                <Bar dataKey="s1" name="Phạm vi 1" stackId="y" fill={SCOPE_COLORS[1]} stroke="#fff" strokeWidth={2} maxBarSize={48} />
-                <Bar dataKey="s2" name="Phạm vi 2" stackId="y" fill={SCOPE_COLORS[2]} stroke="#fff" strokeWidth={2} maxBarSize={48} radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="s1" name="Phạm vi 1" stackId="y" fill={SCOPE_COLORS[1]} stroke="#fff" strokeWidth={2} maxBarSize={48} />
+                <Bar isAnimationActive={false} dataKey="s2" name="Phạm vi 2" stackId="y" fill={SCOPE_COLORS[2]} stroke="#fff" strokeWidth={2} maxBarSize={48} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <div className="grid content-start gap-2 sm:grid-cols-2 md:grid-cols-1">
@@ -381,7 +399,7 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
                       <div className="text-sm font-semibold text-pine-800">{t1(r.total)} tCO₂e</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm text-pine-800">{r.intensity != null ? fmtNum(r.intensity, 4) : '—'}</div>
+                      <div className="text-sm text-pine-800">{r.intensity != null ? fmtFixed(r.intensity, 4) : '—'}</div>
                       <div className="text-[11px] text-pine-800/50">
                         tCO₂e/t
                         {delta != null && (
@@ -401,9 +419,58 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
       )}
 
       <Card>
-        <CardHeader title={`Số liệu hoạt động năm ${year}`} hint="Hệ số được lưu cố định theo từng dòng; sửa hệ số mẫu không làm đổi số liệu đã kiểm kê" />
+        <CardHeader
+          title={`Số liệu hoạt động năm ${year}`}
+          hint="Hệ số được lưu cố định theo từng dòng; sửa hệ số mẫu không làm đổi số liệu đã kiểm kê"
+          action={
+            rows.length > 0 && (
+              <Tabs
+                tabs={[
+                  { key: 'tong', label: 'Tổng hợp theo nguồn' },
+                  { key: 'chi-tiet', label: `Chi tiết (${rows.length} dòng)` },
+                ]}
+                active={detail ? 'chi-tiet' : 'tong'}
+                onChange={(k) => setDetail(k === 'chi-tiet')}
+              />
+            )
+          }
+        />
         {rows.length === 0 ? (
           <EmptyState title="Chưa có số liệu" />
+        ) : !detail ? (
+          <Table head={['Phạm vi', 'Nguồn phát thải', 'Số liệu hoạt động', 'Hệ số bình quân kgCO₂e/đv', 'tCO₂e', 'Tỷ trọng']}>
+            {aggregated.map((a) => (
+              <tr key={a.scope + a.name + a.unit}>
+                <Td>
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-pine-800/70">
+                    <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SCOPE_COLORS[a.scope] }} />
+                    PV{a.scope}
+                  </span>
+                </Td>
+                <Td>
+                  <div className="font-medium">{a.name}</div>
+                  {a.months > 0 && <div className="text-xs text-pine-800/45">{a.months} kỳ tháng</div>}
+                </Td>
+                <Td className="whitespace-nowrap">
+                  {fmtNum(a.value, 2)} {a.unit}
+                </Td>
+                <Td className="whitespace-nowrap text-pine-800/70">{a.value ? fmtNum((a.t * 1000) / a.value, 4) : '—'}</Td>
+                <Td className="whitespace-nowrap font-semibold">
+                  {fmtNum(a.t, 2)}
+                  {a.bio ? <div className="text-xs font-normal text-viridian-700">+ {fmtNum(a.bio, 1)} t CO₂ sinh khối</div> : null}
+                </Td>
+                <Td className="whitespace-nowrap text-pine-800/70">{totalAll ? fmtNum((a.t / totalAll) * 100, 1) + '%' : '—'}</Td>
+              </tr>
+            ))}
+            <tr className="bg-pine-800/[0.03] font-semibold">
+              <Td />
+              <Td>Tổng phạm vi 1 + 2{sum.s3 ? ' + 3' : ''}</Td>
+              <Td />
+              <Td />
+              <Td className="whitespace-nowrap">{fmtNum(totalAll, 2)}</Td>
+              <Td>100%</Td>
+            </tr>
+          </Table>
         ) : (
           <Table head={['Kỳ', 'Phạm vi', 'Nguồn phát thải', 'Số liệu hoạt động', 'Hệ số kgCO₂e/đv', 'tCO₂e', 'Ghi chú', '']}>
             {rows.map((a) => (
