@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html { -webkit-tap-highlight-color: transparent; }
+body { @apply bg-[#F6F8F7] text-pine-800 font-sans antialiased; }
+table { @apply [font-variant-numeric:tabular-nums]; }
+*:focus-visible { @apply outline-none ring-2 ring-viridian-500 ring-offset-1 rounded; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { @apply bg-pine-100 rounded-full; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
