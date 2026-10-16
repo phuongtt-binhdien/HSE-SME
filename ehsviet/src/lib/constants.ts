@@ -128,6 +128,7 @@ export const RECURRENCE_LABELS: Record<string, string> = {
   monthly: 'Hàng tháng',
   quarterly: 'Hàng quý',
   yearly: 'Hàng năm',
+  biennial: '2 năm/lần',
 }
 
 export const TASK_STATUS_LABELS: Record<string, string> = {
@@ -179,6 +180,7 @@ export const AIR_PARAMS: ParamPreset[] = [
   { parameter: 'SO₂', unit: 'mg/Nm³', threshold: 500, regulation: 'QCVN 19:2009/BTNMT cột B' },
   { parameter: 'NOₓ (tính theo NO₂)', unit: 'mg/Nm³', threshold: 850, regulation: 'QCVN 19:2009/BTNMT cột B' },
   { parameter: 'CO', unit: 'mg/Nm³', threshold: 1000, regulation: 'QCVN 19:2009/BTNMT cột B' },
+  { parameter: 'NH₃', unit: 'mg/Nm³', threshold: 50, regulation: 'QCVN 19:2009/BTNMT cột B' },
 ]
 
 // ---------------- Nhân sự & huấn luyện ----------------
@@ -225,14 +227,14 @@ export const TRAINING_CATEGORY_SHORT: Record<string, string> = {
 /** Căn cứ và chu kỳ mặc định — đối chiếu văn bản hiện hành trước khi dùng làm căn cứ chính thức */
 export const TRAINING_CATEGORY_BASIS: Record<string, string> = {
   atvsld:
-    'Luật ATVSLĐ 2015; NĐ 44/2016/NĐ-CP (sửa đổi bởi NĐ 140/2018/NĐ-CP). Định kỳ: nhóm 4 hằng năm; nhóm 1, 2, 3, 5, 6 ít nhất 2 năm/lần (nhóm 3 kèm thẻ an toàn).',
+    'Luật ATVSLĐ 84/2015/QH13; NĐ 44/2016/NĐ-CP (sửa đổi bởi NĐ 140/2018/NĐ-CP) Điều 19 – thời lượng lần đầu tối thiểu: nhóm 1: 16 giờ; nhóm 2: 48 giờ; nhóm 3: 24 giờ (kèm thẻ an toàn); nhóm 4: 16 giờ; nhóm 6: thêm 4 giờ. Định kỳ: nhóm 4 hằng năm; nhóm 1, 2, 3, 5, 6 ít nhất 2 năm/lần (≥ 50% thời lượng lần đầu). Xử phạt: NĐ 283/2026/NĐ-CP Điều 36.',
   pccc:
-    'Luật PCCC và CNCH 2024; NĐ 105/2025/NĐ-CP. Đội PCCC cơ sở được huấn luyện, bồi dưỡng nghiệp vụ; nhà máy bồi dưỡng lại hằng năm. Nhập "Hạn" theo giấy chứng nhận nếu khác.',
+    'Luật PCCC và CNCH 55/2024/QH15; NĐ 105/2025/NĐ-CP. Đội PCCC cơ sở được huấn luyện, bồi dưỡng nghiệp vụ; nhà máy bồi dưỡng lại hằng năm. Xử phạt: NĐ 106/2025 (sửa đổi bởi NĐ 69/2026) Điều 6 k3; bố trí người chưa có thông báo kết quả huấn luyện: Điều 6 k4. Nhập "Hạn" theo giấy chứng nhận nếu khác.',
   su_co_chat_thai:
-    'Luật BVMT 2020; NĐ 08/2022/NĐ-CP; QĐ 09/2020/QĐ-TTg (Quy chế ứng phó sự cố chất thải); Quy định tuân thủ môi trường nội bộ: tập huấn lại hằng năm.',
+    'Luật BVMT 72/2020/QH14 (sửa đổi đến Luật 146/2025/QH15); NĐ 08/2022/NĐ-CP (sửa đổi bởi NĐ 05/2025, NĐ 48/2026); QĐ 09/2020/QĐ-TTg (Quy chế ứng phó sự cố chất thải); Quy định tuân thủ môi trường nội bộ: tập huấn lại hằng năm.',
   hoa_chat:
-    'Luật Hóa chất 69/2025/QH15 và văn bản hướng dẫn: huấn luyện an toàn hóa chất cho người tiếp xúc hóa chất (HTXLNT, phòng thí nghiệm, kho).',
-  so_cap_cuu: 'TT 19/2016/TT-BYT: lực lượng sơ cứu, cấp cứu tại nơi làm việc.',
+    'Luật Hóa chất 69/2025/QH15 và văn bản hướng dẫn (NĐ 25/2026, NĐ 26/2026, TT 02/2026/TT-BCT – đối chiếu): huấn luyện an toàn hóa chất cho người tiếp xúc hóa chất (HTXLNT, phòng thí nghiệm, kho).',
+  so_cap_cuu: 'TT 19/2016/TT-BYT; NĐ 39/2016/NĐ-CP: lực lượng sơ cứu, cấp cứu tại nơi làm việc; trang bị túi sơ cứu.',
   khac: 'Đào tạo khác (nhận thức ISO 14001, phân loại chất thải tại nguồn…).',
 }
 

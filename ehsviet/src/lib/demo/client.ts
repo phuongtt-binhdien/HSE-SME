@@ -8,7 +8,9 @@ type Row = Record<string, any>
 export type DemoDb = Record<string, Row[]>
 type Result = { data: any; error: { message: string; code?: string } | null; count?: number | null }
 
-const STORAGE_KEY = 'ehsviet_demo_db_v2'
+const STORAGE_KEY = 'ehsviet_demo_db_v3'
+/** Khóa của các phiên bản dữ liệu mẫu cũ – xóa khi nạp bản mới */
+const OLD_KEYS = ['ehsviet_demo_db_v1', 'ehsviet_demo_db_v2']
 const SESSION_KEY = 'ehsviet_demo_session'
 
 const today = () => {
@@ -28,6 +30,8 @@ const FK: Record<string, Record<string, string>> = {
   capa_actions: { incidents: 'incident_id' },
   training_records: { employees: 'employee_id', training_courses: 'course_id' },
   rule_violations: { internal_rules: 'rule_id', employees: 'employee_id' },
+  wem_results: { wem_campaigns: 'campaign_id' },
+  health_checks: { employees: 'employee_id' },
 }
 
 /** Hành vi khi xóa bản ghi cha (theo schema.sql) */
@@ -45,7 +49,9 @@ const ON_DELETE: Record<string, { table: string; column: string; action: 'cascad
   employees: [
     { table: 'training_records', column: 'employee_id', action: 'cascade' },
     { table: 'rule_violations', column: 'employee_id', action: 'set null' },
+    { table: 'health_checks', column: 'employee_id', action: 'cascade' },
   ],
+  wem_campaigns: [{ table: 'wem_results', column: 'campaign_id', action: 'cascade' }],
   training_courses: [{ table: 'training_records', column: 'course_id', action: 'cascade' }],
   internal_rules: [{ table: 'rule_violations', column: 'rule_id', action: 'set null' }],
 }
@@ -79,7 +85,10 @@ const DEFAULTS: Record<string, () => Row> = {
   chemicals: () => ({ unit: 'kg', pathh_available: false }),
   legal_documents: () => ({ category: 'GPMT' }),
   compliance_tasks: () => ({ category: 'bao_cao', recurrence: 'none', remind_days: 14, status: 'pending' }),
-  employees: () => ({ status: 'active' }),
+  employees: () => ({ status: 'active', hazardous: false, exposures: [], allowance_level: null }),
+  wem_campaigns: () => ({ published_date: null }),
+  wem_results: () => ({ value: null, limit_min: null, limit_max: null, work_intensity: null, exposed_count: null }),
+  health_checks: () => ({ kind: 'dinh_ky', health_class: null }),
   training_courses: () => ({ category: 'atvsld' }),
   training_records: () => ({ result: 'dat' }),
   esg_policies: () => ({ pillar: 'E', status: 'draft' }),
@@ -141,6 +150,11 @@ function load(): DemoDb {
   if (!memory) {
     memory = buildSeed(uuid)
     persist()
+    try {
+      for (const k of OLD_KEYS) localStorage.removeItem(k)
+    } catch {
+      /* bỏ qua */
+    }
   }
   return memory
 }

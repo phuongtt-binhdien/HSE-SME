@@ -74,7 +74,7 @@ export default function Onboarding() {
             <Input value={facName} onChange={(e) => setFacName(e.target.value)} placeholder="Nhà máy ..." />
           </Field>
           <Field label="Địa chỉ nhà máy">
-            <Input value={facAddr} onChange={(e) => setFacAddr(e.target.value)} placeholder="KCN ..., tỉnh ..." />
+            <Input value={facAddr} onChange={(e) => setFacAddr(e.target.value)} placeholder="KCN/CCN ..., xã/phường ..., tỉnh ..." />
           </Field>
           {error && <ErrorNote message={error} />}
           <Button className="w-full" onClick={submit} disabled={busy}>

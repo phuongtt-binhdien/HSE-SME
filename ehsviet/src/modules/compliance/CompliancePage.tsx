@@ -87,7 +87,7 @@ function TasksTab({ fid, base, canEdit }: any) {
             ? addMonths(d, 1)
             : t.recurrence === 'quarterly'
               ? addMonths(d, 3)
-              : addYears(d, 1)
+              : addYears(d, t.recurrence === 'biennial' ? 2 : 1)
         const { error: e2 } = await supabase.from('compliance_tasks').insert({
           ...base,
           title: t.title,

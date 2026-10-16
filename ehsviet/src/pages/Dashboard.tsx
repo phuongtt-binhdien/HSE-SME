@@ -18,6 +18,8 @@ import { summarize, type GhgActivity } from '../lib/ghg'
 import { evaluateUnits, gradeOf, type Violation } from '../lib/rules'
 import { coverage, isValid, MATRIX_CATEGORIES } from '../lib/training'
 import { usePersonnelData } from '../modules/personnel/shared'
+import { useHealthData } from '../modules/health/useHealthData'
+import { bnnStatus, periodicStatus, summarizeWem } from '../lib/health'
 import { cls, daysUntil, fmtDate, fmtNum } from '../lib/utils'
 
 function Pulse({ label, value, tone }: { label: string; value: string; tone: Tone }) {
@@ -104,6 +106,17 @@ export default function Dashboard() {
   const vOpen = (violations.data ?? []).filter((v) => v.status !== 'closed').length
   const unitEval = evaluateUnits(violations.data ?? [], monthFrom, monthTo)
 
+  // Sức khỏe nghề nghiệp: hạn khám, đợt quan trắc MTLĐ gần nhất
+  const health = useHealthData(fid)
+  const kskStates = health.employees.map((e) => periodicStatus(e, health.checks))
+  const kskDue = kskStates.filter((x) => x.state === 'qua_han' || x.state === 'chua').length
+  const kskOkPct = health.employees.length ? Math.round(((health.employees.length - kskDue) / health.employees.length) * 100) : 0
+  const bnnStates = health.employees.map((e) => bnnStatus(e, health.checks)).filter((x) => x.state !== 'khong_yeu_cau')
+  const bnnDue = bnnStates.filter((x) => x.state === 'qua_han' || x.state === 'chua').length
+  const bnnOkPct = bnnStates.length ? Math.round(((bnnStates.length - bnnDue) / bnnStates.length) * 100) : 100
+  const lastWem = health.campaigns[0] ?? null
+  const wemSum = summarizeWem(health.results.filter((r) => r.campaign_id === lastWem?.id))
+
   // Khí nhà kính năm nay (lũy kế)
   const ghg = useList<GhgActivity>('ghg_activities', { match: { facility_id: fid }, order: 'year', enabled: on })
   const ghgYear = summarize(ghg.data ?? [], now.getFullYear())
@@ -178,6 +191,17 @@ export default function Dashboard() {
             tone={activeEmp.length === 0 ? 'gray' : needTraining > 0 ? 'red' : 'green'}
           />
           <Pulse
+            label="Sức khỏe NLĐ"
+            value={
+              health.employees.length === 0
+                ? 'Chưa có nhân sự'
+                : kskDue + bnnDue > 0
+                  ? `${kskDue} quá hạn khám · ${bnnDue} chưa khám BNN`
+                  : 'Khám đúng hạn'
+            }
+            tone={health.employees.length === 0 ? 'gray' : kskDue + bnnDue > 0 ? 'amber' : 'green'}
+          />
+          <Pulse
             label="Vi phạm nội quy"
             value={vMonth.length + ' trong tháng · ' + vOpen + ' chưa khắc phục'}
             tone={vOpen > 0 ? 'amber' : 'green'}
@@ -218,6 +242,50 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Sức khỏe nghề nghiệp"
+            hint="Quan trắc môi trường lao động · khám sức khỏe định kỳ – BNN"
+            action={
+              <Link to="/suc-khoe" className="text-xs font-medium text-viridian-700 hover:underline">
+                Chi tiết →
+              </Link>
+            }
+          />
+          <div className="space-y-3 px-4 py-4">
+            {lastWem ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-pine-800">
+                  QTMTLĐ {fmtDate(lastWem.sample_date)}: <b>{wemSum.total}</b> mẫu
+                </span>
+                <Badge tone={wemSum.khongDat ? 'red' : 'green'}>{wemSum.khongDat} không đạt</Badge>
+                {wemSum.canhBao > 0 && <Badge tone="amber">{wemSum.canhBao} ≥ 80% giới hạn</Badge>}
+                {!lastWem.published_date && <Badge tone="red">Chưa công khai</Badge>}
+              </div>
+            ) : (
+              <p className="text-sm text-pine-800/55">Chưa có đợt quan trắc môi trường lao động.</p>
+            )}
+            <div>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className="text-pine-800">Khám sức khỏe định kỳ đúng hạn</span>
+                <span className="text-pine-800/60">
+                  {kskDue} quá hạn/chưa khám · <b className="text-pine-800">{kskOkPct}%</b>
+                </span>
+              </div>
+              <Progress value={kskOkPct} tone={kskOkPct >= 95 ? 'green' : kskOkPct >= 80 ? 'amber' : 'red'} />
+            </div>
+            <div>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className="text-pine-800">Khám phát hiện BNN (người tiếp xúc yếu tố có hại)</span>
+                <span className="text-pine-800/60">
+                  {bnnDue}/{bnnStates.length} chưa khám · <b className="text-pine-800">{bnnOkPct}%</b>
+                </span>
+              </div>
+              <Progress value={bnnOkPct} tone={bnnOkPct >= 95 ? 'green' : bnnOkPct >= 80 ? 'amber' : 'red'} />
+            </div>
+          </div>
         </Card>
 
         <Card>

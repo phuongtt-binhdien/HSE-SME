@@ -20,7 +20,9 @@ import { useList, useSave } from '../hooks/useCrud'
 import { ROLE_LABELS } from '../lib/constants'
 import { resetDemoData } from '../lib/demo/client'
 import { isDemo, supabase } from '../lib/supabase'
-import { checklistRows, ESG_POLICY_TEMPLATES, ESG_TARGET_TEMPLATES, INTERNAL_RULE_TEMPLATES, CHECKLIST_TEMPLATES, policyRows, ruleRows, targetRows } from '../lib/templates'
+import { CHECKLIST_COUNTS, LEGACY_CHECKLIST_NAMES, LEGAL_REVIEW_DATE } from '../lib/checklistTemplates'
+import { OBLIGATION_TEMPLATES, obligationRows } from '../lib/obligations'
+import { checklistRows, ESG_POLICY_TEMPLATES, ESG_TARGET_TEMPLATES, INTERNAL_RULE_TEMPLATES, policyRows, ruleRows, targetRows } from '../lib/templates'
 import { errMsg } from '../lib/utils'
 
 export default function SettingsPage() {
@@ -306,15 +308,54 @@ function TemplatesCard() {
 
   const loadChecklists = () =>
     run('checklists', async () => {
-      const { data, error } = await supabase.from('checklist_templates').select('name').eq('facility_id', facilityId!)
+      const { data, error } = await supabase.from('checklist_templates').select('id, name, items').eq('facility_id', facilityId!)
       if (error) throw error
-      const have = new Set((data ?? []).map((t: any) => t.name))
-      const rows = checklistRows(base).filter((t) => !have.has(t.name))
-      if (!rows.length) return 'Các checklist mẫu đã có sẵn.'
-      const r = await supabase.from('checklist_templates').insert(rows)
+      const existing = (data ?? []) as { id: string; name: string; items: any[] }[]
+      const sig = (items: any[]) => JSON.stringify((items ?? []).map((i) => [i.label, i.hint ?? null]))
+      const inserts: any[] = []
+      const updates: { id: string; patch: Record<string, unknown> }[] = []
+      for (const row of checklistRows(base)) {
+        // bản cùng tên, hoặc bản theo văn bản cũ đã được thay thế (vd NĐ 12/2022 → NĐ 283/2026)
+        const cur = existing.find((t) => t.name === row.name) ?? existing.find((t) => LEGACY_CHECKLIST_NAMES[t.name] === row.name)
+        if (!cur) inserts.push(row)
+        else if (cur.name !== row.name || sig(cur.items) !== sig(row.items))
+          updates.push({ id: cur.id, patch: { name: row.name, category: row.category, frequency: row.frequency, items: row.items } })
+      }
+      if (!inserts.length && !updates.length) return `Các checklist mẫu đã có và đúng bản rà soát ${LEGAL_REVIEW_DATE}.`
+      if (
+        updates.length &&
+        !window.confirm(
+          `Cập nhật ${updates.length} checklist đã có theo căn cứ pháp lý rà soát ${LEGAL_REVIEW_DATE}? Nội dung chỉnh sửa riêng trên các checklist này sẽ được thay bằng bản mẫu; kết quả các lần kiểm tra trước vẫn giữ nguyên.`
+        )
+      ) {
+        if (!inserts.length) return 'Đã hủy.'
+        updates.length = 0
+      }
+      if (inserts.length) {
+        const r = await supabase.from('checklist_templates').insert(inserts)
+        if (r.error) throw r.error
+      }
+      for (const u of updates) {
+        const r = await supabase.from('checklist_templates').update(u.patch).eq('id', u.id)
+        if (r.error) throw r.error
+      }
+      const text = [inserts.length && `Đã nạp ${inserts.length} checklist mới`, updates.length && `cập nhật ${updates.length} checklist theo văn bản hiện hành`]
+        .filter(Boolean)
+        .join('; ')
+      return text.charAt(0).toUpperCase() + text.slice(1) + '.'
+    })
+
+  const loadObligations = () =>
+    run('obligations', async () => {
+      const { data, error } = await supabase.from('compliance_tasks').select('title, status').eq('facility_id', facilityId!)
+      if (error) throw error
+      // bỏ qua việc cùng tên đang chờ thực hiện (việc đã xong không chặn kỳ mới)
+      const open = new Set((data ?? []).filter((t: any) => t.status !== 'done').map((t: any) => t.title))
+      const rows = obligationRows(base).filter((t) => !open.has(t.title))
+      if (!rows.length) return 'Lịch nghĩa vụ mẫu đã có đủ trong Hồ sơ & Tuân thủ.'
+      const r = await supabase.from('compliance_tasks').insert(rows)
       if (r.error) throw r.error
-      const items = rows.reduce((s, t) => s + t.items.length, 0)
-      return `Đã nạp ${rows.length}/${CHECKLIST_TEMPLATES.length} checklist (${items} hạng mục).`
+      return `Đã nạp ${rows.length}/${OBLIGATION_TEMPLATES.length} việc vào Lịch tuân thủ (hạn tính theo văn bản rà soát ${LEGAL_REVIEW_DATE}).`
     })
 
   return (
@@ -323,7 +364,7 @@ function TemplatesCard() {
         title="Bộ mẫu nghiệp vụ nhà máy phân bón NPK"
         hint={'Nạp vào: ' + (facility?.name ?? '—') + '. Nội dung là dự thảo — rà soát, chỉnh sửa và ban hành theo thẩm quyền.'}
       />
-      <div className="grid gap-3 p-4 md:grid-cols-3">
+      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
         <TemplateItem
           title="Chính sách & mục tiêu ESG"
           desc="8 chính sách E – S – G (môi trường ISO 14001, khí hậu, ATVSLĐ – PCCC, nhà thầu, người lao động, PCTN, công bố ESG, tuân thủ) và 11 mục tiêu gắn chỉ số tự tính."
@@ -338,9 +379,15 @@ function TemplatesCard() {
         />
         <TemplateItem
           title="Checklist kiểm tra & tự kiểm tra tuân thủ"
-          desc="VSCN hằng tháng 12 khu vực; bảng tự kiểm tra theo NĐ 45/2022 (34 mục), NĐ 106/2025 (18), NĐ 12/2022 (15), hóa chất (6) — kèm căn cứ, mức phạt, bằng chứng."
+          desc={`VSCN hằng tháng 12 khu vực; bảng tự kiểm tra theo NĐ 45/2022 (${CHECKLIST_COUNTS.MT} mục), NĐ 106/2025 sửa đổi bởi NĐ 69/2026 (${CHECKLIST_COUNTS.PCCC}), NĐ 283/2026 (${CHECKLIST_COUNTS.ATLD}), Luật Hóa chất 2025 (${CHECKLIST_COUNTS.HC}) — kèm điều khoản, mức phạt, bằng chứng; căn cứ rà soát ${LEGAL_REVIEW_DATE}.`}
           busy={busy === 'checklists'}
           onClick={loadChecklists}
+        />
+        <TemplateItem
+          title="Lịch nghĩa vụ định kỳ HSE"
+          desc={`${OBLIGATION_TEMPLATES.length} hạn nộp, thực hiện: báo cáo công tác BVMT (15/01), phí BVMT quý, EPR bao bì (NĐ 110/2026), kiểm kê – giảm nhẹ KNK (QĐ 42/2026), báo cáo TNLĐ – ATVSLĐ – y tế lao động, QTMTLĐ, khám sức khỏe, huấn luyện, PCCC.`}
+          busy={busy === 'obligations'}
+          onClick={loadObligations}
         />
       </div>
       {(msg || error) && <div className="px-4 pb-4">{error ? <ErrorNote message={error} /> : <div className="text-sm text-viridian-700">{msg}</div>}</div>}

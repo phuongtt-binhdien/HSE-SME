@@ -1,6 +1,12 @@
-// Bảng tự kiểm tra tuân thủ theo các nghị định xử phạt (Phụ lục 6 – Quy định tuân thủ môi trường nội bộ).
-// Mỗi hạng mục: nội dung, căn cứ và khung xử phạt, bằng chứng cần xem, gợi ý khắc phục, đơn vị phụ trách.
-// Mức phạt chỉ để định hướng mức độ rủi ro — đối chiếu nghị định hiện hành (NĐ 45/2022 đang có dự thảo thay thế).
+// Bảng tự kiểm tra tuân thủ theo các nghị định xử phạt hiện hành (rà soát 10/2026).
+// Mỗi hạng mục: nội dung, căn cứ (điều – khoản), khung phạt, bằng chứng cần xem, gợi ý khắc phục, đơn vị phụ trách.
+// Mức tiền ghi theo cá nhân; tổ chức bị phạt gấp 2 lần. Mức phạt chỉ để định hướng mức độ rủi ro —
+// đối chiếu nguyên văn trước khi trích vào văn bản.
+//   - Môi trường: NĐ 45/2022/NĐ-CP còn hiệu lực (dự thảo thay thế chưa ban hành); thời hiệu 02 năm (Điều 5), tổ chức × 2 (Điều 6 k2).
+//   - PCCC & CNCH: NĐ 106/2025/NĐ-CP (hl 01/7/2025) sửa đổi bởi NĐ 69/2026/NĐ-CP (hl 20/4/2026); tối đa 50 triệu với cá nhân,
+//     tổ chức × 2 (Điều 4); thời hiệu 01 năm; vi phạm nhiều lần trong một cơ sở: phạt 01 hành vi + tình tiết tăng nặng (NĐ 69/2026).
+//   - Lao động – ATVSLĐ: NĐ 283/2026/NĐ-CP (hl 10/9/2026, thay NĐ 12/2022); tổ chức × 2 (Điều 7); thời hiệu 01 năm (Điều 3).
+//   - Hóa chất: Luật Hóa chất 69/2025/QH15 và văn bản hướng dẫn (NĐ 25/2026, NĐ 26/2026, TT 02/2026/TT-BCT).
 
 export interface ChecklistItemTemplate {
   label: string
@@ -16,473 +22,179 @@ export interface ChecklistTemplateSeed {
   items: ChecklistItemTemplate[]
 }
 
+/** Thời điểm rà soát căn cứ pháp lý của bộ mẫu */
+export const LEGAL_REVIEW_DATE = '10/2026'
+
+/** Hạng mục: căn cứ · mức phạt · quy định nội bộ (nếu có) · bằng chứng */
+function item(label: string, basis: string, penalty: string, evidence: string, fix: string, owner: string, internal?: string): ChecklistItemTemplate {
+  const hint = [`Căn cứ: ${basis}`, `Mức phạt: ${penalty}`, internal && `Quy định nội bộ: ${internal}`, `Bằng chứng: ${evidence}`]
+    .filter(Boolean)
+    .join(' · ')
+  return { label, hint, fix, owner }
+}
+
+const MT = 'NĐ 45/2022'
+const PC = 'NĐ 106/2025'
+const LD = 'NĐ 283/2026'
+const HC = 'Luật Hóa chất 69/2025/QH15; NĐ 25/2026, NĐ 26/2026; TT 02/2026/TT-BCT'
+
+export const CHECKLIST_NAMES = {
+  MT: 'Tự kiểm tra tuân thủ bảo vệ môi trường (NĐ 45/2022/NĐ-CP)',
+  PCCC: 'Tự kiểm tra tuân thủ PCCC & CNCH (NĐ 106/2025, sửa đổi bởi NĐ 69/2026)',
+  ATLD: 'Tự kiểm tra tuân thủ lao động – ATVSLĐ (NĐ 283/2026/NĐ-CP)',
+  HC: 'Tự kiểm tra tuân thủ an toàn hóa chất (Luật Hóa chất 2025)',
+}
+
+/** Tên bộ mẫu cũ → tên mới: khi nạp lại, checklist cũ được cập nhật tại chỗ (giữ lịch sử các lần kiểm tra) */
+export const LEGACY_CHECKLIST_NAMES: Record<string, string> = {
+  'Tự kiểm tra tuân thủ PCCC & CNCH (NĐ 106/2025/NĐ-CP)': CHECKLIST_NAMES.PCCC,
+  'Tự kiểm tra tuân thủ an toàn, vệ sinh lao động (NĐ 12/2022/NĐ-CP)': CHECKLIST_NAMES.ATLD,
+  'Tự kiểm tra tuân thủ an toàn hóa chất': CHECKLIST_NAMES.HC,
+}
+
+const ENV_ITEMS: ChecklistItemTemplate[] = [
+  // --- Giấy phép môi trường (Điều 11 k2 – GPMT thuộc thẩm quyền cấp tỉnh) ---
+  item('Giấy phép môi trường còn hiệu lực; lưu bản sao tại cơ sở; theo dõi hạn để nộp hồ sơ cấp lại trước khi hết hạn', `${MT} Điều 11 k2 e; Luật BVMT sửa đổi bởi Luật 146/2025/QH15 (bỏ cấp đổi GPMT)`, '150–170 tr (không có GPMT cấp lại) – tổ chức ×2', 'GPMT; lịch hạn tại Hồ sơ & Tuân thủ', 'Lập hồ sơ cấp lại sớm; cập nhật hạn vào lịch nghĩa vụ', 'KT-SX', 'Điều 3, 25'),
+  item('Công khai GPMT theo quy định', `${MT} Điều 11 k2 b`, '15–20 tr – tổ chức ×2', 'Văn bản, hình thức công khai', 'Công khai bổ sung; lưu bằng chứng', 'KT-SX'),
+  item('Báo cáo cơ quan cấp phép khi có thay đổi so với GPMT (trường hợp phải báo cáo)', `${MT} Điều 11 k2 a`, '10–15 tr – tổ chức ×2', 'Danh mục sai khác so với GPMT; văn bản đã gửi', 'Lập danh mục sai khác (nguồn thải, ống khói, khối lượng chất thải); gửi báo cáo', 'KT-SX'),
+  item('Thực hiện đúng, đủ nội dung GPMT: nguồn thải, công trình xử lý, lưu lượng xả lớn nhất, quy chuẩn, chương trình quan trắc', `${MT} Điều 11 k2 c`, '20–30 tr – tổ chức ×2', 'Đối chiếu từng phụ lục GPMT với hiện trạng', 'Khắc phục sai khác hoặc đưa vào hồ sơ điều chỉnh GPMT', 'KT-SX', 'Điều 9, 10'),
+  item('Thay đổi nhiên liệu, thiết bị, công suất, nguồn thải thuộc diện phải điều chỉnh GPMT (vd chuyển lò sấy sang đốt sinh khối): chỉ thực hiện sau khi được điều chỉnh và vận hành thử nghiệm lại nếu có yêu cầu', `${MT} Điều 11 k2 đ`, '100–150 tr – tổ chức ×2', 'Văn bản của cơ quan cấp phép; nhật ký nhiên liệu', 'Dừng thay đổi chưa được phép; hoàn tất hồ sơ điều chỉnh GPMT', 'KT-SX, Ban Điều hành', 'Điều 13'),
+  item('Kết quả quan trắc vượt giới hạn: đã rà soát, cải tạo công trình xử lý theo quy định', `${MT} Điều 11 k2 d`, '80–100 tr – tổ chức ×2', 'Biên bản rà soát; kế hoạch cải tạo', 'Lập kế hoạch cải tạo; quan trắc lại sau cải tạo', 'KT-SX'),
+  item('Hệ thống xử lý nước thải vận hành thường xuyên, đúng quy trình được cấp phép', `${MT} Điều 11 k2 g`, '170–200 tr – tổ chức ×2', 'Kiểm tra hiện trường; nhật ký vận hành', 'Vận hành lại ngay; đào tạo người vận hành', 'Tổ vận hành HTXLNT', 'Điều 10'),
+  item('Hệ thống xử lý khí thải vận hành đồng bộ khi dây chuyền chạy (cyclone, lọc túi, hấp thụ)', `${MT} Điều 11 k2 g`, '170–200 tr – tổ chức ×2', 'Kiểm tra hiện trường; dữ liệu ΔP, dòng điện quạt', 'Dừng dây chuyền khi hệ xử lý sự cố; sửa chữa', 'Xưởng tạo hạt, lò hơi', 'Điều 9'),
+  item('Sổ nhật ký vận hành riêng từng hệ xử lý (khí thải, nước thải): ΔP, hóa chất, sự cố, thay túi lọc', `${MT} Điều 11 k2 c (thực hiện không đúng GPMT)`, '20–30 tr – tổ chức ×2', 'Sổ nhật ký từng hệ', 'Lập sổ theo mẫu; ghi hằng ca', 'Xưởng tạo hạt, lò hơi, HTXLNT'),
+  item('Không có đường ống, cửa xả bỏ qua (by-pass) hệ thống xử lý; không pha loãng chất thải', `${MT} Điều 11 k2 h`, '400–500 tr – tổ chức ×2; tước GPMT 03–06 tháng', 'Kiểm tra mạng thoát nước mưa – nước thải, ống khói', 'Bịt ngay đường xả trái phép; báo cáo Ban Giám đốc', 'Ban Điều hành', 'Điều 3, 10'),
+  item('Có bơm, thiết bị dự phòng HTXLNT để thay thế ngay khi hư hỏng; đủ kinh phí, nhân lực, hóa chất vận hành', `${MT} Điều 11 k2 c (nội dung GPMT)`, '20–30 tr – tổ chức ×2', 'Danh mục thiết bị dự phòng trong kho', 'Lập giấy đề nghị mua sắm thiết bị dự phòng', 'KT-SX, Vật tư'),
+  // --- Quan trắc (Điều 16) ---
+  item('Quan trắc khí thải định kỳ đúng tần suất GPMT, đủ dòng thải, đủ thông số; đơn vị quan trắc có chứng nhận VIMCERTS; lưu kết quả', `${MT} Điều 16 k3 a, b (cơ sở có GPMT cấp tỉnh)`, '60–100 tr – tổ chức ×2', 'Hợp đồng quan trắc; phiếu kết quả từng đợt', 'Bổ sung đợt thiếu; ràng buộc đủ thông số trong hợp đồng', 'KT-SX', 'Điều 21'),
+  item('Đợt không lấy mẫu được do dây chuyền dừng có lệnh dừng máy, nhật ký làm bằng chứng', `${MT} Điều 16 k3`, '60–100 tr – tổ chức ×2', 'Lệnh dừng máy; nhật ký sản xuất', 'Lưu bằng chứng dừng máy cùng hồ sơ quan trắc', 'KT-SX'),
+  item('Nước thải: duy trì quan trắc nội bộ đủ các thông số giới hạn trong GPMT, kể cả khi không thuộc đối tượng quan trắc định kỳ', `${MT} Điều 18 (xả vượt giới hạn); GPMT`, 'Theo lưu lượng và mức vượt – tổ chức ×2', 'Phiếu kết quả nội bộ đủ thông số', 'Bổ sung thông số còn thiếu vào hợp đồng quan trắc', 'KT-SX'),
+  item('Quan trắc tự động (bắt buộc hoặc lắp tự nguyện): thiết bị được kiểm định, hiệu chuẩn; dữ liệu lưu giữ đầy đủ', `${MT} Điều 16 k1`, 'Theo khung Điều 16 k1 – tổ chức ×2', 'Biên bản kiểm định, hiệu chuẩn; dữ liệu', 'Hiệu chuẩn định kỳ; sao lưu dữ liệu', 'KT-SX'),
+  item('Lỗ lấy mẫu, sàn thao tác trên ống khói đúng quy cách (TT 10/2021/TT-BTNMT); an toàn khi làm việc trên cao', `${MT} Điều 16; TT 10/2021/TT-BTNMT`, 'Theo khung Điều 16 – tổ chức ×2', 'Kiểm tra hiện trường các ống khói', 'Thi công sàn thao tác, lỗ lấy mẫu đúng quy cách', 'KT-SX'),
+  // --- Xả thải (Điều 18, 20, 22) ---
+  item('Nước thải sau xử lý đạt giới hạn GPMT ở tất cả thông số', `${MT} Điều 18`, 'Theo lưu lượng và mức vượt (vd vượt 1,1–1,5 lần: 40–< 60 m³/ngày 10–20 tr; 100–< 200 m³/ngày 50–60 tr); tăng 10–50% mỗi thông số vượt (k7) – tổ chức ×2', 'Phiếu kết quả gần nhất', 'Dừng xả, đưa về hồ sự cố; điều chỉnh hóa chất; lấy mẫu lại', 'KT-SX', 'Điều 10, 21'),
+  item('Đo, ghi lưu lượng nước thải hằng ngày bằng đồng hồ (căn cứ kê khai phí và đối chiếu lưu lượng xả lớn nhất)', `${MT} Điều 11 k2 c; NĐ 346/2025/NĐ-CP`, '20–30 tr – tổ chức ×2', 'Sổ chỉ số đồng hồ', 'Lập sổ ghi chỉ số hằng ngày', 'Tổ vận hành HTXLNT', 'Điều 10, 20'),
+  item('Khí thải từng dòng đạt giới hạn GPMT (bụi, NOx, SO₂, CO, NH₃)', `${MT} Điều 20`, 'Theo lưu lượng khí thải và mức vượt (vd vượt 1,1–1,5 lần: 50.000–< 55.000 m³/h 250–300 tr; 55.000–< 60.000 m³/h 300–350 tr) – tổ chức ×2', 'Phiếu kết quả quý', 'Dừng dây chuyền, kiểm tra lọc túi; lấy mẫu lại', 'KT-SX, xưởng tạo hạt', 'Điều 9, 21'),
+  item('Lưu lượng khí thải từng dòng không vượt lưu lượng xả lớn nhất trong GPMT', `${MT} Điều 11 k2 c`, '20–30 tr – tổ chức ×2', 'Phiếu kết quả (lưu lượng); đối chiếu phụ lục khí thải GPMT', 'Điều chỉnh quạt; đề nghị điều chỉnh GPMT nếu cần', 'KT-SX', 'Điều 9'),
+  item('Không phát tán mùi khó chịu ra ngoài hàng rào (NH₃ khu tạo hạt, HTXLNT, khu chứa chất thải)', `${MT} Điều 20 k1`, 'Cảnh cáo (lần đầu)', 'Kiểm tra hiện trường; phản ánh của cộng đồng', 'Khoanh vùng nguồn mùi; khắc phục, che kín', 'KT-SX'),
+  item('Tiếng ồn, độ rung sát hàng rào đạt QCVN 26:2010, 27:2010/BTNMT', `${MT} Điều 22`, 'Theo mức vượt (dBA) – tổ chức ×2', 'Kết quả đo (nếu có)', 'Bảo dưỡng, bọc cách âm thiết bị', 'Cơ điện', 'Điều 11'),
+  // --- Chất thải rắn (Điều 26) ---
+  item('Chất thải rắn sinh hoạt phân loại 3 nhóm tại nguồn (tái chế – thực phẩm – còn lại, Điều 75 Luật BVMT); thùng đúng màu, nhãn', `${MT} Điều 26`, 'Theo khung Điều 26 – tổ chức ×2', 'Kiểm tra 100% điểm thu gom', 'Bổ sung thùng, nhãn; nhắc nhở, đào tạo lại', 'Ban Điều hành', 'Điều 14, 15'),
+  item('CTRSH chuyển giao cho đơn vị có chức năng; có hợp đồng còn hiệu lực (bắt buộc khi phát sinh từ 300 kg/ngày)', `${MT} Điều 26 k3 a`, '15–20 tr – tổ chức ×2', 'Hợp đồng; phiếu cân, xác nhận khối lượng', 'Ký/gia hạn hợp đồng', 'KT-SX', 'Điều 15, 20'),
+  item('CTR công nghiệp thông thường: phân loại tại nguồn, lưu chứa đúng; có hợp đồng chuyển giao', `${MT} Điều 26 k2 b`, '20–25 tr – tổ chức ×2', 'Khu lưu giữ CTRCN; hợp đồng', 'Bố trí khu gom, bao chứa có nhãn', 'Các xưởng, kho', 'Điều 16'),
+  item('Lưu giữ riêng CTRCN phải xử lý với loại tái sử dụng, tái chế được', `${MT} Điều 26 k2 c`, '25–30 tr – tổ chức ×2', 'Hiện trường khu lưu giữ', 'Sắp xếp lại, tách khu', 'Kho', 'Điều 16, 19'),
+  item('Có biên bản bàn giao CTRCN cho mỗi lần chuyển giao', `${MT} Điều 26 k2 a`, '3–5 tr – tổ chức ×2', 'Biên bản giao nhận', 'Lập biên bản cho mọi lần giao', 'KT-SX', 'Điều 20'),
+  item('Không tự tái chế, xử lý CTRCN khi không đáp ứng yêu cầu BVMT; không dùng xỉ, tro san lấp', `${MT} Điều 26 k2 d`, '30–50 tr – tổ chức ×2', 'Kiểm tra hiện trường, sổ chất thải', 'Chuyển giao đơn vị có chức năng', 'Ban Điều hành', 'Điều 3, 16'),
+  // --- Chất thải nguy hại (Điều 29) ---
+  item('Phân định, phân loại, khai báo đủ CTNH (kể cả dịch thải phòng thí nghiệm, ắc quy, pin, bóng đèn); kê khai trong báo cáo', `${MT} Điều 29 k3`, '40–50 tr – tổ chức ×2', 'Sổ CTNH; báo cáo công tác BVMT', 'Bổ sung danh mục, mã CTNH (TT 02/2022 sửa đổi)', 'KT-SX', 'Điều 17'),
+  item('Bao bì, thiết bị lưu chứa CTNH có nắp, nhãn tên – mã CTNH, dấu hiệu cảnh báo', `${MT} Điều 29 k3`, '40–50 tr – tổ chức ×2', 'Kiểm tra kho CTNH, điểm gom tại xưởng', 'Thay thùng, dán nhãn', 'KT-SX', 'Điều 17'),
+  item('Khu lưu giữ CTNH đạt yêu cầu: mái che, nền chống thấm, gờ/rãnh chống tràn, vật liệu thấm hút, bình chữa cháy, biển cảnh báo', `${MT} Điều 29 k3`, '40–50 tr – tổ chức ×2', 'Kiểm tra hiện trường', 'Bổ sung vật liệu thấm hút, biển cảnh báo', 'KT-SX'),
+  item('Không để lẫn CTNH với chất thải thông thường (giẻ lau dính dầu, bóng đèn trong thùng rác sinh hoạt)', `${MT} Điều 29 k4`, 'Theo khung Điều 29 k4 – tổ chức ×2', 'Kiểm tra điểm thùng rác, khu xe nâng, cơ điện', 'Tách ngay; bổ sung thùng CTNH tại nguồn', 'Các đơn vị'),
+  item('Thời gian lưu giữ CTNH không quá 01 năm (trừ trường hợp được phép)', `${MT} Điều 29 k1`, '5–10 tr – tổ chức ×2', 'Sổ tiếp nhận kho CTNH', 'Lập lịch chuyển giao', 'KT-SX'),
+  item('Hợp đồng chuyển giao CTNH với đơn vị có giấy phép; chứng từ CTNH đầy đủ, lưu giữ', `${MT} Điều 29 k2 (chứng từ), k3 (hợp đồng)`, '10–20 tr (chứng từ); 40–50 tr (hợp đồng) – tổ chức ×2', 'Hợp đồng; chứng từ CTNH từng lần', 'Bổ sung chứng từ; gia hạn hợp đồng', 'KT-SX'),
+  item('Không tự tái sử dụng, đốt, cho, bán CTNH (vd dầu nhớt thải dùng làm nhiên liệu)', `${MT} Điều 29 k5`, 'Theo khối lượng: < 100 kg 10–40 tr … 2.000–< 3.000 kg 130–160 tr – tổ chức ×2', 'Sổ CTNH; hiện trường xưởng cơ điện, lò hơi', 'Chấm dứt; chuyển giao toàn bộ cho đơn vị có giấy phép', 'Ban Điều hành, Cơ điện', 'Điều 17'),
+  // --- Sự cố (Điều 40) ---
+  item('Kế hoạch phòng ngừa, ứng phó sự cố môi trường được ban hành, cập nhật', `${MT} Điều 40 a`, '10–30 tr – tổ chức ×2', 'Kế hoạch đã ban hành', 'Ban hành/cập nhật kế hoạch', 'KT-SX, Ban Điều hành', 'Điều 24'),
+  item('Diễn tập ứng phó sự cố chất thải, hóa chất, tràn dầu theo kế hoạch', `${MT} Điều 40 c`, '50–70 tr – tổ chức ×2', 'Biên bản diễn tập', 'Tổ chức diễn tập hằng năm', 'KT-SX, Ban Điều hành'),
+  item('Đủ thiết bị, phương tiện ứng phó (bộ ứng cứu tràn dầu cầu cảng, vật liệu thấm hút, hồ sự cố)', `${MT} Điều 40 d`, '80–100 tr – tổ chức ×2', 'Danh mục và kiểm tra thiết bị ứng phó', 'Bổ sung trang bị', 'Ban Điều hành'),
+  item('Khi xảy ra sự cố: ứng phó ngay, báo cáo cơ quan có thẩm quyền theo quy định', `${MT} Điều 40 e`, '120–150 tr – tổ chức ×2', 'Hồ sơ sự cố, báo cáo', 'Lập quy trình báo cáo sự cố', 'Ban Điều hành'),
+  // --- Báo cáo, phí, EPR, KNK (Điều 32, 42, 43, 45) ---
+  item('Báo cáo công tác BVMT năm gửi trước 15/01 (TT 02/2022 sửa đổi – VBHN 55/VBHN-BNNMT); số liệu khớp phiếu kết quả, chứng từ', `${MT} Điều 43 k1 (không báo cáo); k3, k4 (số liệu sai, công khai)`, '5–10 tr (k1) – tổ chức ×2', 'Bản nộp có xác nhận tiếp nhận', 'Kiểm tra chéo số liệu; lập đính chính nếu phát hiện sai', 'KT-SX', 'Điều 25'),
+  item('Kê khai, nộp phí BVMT khí thải (NĐ 153/2024) và nước thải (NĐ 346/2025) trước ngày 20 tháng đầu quý sau', `${MT} Điều 42 k1; pháp luật quản lý thuế`, 'Theo pháp luật quản lý thuế', 'Tờ khai, chứng từ nộp', 'Nộp bổ sung kèm giải trình', 'KT-SX, Kế toán'),
+  item('EPR bao bì: kê khai đúng hạn (NĐ 110/2026 từ kỳ số liệu 2026: trước 01/4 – đối chiếu toàn văn), đóng góp Quỹ BVMT Việt Nam trước 20/4; công khai thông tin', `${MT} Điều 32 k1 (công khai), k2 (kê khai), k4–k5 (nộp chậm, không nộp)`, '50–100 tr (k1); 150 tr – 1 tỷ (k2); 500 tr – 1 tỷ (k4–k5) – tổ chức ×2', 'Bản kê khai; ủy nhiệm chi', 'Kê khai, đóng góp bổ sung', 'KT-SX, Kế toán'),
+  item('Kiểm kê KNK cấp cơ sở 02 năm/lần (Mẫu 06 PL II, gửi UBND tỉnh trước 31/3); kế hoạch và báo cáo giảm nhẹ KNK hằng năm (từ 2027)', `${MT} Điều 45; NĐ 06/2022 sửa bởi NĐ 119/2025; QĐ 42/2026/QĐ-TTg`, 'Theo khung Điều 45 – tổ chức ×2', 'Báo cáo kiểm kê; văn bản nộp', 'Hoàn thiện, nộp đúng hạn', 'KT-SX'),
+  item('Bảo hiểm trách nhiệm bồi thường thiệt hại do sự cố môi trường (nếu thuộc đối tượng bắt buộc)', `${MT} Điều 42 k4`, '220–250 tr – tổ chức ×2', 'Hợp đồng bảo hiểm', 'Mua/gia hạn nếu thuộc diện', 'Kế toán'),
+  // --- Khác ---
+  item('Không rơi vãi nguyên liệu, thành phẩm khi vận chuyển, bốc xếp (đường nội bộ, cầu cảng); xe che chắn', `${MT} Điều 25`, 'Theo khung Điều 25 – tổ chức ×2', 'Kiểm tra hiện trường', 'Thu dọn ngay; nhắc nhở lái xe, nhà thầu', 'Kho, Ban Điều hành', 'Điều 11'),
+  item('Kho than, xỉ, sinh khối có mái/phủ bạt; không phát tán bụi', `${MT} Điều 11 k2 c (nội dung GPMT)`, '20–30 tr – tổ chức ×2', 'Kiểm tra hiện trường', 'Phủ bạt, che chắn', 'Lò hơi', 'Điều 16'),
+  item('Tỷ lệ cây xanh theo GPMT (≥ 20% diện tích)', `${MT} Điều 11 k2 c (nội dung GPMT)`, '20–30 tr – tổ chức ×2', 'Bản vẽ mặt bằng, đo đạc', 'Bổ sung trồng cây', 'Ban Điều hành'),
+  item('Nhà thầu, khách ký cam kết BVMT; chất thải của nhà thầu được thu gom, chuyển giao', `${MT} Điều 26, 29 (trách nhiệm chủ nguồn thải)`, 'Theo khung – tổ chức ×2', 'Phiếu cam kết nhà thầu', 'Ký cam kết trước khi thi công', 'Ban Điều hành', 'Điều 8, 29'),
+  item('Hồ sơ môi trường xuất trình được khi kiểm tra; không cản trở đoàn kiểm tra', `${MT} Điều 55 k2`, '10–20 tr – tổ chức ×2', 'Danh mục hồ sơ', 'Bổ sung, số hóa hồ sơ', 'KT-SX', 'Điều 5, 25'),
+  item('Thực hiện đầy đủ kết luận, kiến nghị của đoàn thanh tra, kiểm tra', `${MT} Điều 55 k4 b`, '50–80 tr – tổ chức ×2', 'Kết luận kiểm tra; báo cáo khắc phục', 'Lập kế hoạch khắc phục có hạn, người chịu trách nhiệm', 'Ban Điều hành'),
+  item('Lộ trình quy chuẩn mới: QCVN 40:2025/BTNMT (cơ sở hiện hữu áp dụng quy chuẩn cũ đến 31/12/2031) và QCVN 19:2024/BTNMT (theo TT 45/2024) – đã đánh giá khoảng cách, lập kế hoạch cải tạo', 'GPMT (điều khoản áp dụng quy chuẩn thay thế); TT 06/2025/TT-BTNMT; TT 45/2024/TT-BTNMT', 'Chưa phát sinh đến hết lộ trình', 'Bảng so sánh giới hạn cũ – mới; kế hoạch đầu tư', 'Đánh giá khoảng cách; đưa vào kế hoạch 2027–2031', 'KT-SX'),
+]
+
+const FIRE_ITEMS: ChecklistItemTemplate[] = [
+  item('Hồ sơ quản lý công tác PCCC và CNCH của cơ sở được lập, cập nhật', `${PC} Điều 9 k2`, '5–7 tr – tổ chức ×2', 'Hồ sơ PCCC', 'Lập, cập nhật hồ sơ', 'Ban Điều hành, ATVSLĐ', 'Nội quy PCCC'),
+  item('Nội quy, biển cấm, biển báo, chỉ dẫn PCCC và CNCH được ban hành, niêm yết', `${PC} Điều 7 k3`, '6–8 tr – tổ chức ×2', 'Kiểm tra hiện trường', 'Bổ sung nội quy, biển báo', 'Ban Điều hành'),
+  item('Tuyên truyền, phổ biến kiến thức PCCC và CNCH cho người lao động', `${PC} Điều 6 k2`, '1–3 tr – tổ chức ×2', 'Kế hoạch, biên bản tuyên truyền', 'Lồng ghép vào họp an toàn đầu ca', 'ATVSLĐ'),
+  item('Người thuộc diện được huấn luyện, bồi dưỡng nghiệp vụ PCCC và CNCH', `${PC} Điều 6 k3`, '4–6 tr – tổ chức ×2', 'Danh sách, giấy chứng nhận huấn luyện (xem Nhân sự & Huấn luyện)', 'Tổ chức huấn luyện', 'ATVSLĐ', 'Điều 30'),
+  item('Không bố trí người chưa có thông báo kết quả huấn luyện PCCC vào vị trí bắt buộc', `${PC} Điều 6 k4 (sửa đổi bởi NĐ 69/2026)`, '6–8 tr – tổ chức ×2', 'Đối chiếu danh sách đội, vị trí với ma trận huấn luyện', 'Huấn luyện trước khi bố trí', 'ATVSLĐ, Tổ chức – Hành chính'),
+  item('Thành lập Đội PCCC và CNCH cơ sở; có quyết định, phân công', `${PC} Điều 8 k4`, '10–20 tr – tổ chức ×2', 'Quyết định thành lập đội', 'Ra quyết định, kiện toàn đội', 'Ban Điều hành'),
+  item('Thường trực của Đội PCCC cơ sở; lịch trực hằng ngày', `${PC} Điều 8 k3`, '8–10 tr – tổ chức ×2', 'Sổ trực', 'Lập lịch trực', 'Ban Điều hành'),
+  item('Trang bị phương tiện PCCC, CNCH cho Đội PCCC cơ sở theo quy định', `${PC} Điều 8`, 'Theo khung Điều 8 – tổ chức ×2', 'Danh mục trang bị', 'Bổ sung trang bị', 'Vật tư'),
+  item('Tự kiểm tra an toàn PCCC định kỳ; lưu biên bản', `${PC} Điều 10 k3 (Điều 10 k1, k2 sửa đổi bởi NĐ 69/2026)`, '10–20 tr – tổ chức ×2', 'Biên bản tự kiểm tra', 'Lập lịch tự kiểm tra hằng quý', 'Ban Điều hành'),
+  item('Sử dụng lửa, nguồn nhiệt; hàn, cắt có giấy phép làm việc nóng, người giám sát, bình chữa cháy tại chỗ', `${PC} Điều 11 k2`, '20–25 tr – tổ chức ×2', 'Giấy phép làm việc nóng', 'Dừng công việc; cấp giấy phép', 'Ban Điều hành', 'Điều 8'),
+  item('Hệ thống điện, thiết bị điện bảo đảm an toàn PCCC; tủ điện có nắp, không quá tải', `${PC} Điều 12`, 'Theo khung Điều 12 – tổ chức ×2', 'Kiểm tra tủ điện; đo nhiệt (camera nhiệt nếu có)', 'Sửa chữa, cân tải', 'Cơ điện'),
+  item('Chống sét, tiếp địa được kiểm tra định kỳ', `${PC} Điều 13`, 'Theo khung Điều 13 – tổ chức ×2', 'Biên bản đo điện trở tiếp địa', 'Sửa chữa, đo lại', 'Cơ điện'),
+  item('Hàng hóa, chất nguy hiểm về cháy, nổ (dầu DO, hóa chất, than, sinh khối) bảo quản, vận chuyển đúng quy định', `${PC} Điều 14–16`, 'Theo hành vi – tổ chức ×2', 'Kiểm tra kho dầu, kho hóa chất, bãi than', 'Sắp xếp lại; bổ sung biển cảnh báo', 'Kho, Lò hơi'),
+  item('Bãi than, sinh khối: theo dõi nhiệt độ đống, chống tự cháy; khoảng cách an toàn', `${PC} Điều 14–16`, 'Theo hành vi – tổ chức ×2', 'Sổ theo dõi nhiệt độ đống', 'Đảo trộn, giảm chiều cao đống', 'Lò hơi'),
+  item('Bảo hiểm cháy, nổ bắt buộc (nếu thuộc diện) còn hiệu lực', `${PC} Điều 17 (NĐ 69/2026 bổ sung biện pháp buộc mua bảo hiểm)`, '10–15 tr (k1); không mua 30–50 tr – tổ chức ×2', 'Hợp đồng bảo hiểm', 'Mua/gia hạn', 'Kế toán'),
+  item('Công trình, hạng mục mới hoặc cải tạo (lò sấy sinh khối, điện mặt trời mái nhà): thẩm định, nghiệm thu PCCC trước khi sử dụng (nếu thuộc diện)', `${PC} Điều 18 k3, k4`, '30–50 tr – tổ chức ×2', 'Hồ sơ thẩm duyệt, văn bản nghiệm thu', 'Hoàn tất thủ tục trước khi đưa vào sử dụng', 'Ban Điều hành', 'Điều 13'),
+  item('Trang bị đủ phương tiện PCCC: bình chữa cháy, hệ thống báo cháy, chữa cháy theo quy định', `${PC} Điều 20 (k9: không có hệ thống báo cháy, chữa cháy 40–50 tr; k8, k12 sửa đổi bởi NĐ 69/2026)`, 'Theo khung Điều 20 – tổ chức ×2', 'Danh mục phương tiện tại PCCC & An toàn', 'Bổ sung trang bị', 'Cơ điện'),
+  item('Duy trì phương tiện PCCC hoạt động; trữ lượng nước chữa cháy đủ theo thiết kế', `${PC} Điều 21 k2 (bổ sung trữ lượng nước – NĐ 69/2026), k9`, 'Theo khung Điều 21 – tổ chức ×2', 'Kiểm tra bể, trạm bơm chữa cháy', 'Sửa chữa, bổ sung nước', 'Cơ điện'),
+  item('Bảo dưỡng, kiểm tra định kỳ phương tiện PCCC (bình chữa cháy, máy bơm, đầu báo, tủ trung tâm)', `${PC} Điều 22`, 'Theo khung Điều 22 – tổ chức ×2', 'Sổ bảo dưỡng, tem kiểm tra', 'Nạp lại, sửa chữa, thay thế', 'Cơ điện'),
+  item('Kho CTNH, kho dầu, khu hóa chất có bình chữa cháy, cát, biển cấm lửa', `${PC} Điều 20, 21`, 'Theo khung – tổ chức ×2', 'Kiểm tra hiện trường', 'Bổ sung trang bị', 'KT-SX, Kho', 'Điều 17'),
+  item('Lối thoát nạn, cửa thoát nạn thông thoáng; đèn chiếu sáng sự cố, chỉ dẫn thoát nạn hoạt động', `${PC} Điều 24 (bãi bỏ k3 – NĐ 69/2026)`, 'Theo khung Điều 24 – tổ chức ×2', 'Thử đèn; kiểm tra lối thoát', 'Dọn chướng ngại; thay đèn', 'Kho, Cơ điện'),
+  item('Giải pháp ngăn cháy, chống cháy lan (vách, cửa ngăn cháy, khoảng cách giữa kho) được duy trì', `${PC} Điều 25 (k2, k4, k5 sửa đổi bởi NĐ 69/2026)`, 'Theo khung Điều 25 – tổ chức ×2', 'Kiểm tra hiện trường', 'Khôi phục giải pháp ngăn cháy', 'Ban Điều hành'),
+  item('Phương án chữa cháy, CNCH của cơ sở được lập, phê duyệt, cập nhật hạng mục mới', `${PC} Điều 26 k5`, '20–25 tr – tổ chức ×2', 'Phương án được phê duyệt', 'Xây dựng, cập nhật, trình phê duyệt', 'Ban Điều hành'),
+  item('Thực tập phương án chữa cháy, CNCH theo quy định', `${PC} Điều 26 k4`, '15–20 tr – tổ chức ×2', 'Biên bản thực tập (xem PCCC & An toàn › Diễn tập)', 'Tổ chức thực tập', 'Ban Điều hành', 'Điều 24'),
+  item('Đường giao thông, bãi đỗ cho xe chữa cháy thông thoáng', `${PC} Điều 27 k6`, '30–40 tr – tổ chức ×2', 'Kiểm tra hiện trường', 'Dọn chướng ngại ngay', 'Kho, Ban Điều hành'),
+  item('Cập nhật cơ sở dữ liệu PCCC; kết nối truyền tin báo cháy (nếu thuộc diện)', `${PC} Điều 28`, 'Theo khung Điều 28 – tổ chức ×2', 'Tài khoản, dữ liệu đã cập nhật', 'Cập nhật dữ liệu', 'Ban Điều hành'),
+  item('Báo cáo công tác PCCC và CNCH theo yêu cầu; khắc phục kiến nghị của cơ quan Công an', PC, 'Theo hành vi – tổ chức ×2', 'Văn bản báo cáo; biên bản kiểm tra', 'Gửi bổ sung; khắc phục có hạn', 'Ban Điều hành'),
+]
+
+const LABOR_ITEMS: ChecklistItemTemplate[] = [
+  // --- An toàn, vệ sinh lao động ---
+  item('Bộ phận ATVSLĐ, y tế; Hội đồng ATVSLĐ cơ sở (bắt buộc từ 300 lao động); an toàn – vệ sinh viên ở mỗi tổ (NĐ 39/2016)', `${LD} Điều 32 k2`, '5–10 tr – tổ chức ×2', 'Quyết định thành lập, phân công', 'Kiện toàn theo quy mô lao động', 'Tổ chức – Hành chính', 'Điều 7'),
+  item('Kế hoạch ATVSLĐ năm; tổ chức sơ cứu, cấp cứu (túi sơ cứu, người được huấn luyện)', `${LD} Điều 32 k2`, '5–10 tr – tổ chức ×2', 'Kế hoạch năm; danh sách sơ cứu viên', 'Lập kế hoạch; bổ sung túi sơ cứu', 'ATVSLĐ'),
+  item('Hồ sơ vệ sinh lao động được lập, cập nhật sau mỗi đợt quan trắc (TT 19/2016/TT-BYT)', `${LD} Điều 32 k1`, '0,5–1 tr – tổ chức ×2', 'Hồ sơ vệ sinh lao động', 'Cập nhật theo kết quả QTMTLĐ (Sức khỏe nghề nghiệp)', 'ATVSLĐ'),
+  item('Kiểm tra, bảo dưỡng máy, thiết bị, nhà xưởng; thiết bị an toàn (che chắn bộ phận chuyển động, lan can, khóa – thẻ cách ly năng lượng)', `${LD} Điều 32 k3`, '20–25 tr – tổ chức ×2', 'Sổ bảo dưỡng; kiểm tra băng tải, thùng quay, gầu tải', 'Lắp che chắn; áp dụng khóa – thẻ', 'Cơ điện, xưởng'),
+  item('Phương án xử lý sự cố, ứng cứu khẩn cấp; diễn tập định kỳ', `${LD} Điều 32 k3`, '20–25 tr – tổ chức ×2', 'Phương án; biên bản diễn tập', 'Lập, diễn tập', 'ATVSLĐ', 'Điều 24'),
+  item('Khai báo, điều tra TNLĐ đúng quy định (chết người hoặc từ 02 người bị thương nặng: khai báo ngay Sở Nội vụ; chết người báo Công an)', `${LD} Điều 32 k3; NĐ 39/2016; NĐ 129/2025 (Mẫu 01 PL II)`, '20–25 tr – tổ chức ×2', 'Hồ sơ TNLĐ (PCCC & An toàn › Sự cố)', 'Lập quy trình khai báo nhanh', 'ATVSLĐ'),
+  item('Chế độ cho người làm nghề, công việc nặng nhọc, độc hại, nguy hiểm (thời giờ, khám 6 tháng/lần, bồi dưỡng)', `${LD} Điều 32 k4`, '5–75 tr theo số NLĐ – tổ chức ×2', 'Danh sách NNĐHNH (TT 11/2020, TT 19/2023); chứng từ', 'Rà soát danh sách, bổ sung chế độ', 'Tổ chức – Hành chính'),
+  item('Thống kê, báo cáo TNLĐ: 6 tháng trước 05/7, năm trước 10/01 (PL XII NĐ 39/2016 → Sở Nội vụ)', `${LD} Điều 31 k3`, '5–10 tr – tổ chức ×2', 'Báo cáo đã gửi', 'Gửi bổ sung', 'ATVSLĐ'),
+  item('Báo cáo công tác ATVSLĐ năm (PL II TT 07/2016 → Sở Nội vụ, Sở Y tế); báo cáo y tế lao động (PL 8 TT 19/2016/TT-BYT → Trung tâm Y tế)', `${LD} Điều 31 k2`, '1–3 tr – tổ chức ×2', 'Báo cáo đã gửi', 'Gửi bổ sung', 'ATVSLĐ'),
+  item('Khám sức khỏe định kỳ ít nhất 01 lần/năm; NLĐ làm nghề NNĐHNH 06 tháng/lần', `${LD} Điều 33 k2–k4; Luật ATVSLĐ Điều 21`, '1–15 tr/NLĐ tùy hành vi – tổ chức ×2', 'Hồ sơ khám (Sức khỏe nghề nghiệp)', 'Lập lịch khám; khám bổ sung', 'Tổ chức – Hành chính'),
+  item('Khám phát hiện bệnh nghề nghiệp cho NLĐ tiếp xúc yếu tố có hại (ồn, bụi silic, hóa chất) – danh mục 35 BNN theo TT 60/2025/TT-BYT', `${LD} Điều 33 k2–k4; TT 28/2016/TT-BYT`, '1–15 tr/NLĐ tùy hành vi – tổ chức ×2', 'Danh sách NLĐ tiếp xúc; kết quả khám BNN', 'Tổ chức khám BNN theo vị trí vượt chuẩn', 'Tổ chức – Hành chính'),
+  item('Thông tin cho NLĐ về yếu tố nguy hiểm, có hại; đánh giá yếu tố; biển cảnh báo tại nơi làm việc', `${LD} Điều 33 k5`, '10–15 tr – tổ chức ×2', 'Biển cảnh báo; biên bản phổ biến', 'Bổ sung biển cảnh báo vùng ồn, bụi', 'ATVSLĐ'),
+  item('Đánh giá nguy cơ rủi ro về ATVSLĐ', `${LD} Điều 33 k6`, '15–20 tr – tổ chức ×2', 'Bảng đánh giá rủi ro', 'Lập, cập nhật đánh giá', 'ATVSLĐ'),
+  item('Cấp phương tiện bảo vệ cá nhân phù hợp (TT 25/2022); bồi dưỡng bằng hiện vật cho người làm việc có yếu tố nguy hiểm, độc hại (TT 24/2022)', `${LD} Điều 33 k8`, '3–30 tr – tổ chức ×2', 'Sổ cấp phát PTBVCN; danh sách bồi dưỡng', 'Cấp bổ sung; nhắc nhở sử dụng', 'ATVSLĐ'),
+  item('Nơi làm việc đạt quy chuẩn vệ sinh lao động (ồn, vi khí hậu, bụi, hơi khí độc)', `${LD} Điều 33 k9; QCVN 24, 26:2016/BYT; QCVN 02, 03:2019/BYT`, '25–40 tr – tổ chức ×2', 'Kết quả QTMTLĐ', 'Biện pháp kỹ thuật tại vị trí vượt chuẩn', 'ATVSLĐ, Cơ điện'),
+  item('Không buộc NLĐ tiếp tục làm việc khi có nguy cơ xảy ra TNLĐ đe dọa nghiêm trọng tính mạng, sức khỏe', `${LD} Điều 33 k10`, '30–40 tr – tổ chức ×2', 'Quy định quyền từ chối làm việc nguy hiểm', 'Phổ biến quyền từ chối; ghi vào nội quy', 'Ban Điều hành'),
+  item('Chế độ cho người bị TNLĐ, BNN (chi trả, giám định, bố trí công việc phù hợp)', `${LD} Điều 34 k1`, '2–4 tr/NLĐ – tổ chức ×2', 'Hồ sơ chi trả', 'Chi trả bổ sung', 'Tổ chức – Hành chính'),
+  item('Khai báo máy, thiết bị có yêu cầu nghiêm ngặt (nồi hơi, bình chịu áp lực, xe nâng, thiết bị nâng) – từ 01/7/2026 đến 28/02/2027 khai báo với cơ quan chuyên môn UBND tỉnh (NQ 66.18/2026/NQ-CP)', `${LD} Điều 35 k1`, '1–2 tr – tổ chức ×2', 'Văn bản khai báo', 'Khai báo bổ sung', 'Cơ điện'),
+  item('Lưu giữ đầy đủ hồ sơ kỹ thuật máy, thiết bị nghiêm ngặt', `${LD} Điều 35 k2`, '5–10 tr – tổ chức ×2', 'Hồ sơ lý lịch thiết bị', 'Bổ sung hồ sơ', 'Cơ điện'),
+  item('Kiểm định trước khi đưa vào sử dụng và định kỳ máy, thiết bị nghiêm ngặt', `${LD} Điều 35 k4`, '20–75 tr theo số thiết bị – tổ chức ×2', 'Biên bản, tem kiểm định còn hạn', 'Kiểm định ngay; dừng sử dụng khi quá hạn', 'Cơ điện'),
+  item('Không sử dụng máy, thiết bị kiểm định không đạt', `${LD} Điều 35 k5`, '50–75 tr – tổ chức ×2', 'Biên bản kiểm định', 'Dừng sử dụng; sửa chữa, kiểm định lại', 'Cơ điện'),
+  item('Huấn luyện ATVSLĐ đủ 6 nhóm (NĐ 44/2016 Điều 19): nhóm 3 có thẻ an toàn trước khi làm công việc nghiêm ngặt; nhóm 4 định kỳ hằng năm', `${LD} Điều 36 k1`, '5–50 tr theo số NLĐ – tổ chức ×2', 'Ma trận huấn luyện (Nhân sự & Huấn luyện); thẻ an toàn', 'Huấn luyện bổ sung người quá hạn', 'ATVSLĐ', 'Điều 30'),
+  item('Quan trắc môi trường lao động ít nhất 01 lần/năm do tổ chức đủ điều kiện thực hiện', `${LD} Điều 38 k3`, '20–40 tr – tổ chức ×2', 'Hợp đồng, báo cáo QTMTLĐ', 'Ký hợp đồng quan trắc', 'ATVSLĐ'),
+  item('Công khai kết quả QTMTLĐ cho NLĐ', `${LD} Điều 38 k2`, '2–5 tr – tổ chức ×2', 'Bảng tin, biên bản công khai', 'Công khai kết quả tại nơi làm việc', 'ATVSLĐ'),
+  item('Làm việc trong không gian hạn chế (bể HTXLNT, silo, bồn) và trên cao: giấy phép, đo khí, dây an toàn, người giám sát', `${LD} Điều 32 k3, Điều 33`, 'Theo hành vi – tổ chức ×2', 'Giấy phép làm việc', 'Dừng công việc; cấp giấy phép', 'Ban Điều hành', 'Điều 8'),
+  item('Đóng bảo hiểm TNLĐ – BNN đúng, đủ (0,5% quỹ lương; 0,3% khi đủ điều kiện NĐ 58/2020)', `${LD} Điều 48 k1`, '0,3–0,5 tr/NLĐ – tổ chức ×2', 'Bảng đóng BHXH', 'Đóng bổ sung', 'Kế toán, Tổ chức – Hành chính'),
+  // --- Quan hệ lao động liên quan ---
+  item('Kỷ luật lao động đúng trình tự (BLLĐ Điều 122, 124); không phạt tiền, cắt lương thay xử lý kỷ luật (BLLĐ Điều 127) – hệ số trong quy chế lương chỉ áp cho tập thể', `${LD} Điều 25 k3`, '20–40 tr – tổ chức ×2', 'Quy định thưởng phạt nội bộ; biên bản xử lý kỷ luật', 'Rà soát quy định nội bộ; bỏ mọi hình thức trừ tiền cá nhân', 'Tổ chức – Hành chính', 'Nội quy lao động'),
+  item('Giao kết hợp đồng lao động bằng văn bản đúng loại; không giữ giấy tờ tùy thân, không đặt cọc', `${LD} Điều 15 k1 (2–25 tr theo số NLĐ), k2 (20–25 tr)`, 'Theo hành vi – tổ chức ×2', 'Hồ sơ HĐLĐ', 'Ký bổ sung; trả giấy tờ', 'Tổ chức – Hành chính'),
+  item('Trả lương đúng hạn, đủ; không thấp hơn lương tối thiểu vùng', `${LD} Điều 23 k2, k3`, '5–50 tr theo số NLĐ – tổ chức ×2', 'Bảng lương', 'Trả bổ sung kèm lãi', 'Kế toán'),
+  item('Thời giờ làm việc, làm thêm giờ trong giới hạn, có sự đồng ý của NLĐ; nghỉ giữa ca, nghỉ tuần đủ', `${LD} Điều 24`, '2–75 tr tùy hành vi và số NLĐ – tổ chức ×2', 'Bảng chấm công, sổ làm thêm giờ', 'Điều chỉnh ca kíp', 'Tổ chức – Hành chính'),
+  item('Quy định phòng, chống quấy rối tình dục tại nơi làm việc trong nội quy lao động', `${LD} Điều 17 k3`, '15–30 tr – tổ chức ×2', 'Nội quy lao động đã đăng ký', 'Bổ sung nội quy', 'Tổ chức – Hành chính'),
+]
+
+const CHEM_ITEMS: ChecklistItemTemplate[] = [
+  item('Danh mục hóa chất sử dụng (NaOH, PAC, Polymer, Chlorine, hóa chất phòng thí nghiệm) được lập và cập nhật', HC, 'Theo nghị định xử phạt lĩnh vực hóa chất hiện hành – đối chiếu', 'Danh mục hóa chất (PCCC & An toàn › Hóa chất)', 'Lập, cập nhật', 'KT-SX', 'Điều 12'),
+  item('Phiếu an toàn hóa chất (MSDS) tiếng Việt có tại nơi lưu trữ, sử dụng', HC, 'Theo nghị định xử phạt hiện hành', 'Kiểm tra nhà hóa chất, phòng thí nghiệm', 'Bổ sung MSDS', 'KT-SX', 'Điều 12'),
+  item('Bao bì, thùng chứa hóa chất có nhãn; sang chiết đúng hướng dẫn nội bộ', HC, 'Theo nghị định xử phạt hiện hành', 'Kiểm tra hiện trường', 'Dán nhãn; đào tạo lại', 'Tổ vận hành HTXLNT', 'Điều 12'),
+  item('Khu lưu chứa hóa chất có khay chống tràn, thông gió, vật liệu thấm hút, tách chất không tương thích', HC, 'Theo nghị định xử phạt hiện hành', 'Kiểm tra hiện trường', 'Bổ sung khay, vật liệu', 'KT-SX', 'Điều 12'),
+  item('Người lao động tiếp xúc hóa chất được huấn luyện an toàn hóa chất định kỳ', HC, 'Theo nghị định xử phạt hiện hành', 'Ma trận huấn luyện (cột Hóa chất)', 'Tổ chức huấn luyện', 'ATVSLĐ', 'Điều 30'),
+  item('Biện pháp/kế hoạch phòng ngừa, ứng phó sự cố hóa chất theo quy định; thiết bị ứng phó (vòi rửa mắt, bộ xử lý tràn đổ)', HC, 'Theo nghị định xử phạt hiện hành', 'Văn bản biện pháp; kiểm tra thiết bị', 'Lập, bổ sung thiết bị', 'KT-SX', 'Điều 24'),
+  item('Báo cáo hoạt động hóa chất định kỳ theo quy định hiện hành', HC, 'Theo nghị định xử phạt hiện hành', 'Báo cáo đã gửi', 'Xác định mẫu, hạn theo văn bản hướng dẫn mới', 'KT-SX'),
+]
+
 export const COMPLIANCE_CHECKLISTS: ChecklistTemplateSeed[] = [
-  {
-    "name": "Tự kiểm tra tuân thủ bảo vệ môi trường (NĐ 45/2022/NĐ-CP)",
-    "category": "MT",
-    "frequency": "quarterly",
-    "items": [
-      {
-        "label": "GPMT 2986 còn hiệu lực; bản sao lưu tại Nhà máy; đã công khai theo quy định",
-        "hint": "Căn cứ: Điều 11 · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 3, 25 · Bằng chứng: GPMT; văn bản công khai GPMT",
-        "fix": "Bổ sung bản lưu; công khai lại nếu thiếu",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Thực hiện đúng, đủ các nội dung GPMT (nguồn thải, công trình, lưu lượng xả lớn nhất, quy chuẩn)",
-        "hint": "Căn cứ: Điều 11 · Mức phạt: Theo khung Điều 11 (thẩm quyền cấp tỉnh) · Quy định nội bộ: Điều 9, 10 · Bằng chứng: Đối chiếu GPMT PL1–5 với hiện trạng",
-        "fix": "Lập danh mục sai khác; khắc phục hoặc báo cáo cơ quan cấp phép",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Không thay đổi nhiên liệu, thiết bị, công suất, nguồn thải khi chưa báo cáo/chưa được điều chỉnh GPMT (vd: chuyển sang đốt sinh khối, lắp lò sấy mới)",
-        "hint": "Căn cứ: Điều 11 (không cấp điều chỉnh GPMT) · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 13 · Bằng chứng: văn bản trao đổi với cơ quan cấp phép; nhật ký nhiên liệu lò sấy",
-        "fix": "Dừng thay đổi chưa được phép; hoàn tất hồ sơ điều chỉnh GPMT, VHTN",
-        "owner": "KT-SX, Ban Điều hành"
-      },
-      {
-        "label": "Hệ thống xử lý nước thải vận hành thường xuyên, đúng quy trình; có sổ nhật ký vận hành",
-        "hint": "Căn cứ: Điều 11 (không vận hành/không thường xuyên công trình xử lý) · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 10 · Bằng chứng: Sổ nhật ký HTXLNT; kiểm tra hiện trường",
-        "fix": "Vận hành lại ngay; bổ sung nhật ký; đào tạo người vận hành",
-        "owner": "Tổ vận hành HTXLNT"
-      },
-      {
-        "label": "Có bơm, thiết bị dự phòng HTXLNT để thay thế ngay (GPMT PL1 B.1.5)",
-        "hint": "Căn cứ: Điều 11 · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 10 · Bằng chứng: Danh mục thiết bị dự phòng trong kho",
-        "fix": "Lập đề nghị mua sắm thiết bị dự phòng (bơm định lượng, máy thổi khí…)",
-        "owner": "KT-SX, Vật tư XNK"
-      },
-      {
-        "label": "Nước thải sau xử lý đạt 9 thông số giới hạn GPMT (pH, BOD5, COD, TSS, amoni, tổng N, tổng P, Clo dư, Coliform)",
-        "hint": "Căn cứ: Điều 18 · Mức phạt: Theo lưu lượng và mức vượt · Quy định nội bộ: Điều 10, 21 · Bằng chứng: Phiếu kết quả gần nhất",
-        "fix": "Dừng xả, đưa về hồ sự cố; điều chỉnh hóa chất; lấy mẫu lại",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Không có đường ống, cửa xả bỏ qua (bypass) hệ thống xử lý; điểm xả có biển báo",
-        "hint": "Căn cứ: NĐ 45/2022 – hành vi xả chất thải không qua xử lý · Mức phạt: Mức cao, có thể đình chỉ · Quy định nội bộ: Điều 3, 10 · Bằng chứng: Kiểm tra mạng thoát nước mưa – nước thải",
-        "fix": "Bịt ngay đường xả trái phép; báo cáo Ban TGĐ",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Đo, ghi lưu lượng nước thải bằng đồng hồ Ø114 hằng ngày",
-        "hint": "Căn cứ: Điều 11, 16 · Mức phạt: Theo khung · Quy định nội bộ: Điều 10, 20 · Bằng chứng: Sổ chỉ số đồng hồ",
-        "fix": "Lập sổ ghi chỉ số; dùng làm căn cứ phí",
-        "owner": "Tổ vận hành HTXLNT"
-      },
-      {
-        "label": "Khí thải dòng 01–07 đạt giới hạn GPMT (bụi, NOx, SO2, CO, NH3)",
-        "hint": "Căn cứ: Điều 20 · Mức phạt: Theo lưu lượng và mức vượt · Quy định nội bộ: Điều 9, 21 · Bằng chứng: Phiếu kết quả quý",
-        "fix": "Dừng dây chuyền, kiểm tra lọc túi; lấy mẫu lại",
-        "owner": "KT-SX, xưởng tạo hạt"
-      },
-      {
-        "label": "Lưu lượng khí thải từng dòng không vượt lưu lượng xả lớn nhất trong GPMT",
-        "hint": "Căn cứ: Điều 11 · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 9 · Bằng chứng: Phiếu kết quả (lưu lượng); đối chiếu GPMT PL2",
-        "fix": "Điều chỉnh quạt; đề nghị điều chỉnh GPMT nếu cần",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Hệ thống xử lý khí thải vận hành khi dây chuyền chạy; sổ nhật ký vận hành riêng từng hệ (ΔP, sự cố, thay túi)",
-        "hint": "Căn cứ: Điều 11 · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 9 · Bằng chứng: Sổ nhật ký từng hệ XLKT",
-        "fix": "Lập sổ theo mẫu; ghi hằng ca",
-        "owner": "Xưởng tạo hạt 1–3, lò hơi"
-      },
-      {
-        "label": "Quan trắc khí thải định kỳ 03 tháng/lần đủ dòng, đủ thông số; đơn vị có VIMCERTS; lưu giữ kết quả",
-        "hint": "Căn cứ: Điều 16 · Mức phạt: Theo khung Điều 16 · Quy định nội bộ: Điều 21 · Bằng chứng: Hợp đồng quan trắc; phiếu kết quả; lệnh dừng máy khi không lấy mẫu",
-        "fix": "Bổ sung đợt thiếu; lưu lệnh dừng máy",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Vị trí lấy mẫu ống khói có lỗ, sàn thao tác đúng quy cách (TT 10/2021)",
-        "hint": "Căn cứ: Điều 16 · Mức phạt: Theo khung Điều 16 · Quy định nội bộ: Điều 21 · Bằng chứng: kiểm tra hiện trường các ống khói",
-        "fix": "Thi công sàn thao tác, lỗ lấy mẫu đúng quy cách",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Tiếng ồn, độ rung ngoài hàng rào đạt QCVN 26, 27:2010",
-        "hint": "Căn cứ: NĐ 45/2022 – vi phạm về tiếng ồn, độ rung · Mức phạt: Theo mức vượt · Quy định nội bộ: Điều 11 · Bằng chứng: Kết quả đo (nếu có)",
-        "fix": "Bảo dưỡng, bọc cách âm thiết bị",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Chất thải rắn sinh hoạt phân loại 3 nhóm tại nguồn; thùng đúng màu, nhãn",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: Theo khung Điều 26 · Quy định nội bộ: Điều 14, 15; PL 2, 3 · Bằng chứng: Kiểm tra 100% điểm thu gom",
-        "fix": "Bổ sung thùng, nhãn; nhắc nhở, đào tạo lại",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Chuyển giao CTRSH cho đơn vị có chức năng; hợp đồng còn hiệu lực; xác nhận khối lượng",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: Theo khung Điều 26 · Quy định nội bộ: Điều 15, 20 · Bằng chứng: Hợp đồng; biên bản/phiếu cân",
-        "fix": "Ký/gia hạn hợp đồng",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Phân loại tại nguồn chất thải rắn công nghiệp thông thường; thiết bị, kho lưu giữ đạt yêu cầu",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: 20–25 triệu · Quy định nội bộ: Điều 16 · Bằng chứng: Khu CTRCN 216,5 m²; khu gom tại xưởng",
-        "fix": "Bố trí khu gom, bao chứa có nhãn",
-        "owner": "Các xưởng, kho"
-      },
-      {
-        "label": "Lưu giữ riêng CTRCN đã phân loại; có kho/khu vực theo quy định",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: 25–30 triệu · Quy định nội bộ: Điều 16, 19 · Bằng chứng: Hiện trường kho",
-        "fix": "Sắp xếp lại, tách khu",
-        "owner": "Kho"
-      },
-      {
-        "label": "Có biên bản bàn giao CTRCN cho mỗi lần chuyển giao",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: 3–5 triệu · Quy định nội bộ: Điều 20 · Bằng chứng: biên bản giao nhận với đơn vị tiếp nhận",
-        "fix": "Lập biên bản cho mọi lần giao",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Không tự tái chế, xử lý CTRCN khi không đáp ứng yêu cầu BVMT; không dùng xỉ, tro san lấp",
-        "hint": "Căn cứ: Điều 26 · Mức phạt: 30–50 triệu · Quy định nội bộ: Điều 3, 16 · Bằng chứng: Kiểm tra hiện trường, sổ",
-        "fix": "Chuyển giao đơn vị có chức năng",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "CTNH phân loại, chứa trong thùng có nắp, nhãn mã CTNH, dấu hiệu cảnh báo; kho đạt yêu cầu",
-        "hint": "Căn cứ: Điều 29 · Mức phạt: Theo khung Điều 29 · Quy định nội bộ: Điều 17 · Bằng chứng: Kho CTNH 75 m²",
-        "fix": "Dán nhãn, thay thùng, bổ sung vật liệu thấm hút",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "CTNH chuyển giao đơn vị có giấy phép; có chứng từ; không tự tái sử dụng, đốt, bán CTNH (dầu nhớt thải)",
-        "hint": "Căn cứ: Điều 29 · Mức phạt: Theo khung Điều 29 · Quy định nội bộ: Điều 17 · Bằng chứng: Chứng từ CTNH; sổ giao nhận; hiện trường xưởng cơ điện",
-        "fix": "Chuyển giao toàn bộ cho đơn vị có giấy phép; không tự tái sử dụng, đốt",
-        "owner": "Ban Điều hành, Cơ điện"
-      },
-      {
-        "label": "Kê khai đủ loại, khối lượng CTNH (gồm dịch thải phòng thí nghiệm, ắc quy, pin) trong báo cáo",
-        "hint": "Căn cứ: Điều 29 · Mức phạt: Theo khung Điều 29 · Quy định nội bộ: Điều 17, 20 · Bằng chứng: Sổ CTNH; báo cáo BVMT",
-        "fix": "Bổ sung danh mục, mã CTNH",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Kế hoạch phòng ngừa, ứng phó sự cố môi trường được ban hành; có thiết bị ứng phó; diễn tập",
-        "hint": "Căn cứ: NĐ 45/2022 – vi phạm về phòng ngừa, ứng phó sự cố chất thải · Mức phạt: Theo khung · Quy định nội bộ: Điều 24 · Bằng chứng: Kế hoạch; biên bản diễn tập",
-        "fix": "Ban hành/cập nhật; diễn tập hằng năm",
-        "owner": "KT-SX, Ban Điều hành"
-      },
-      {
-        "label": "Phương án ứng phó sự cố tràn dầu tại cầu cảng cập nhật căn cứ hiện hành; có bộ ứng cứu dầu tràn",
-        "hint": "Căn cứ: NĐ 45/2022 – sự cố chất thải; quy chế ứng phó sự cố tràn dầu · Mức phạt: Theo khung · Quy định nội bộ: Điều 24 · Bằng chứng: Phương án; kiểm tra bộ ứng cứu tại cảng",
-        "fix": "Cập nhật phương án (QĐ 12/2021/QĐ-TTg); trang bị phao, chất thấm dầu",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Báo cáo công tác BVMT nộp trước 15/01; số liệu khớp phiếu kết quả, chứng từ",
-        "hint": "Căn cứ: NĐ 45/2022 – vi phạm về báo cáo công tác BVMT · Mức phạt: Theo khung · Quy định nội bộ: Điều 25 · Bằng chứng: Bản nộp có dấu tiếp nhận",
-        "fix": "Kiểm tra chéo số liệu; lập đính chính nếu phát hiện sai",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Kê khai, nộp phí BVMT nước thải (NĐ 346/2025) và khí thải (NĐ 153/2024) đúng hạn ngày 20 tháng đầu quý sau",
-        "hint": "Căn cứ: Pháp luật phí, quản lý thuế · Mức phạt: Theo pháp luật quản lý thuế · Quy định nội bộ: PL 4 Quy định · Bằng chứng: Tờ khai, chứng từ nộp",
-        "fix": "Nộp bổ sung kèm giải trình",
-        "owner": "KT-SX, Kế toán"
-      },
-      {
-        "label": "Trách nhiệm tái chế (EPR): kê khai trước 31/3, đóng góp đúng hạn",
-        "hint": "Căn cứ: NĐ 45/2022 – vi phạm trách nhiệm tái chế · Mức phạt: Theo khung · Quy định nội bộ: PL 4 Quy định · Bằng chứng: Bản kê khai; chứng từ chuyển khoản",
-        "fix": "Kê khai, đóng góp bổ sung",
-        "owner": "KT-SX, Kế toán"
-      },
-      {
-        "label": "Kiểm kê khí nhà kính cấp cơ sở; kế hoạch giảm phát thải theo quy định",
-        "hint": "Căn cứ: Điều 45 · Mức phạt: Theo khung Điều 45 · Quy định nội bộ: PL 4 Quy định · Bằng chứng: Báo cáo kiểm kê; văn bản nộp",
-        "fix": "Hoàn thiện, nộp đúng hạn",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Không để rơi vãi nguyên liệu, thành phẩm khi vận chuyển, bốc xếp (đường nội bộ, cầu cảng); xe che chắn",
-        "hint": "Căn cứ: Điều 25 · Mức phạt: Theo khung Điều 25 · Quy định nội bộ: Điều 11 · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Thu dọn ngay; nhắc nhở lái xe, nhà thầu",
-        "owner": "Kho, Ban Điều hành"
-      },
-      {
-        "label": "Kho than, xỉ, sinh khối có mái, phủ bạt; không phát tán bụi",
-        "hint": "Căn cứ: Điều 11 (GPMT PL4) · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 16 · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Phủ bạt, che chắn",
-        "owner": "Lò hơi"
-      },
-      {
-        "label": "Diện tích cây xanh ≥ 20% (≥ 31.261 m²)",
-        "hint": "Căn cứ: Điều 11 (GPMT PL5 D.2) · Mức phạt: Theo khung Điều 11 · Quy định nội bộ: Điều 11 · Bằng chứng: Bản vẽ mặt bằng, đo đạc",
-        "fix": "Bổ sung trồng cây",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Nhà thầu, khách ký cam kết BVMT; chất thải của nhà thầu được thu gom",
-        "hint": "Căn cứ: Điều 26, 29 (trách nhiệm chủ nguồn thải) · Mức phạt: Theo khung · Quy định nội bộ: Điều 8, 29 · Bằng chứng: Phiếu nhà thầu MT-HD07",
-        "fix": "Ký cam kết trước khi thi công",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Hồ sơ môi trường đầy đủ, xuất trình được khi kiểm tra (GPMT, ĐTM, phiếu QT, chứng từ, hợp đồng)",
-        "hint": "Căn cứ: NĐ 45/2022 – cản trở, không cung cấp thông tin khi kiểm tra · Mức phạt: Theo khung · Quy định nội bộ: Điều 5, 25 · Bằng chứng: Danh mục hồ sơ",
-        "fix": "Bổ sung, số hóa hồ sơ",
-        "owner": "KT-SX"
-      }
-    ]
-  },
-  {
-    "name": "Tự kiểm tra tuân thủ PCCC & CNCH (NĐ 106/2025/NĐ-CP)",
-    "category": "PCCC",
-    "frequency": "quarterly",
-    "items": [
-      {
-        "label": "Hồ sơ quản lý công tác PCCC và CNCH của cơ sở được lập, cập nhật",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Hồ sơ PCCC",
-        "fix": "Lập, cập nhật hồ sơ",
-        "owner": "Ban Điều hành, ATVSLĐ"
-      },
-      {
-        "label": "Ban hành và niêm yết nội quy, biển cấm, biển báo, biển chỉ dẫn PCCC và CNCH",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: 6–8 triệu · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Bổ sung nội quy, biển báo",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Thành lập Đội PCCC và CNCH cơ sở; có quyết định, phân công",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 8 · Mức phạt: 10–20 triệu (khoản 4) · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Quyết định thành lập đội",
-        "fix": "Ra quyết định, kiện toàn đội",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Bố trí lực lượng, phương tiện của Đội PCCC cơ sở trực hằng ngày",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 8 · Mức phạt: 8–10 triệu · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Sổ trực",
-        "fix": "Lập lịch trực",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Trang bị phương tiện PCCC, CNCH cho Đội PCCC cơ sở theo quy định",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 8 · Mức phạt: 15–20 triệu · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Danh mục trang bị",
-        "fix": "Bổ sung trang bị",
-        "owner": "Vật tư XNK"
-      },
-      {
-        "label": "Thành viên Đội PCCC cơ sở được huấn luyện, bồi dưỡng nghiệp vụ PCCC và CNCH",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 6 · Mức phạt: Theo khung Điều 6 · Quy định nội bộ: Điều 30 · Bằng chứng: Giấy chứng nhận huấn luyện",
-        "fix": "Tổ chức huấn luyện",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Xây dựng phương án chữa cháy, cứu nạn, cứu hộ của cơ sở",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 26 khoản 5 · Mức phạt: 20–25 triệu · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Phương án được phê duyệt",
-        "fix": "Xây dựng, trình phê duyệt",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Tổ chức thực tập phương án chữa cháy, CNCH theo quy định",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 26 khoản 4 · Mức phạt: 15–20 triệu · Quy định nội bộ: Điều 24; PL 4 · Bằng chứng: Biên bản thực tập",
-        "fix": "Tổ chức thực tập",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Bình chữa cháy, hệ thống báo cháy, chữa cháy, nước chữa cháy được kiểm tra, bảo dưỡng; còn hạn, hoạt động tốt",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 20, 21, 22 · Mức phạt: Theo khung · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Sổ kiểm tra, tem bảo dưỡng",
-        "fix": "Nạp lại, sửa chữa, thay thế",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Kho CTNH, kho dầu, khu hóa chất có bình chữa cháy, cát, biển cấm lửa",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 20, 21 · Mức phạt: Theo khung · Quy định nội bộ: Điều 17; PL 5 · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Bổ sung trang bị",
-        "owner": "KT-SX, Kho"
-      },
-      {
-        "label": "Đường giao thông, bãi đỗ cho xe chữa cháy thông thoáng; lối thoát nạn không bị chắn",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 27 · Mức phạt: Theo khung Điều 27 · Quy định nội bộ: PL 5 Quy định · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Dọn chướng ngại ngay",
-        "owner": "Kho, Ban Điều hành"
-      },
-      {
-        "label": "Đèn chiếu sáng sự cố, đèn chỉ dẫn thoát nạn hoạt động",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Thử đèn",
-        "fix": "Thay thế",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Mua bảo hiểm cháy, nổ bắt buộc (nếu thuộc diện)",
-        "hint": "Căn cứ: NĐ 106/2025 – Điều 17 · Mức phạt: Đến 30–40 triệu (khoản 3, cơ sở nhóm 2) · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Hợp đồng bảo hiểm còn hiệu lực",
-        "fix": "Mua/gia hạn",
-        "owner": "Kế toán"
-      },
-      {
-        "label": "Kiểm soát nguồn nhiệt: hàn, cắt có giấy phép làm việc nóng, người giám sát, bình chữa cháy",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Điều 8; MT-HD07 · Bằng chứng: Giấy phép làm việc nóng",
-        "fix": "Dừng công việc; cấp giấy phép",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Bãi than, sinh khối: theo dõi nhiệt độ, chống tự cháy; khoảng cách an toàn",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Điều 16 · Bằng chứng: Sổ theo dõi nhiệt độ đống",
-        "fix": "Đảo trộn, giảm chiều cao đống",
-        "owner": "Lò hơi"
-      },
-      {
-        "label": "Hệ thống điện, chống sét, tiếp địa được kiểm tra định kỳ; tủ điện có nắp, không quá tải",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Nội quy PCCC Nhà máy · Bằng chứng: Biên bản đo điện trở tiếp địa",
-        "fix": "Sửa chữa, đo lại",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Hạng mục mới (lò sinh khối, điện mặt trời mái nhà) đáp ứng yêu cầu PCCC trước khi đưa vào sử dụng",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: Điều 13 · Bằng chứng: Hồ sơ thẩm duyệt/nghiệm thu PCCC (nếu thuộc diện)",
-        "fix": "Hoàn tất thủ tục PCCC",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Gửi báo cáo kết quả thực hiện công tác PCCC và CNCH đúng thời hạn; khắc phục kiến nghị của cơ quan PCCC",
-        "hint": "Căn cứ: NĐ 106/2025 · Mức phạt: Theo khung · Quy định nội bộ: PL 4 Quy định · Bằng chứng: Văn bản báo cáo; biên bản kiểm tra",
-        "fix": "Gửi bổ sung; khắc phục",
-        "owner": "Ban Điều hành"
-      }
-    ]
-  },
-  {
-    "name": "Tự kiểm tra tuân thủ an toàn, vệ sinh lao động (NĐ 12/2022/NĐ-CP)",
-    "category": "ATLD",
-    "frequency": "quarterly",
-    "items": [
-      {
-        "label": "Hội đồng ATVSLĐ cơ sở; người làm công tác ATVSLĐ, y tế được bố trí",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo khung · Quy định nội bộ: Điều 7 · Bằng chứng: Quyết định thành lập, phân công",
-        "fix": "Kiện toàn",
-        "owner": "Tổ chức – Hành chính"
-      },
-      {
-        "label": "Kế hoạch ATVSLĐ hằng năm được lập và thực hiện",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo khung · Bằng chứng: Kế hoạch năm",
-        "fix": "Lập kế hoạch",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Huấn luyện ATVSLĐ đủ 6 nhóm đối tượng; nhóm 3 có thẻ an toàn trước khi làm công việc nghiêm ngặt",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo số người lao động · Quy định nội bộ: Điều 30 · Bằng chứng: Sổ theo dõi huấn luyện, thẻ an toàn",
-        "fix": "Tổ chức huấn luyện bổ sung",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Khai báo máy, thiết bị có yêu cầu nghiêm ngặt (nồi hơi, bình khí nén, xe nâng, thiết bị nâng) trong 30 ngày trước/sau khi đưa vào sử dụng",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 24 · Mức phạt: 1–2 triệu · Bằng chứng: Văn bản khai báo",
-        "fix": "Khai báo bổ sung",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Kiểm định trước khi sử dụng và định kỳ máy, thiết bị nghiêm ngặt; không sử dụng thiết bị kiểm định không đạt",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 24 · Mức phạt: 20–75 triệu theo số thiết bị · Bằng chứng: Biên bản, tem kiểm định còn hạn",
-        "fix": "Dừng sử dụng; kiểm định ngay",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Lưu giữ đầy đủ hồ sơ kỹ thuật máy, thiết bị nghiêm ngặt",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: 5–10 triệu · Bằng chứng: Hồ sơ lý lịch thiết bị",
-        "fix": "Bổ sung hồ sơ",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Định kỳ kiểm tra, bảo dưỡng máy, thiết bị, nhà xưởng, kho tàng",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 21 · Mức phạt: 20–25 triệu · Quy định nội bộ: PL 5 Quy định · Bằng chứng: Sổ bảo dưỡng",
-        "fix": "Lập kế hoạch bảo dưỡng",
-        "owner": "Cơ điện"
-      },
-      {
-        "label": "Trang bị thiết bị an toàn tại nơi làm việc (che chắn bộ phận chuyển động, lan can, khóa – thẻ cách ly năng lượng)",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 21 · Mức phạt: Theo khung Điều 21 · Bằng chứng: Kiểm tra băng tải, thùng quay, gầu tải",
-        "fix": "Lắp che chắn; áp dụng khóa – thẻ",
-        "owner": "Cơ điện, xưởng"
-      },
-      {
-        "label": "Cấp phương tiện bảo vệ cá nhân bằng hiện vật (khẩu trang bụi, kính, găng, giày, mũ) phù hợp; người lao động sử dụng",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo số người lao động · Bằng chứng: Sổ cấp phát; quan sát",
-        "fix": "Cấp bổ sung; nhắc nhở",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Quan trắc môi trường lao động định kỳ (bụi, ồn, nhiệt, hơi khí độc NH3)",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: 20–40 triệu · Bằng chứng: Báo cáo quan trắc MTLĐ",
-        "fix": "Hợp đồng quan trắc",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Lập hồ sơ vệ sinh môi trường lao động đối với các yếu tố có hại",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: 0,5–1 triệu · Bằng chứng: Hồ sơ VSMTLĐ",
-        "fix": "Lập hồ sơ",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Khám sức khỏe định kỳ; khám phát hiện bệnh nghề nghiệp cho người tiếp xúc bụi, hóa chất",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo khung · Bằng chứng: Hồ sơ khám",
-        "fix": "Tổ chức khám",
-        "owner": "Tổ chức – Hành chính"
-      },
-      {
-        "label": "Đánh giá nguy cơ rủi ro ATVSLĐ; kế hoạch ứng cứu khẩn cấp; huấn luyện, trang bị sơ cứu, cấp cứu",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 21 · Mức phạt: 15–20 triệu (đánh giá rủi ro, cơ sở nguy cơ cao) · Quy định nội bộ: Điều 24 · Bằng chứng: Bảng đánh giá rủi ro; túi sơ cứu",
-        "fix": "Lập đánh giá; bổ sung túi sơ cứu",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Làm việc trong không gian hạn chế (bể HTXLNT, silo, bồn) và trên cao: giấy phép, đo khí, dây an toàn, người giám sát",
-        "hint": "Căn cứ: NĐ 12/2022 – Điều 21 · Mức phạt: Theo khung Điều 21 · Quy định nội bộ: Điều 8; MT-HD07 · Bằng chứng: Giấy phép làm việc",
-        "fix": "Dừng công việc; cấp giấy phép",
-        "owner": "Ban Điều hành"
-      },
-      {
-        "label": "Khai báo, điều tra, thống kê, báo cáo tai nạn lao động; báo cáo công tác ATVSLĐ định kỳ",
-        "hint": "Căn cứ: NĐ 12/2022 · Mức phạt: Theo khung · Bằng chứng: Sổ thống kê TNLĐ; báo cáo năm",
-        "fix": "Báo cáo bổ sung",
-        "owner": "ATVSLĐ"
-      }
-    ]
-  },
-  {
-    "name": "Tự kiểm tra tuân thủ an toàn hóa chất",
-    "category": "HC",
-    "frequency": "quarterly",
-    "items": [
-      {
-        "label": "Danh mục hóa chất sử dụng (NaOH, PAC, Polymer, Chlorine, hóa chất PTN) được lập và cập nhật",
-        "hint": "Căn cứ: Pháp luật hóa chất – nghị định xử phạt lĩnh vực hóa chất (đối chiếu văn bản hiện hành) · Mức phạt: Theo khung · Quy định nội bộ: Điều 12 · Bằng chứng: Danh mục hóa chất",
-        "fix": "Lập, cập nhật",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Phiếu an toàn hóa chất (MSDS) tiếng Việt có tại nơi lưu trữ, sử dụng",
-        "hint": "Căn cứ: Như trên · Mức phạt: Theo khung · Quy định nội bộ: Điều 12 · Bằng chứng: Kiểm tra nhà hóa chất, PTN",
-        "fix": "Bổ sung MSDS",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Bao bì, thùng chứa hóa chất có nhãn; sang chiết đúng hướng dẫn MT-HD02",
-        "hint": "Căn cứ: Như trên · Mức phạt: Theo khung · Quy định nội bộ: Điều 12 · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Dán nhãn; đào tạo lại",
-        "owner": "Tổ vận hành HTXLNT"
-      },
-      {
-        "label": "Khu lưu chứa hóa chất có khay chống tràn, thông gió, vật liệu thấm hút, tách chất không tương thích",
-        "hint": "Căn cứ: Như trên · Mức phạt: Theo khung · Quy định nội bộ: Điều 12 · Bằng chứng: Kiểm tra hiện trường",
-        "fix": "Bổ sung khay, vật liệu",
-        "owner": "KT-SX"
-      },
-      {
-        "label": "Người lao động tiếp xúc hóa chất được huấn luyện an toàn hóa chất định kỳ",
-        "hint": "Căn cứ: Như trên · Mức phạt: Theo khung · Quy định nội bộ: Điều 30 · Bằng chứng: Hồ sơ huấn luyện",
-        "fix": "Tổ chức huấn luyện",
-        "owner": "ATVSLĐ"
-      },
-      {
-        "label": "Biện pháp/kế hoạch phòng ngừa, ứng phó sự cố hóa chất theo quy định; thiết bị ứng phó (vòi rửa mắt, bộ xử lý tràn đổ)",
-        "hint": "Căn cứ: Như trên · Mức phạt: Theo khung · Quy định nội bộ: Điều 24 · Bằng chứng: Văn bản biện pháp; kiểm tra thiết bị",
-        "fix": "Lập, bổ sung thiết bị",
-        "owner": "KT-SX"
-      }
-    ]
-  }
+  { name: CHECKLIST_NAMES.MT, category: 'MT', frequency: 'quarterly', items: ENV_ITEMS },
+  { name: CHECKLIST_NAMES.PCCC, category: 'PCCC', frequency: 'quarterly', items: FIRE_ITEMS },
+  { name: CHECKLIST_NAMES.ATLD, category: 'ATLD', frequency: 'quarterly', items: LABOR_ITEMS },
+  { name: CHECKLIST_NAMES.HC, category: 'HC', frequency: 'quarterly', items: CHEM_ITEMS },
 ]
 
 /** Kiểm tra môi trường – vệ sinh công nghiệp hằng tháng của Hội đồng ATVSLĐ cơ sở (12 khu vực NM NPK) */
@@ -543,8 +255,11 @@ export const VSCN_MONTHLY_CHECKLIST: ChecklistTemplateSeed = {
       fix: 'Cắt cỏ, rửa cây, trồng bổ sung',
     },
     {
-      label: 'Nhà thầu đang thi công: đã ký cam kết (MT-HD07-05); khu thi công che chắn; rác thi công thu gom; hàn cắt có bình chữa cháy',
+      label: 'Nhà thầu đang thi công: đã ký cam kết bảo vệ môi trường, an toàn; khu thi công che chắn; rác thi công thu gom; hàn cắt có bình chữa cháy',
       fix: 'Tạm dừng công việc đến khi khắc phục',
     },
   ],
 }
+
+/** Số hạng mục từng bộ – hiển thị ở Cài đặt › Bộ mẫu nghiệp vụ */
+export const CHECKLIST_COUNTS = { MT: ENV_ITEMS.length, PCCC: FIRE_ITEMS.length, ATLD: LABOR_ITEMS.length, HC: CHEM_ITEMS.length }

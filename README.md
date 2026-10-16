@@ -3,7 +3,7 @@ quản lý môi trường cho doanh nghiệp SME
 
 | Thư mục / tệp | Nội dung |
 |---|---|
-| `ehsviet/` | **Ứng dụng chính** — React + TypeScript + Supabase (PWA, đa tổ chức): Chất thải & CTNH, Vận hành & Quan trắc, PCCC & An toàn, **Nhân sự & Huấn luyện**, **Nội quy & Vi phạm**, **ESG · GRI · Khí nhà kính**, Hồ sơ & Tuân thủ. Hướng dẫn cài đặt: [`ehsviet/README.md`](ehsviet/README.md) |
+| `ehsviet/` | **Ứng dụng chính** — React + TypeScript + Supabase (PWA, đa tổ chức): Chất thải & CTNH, Vận hành & Quan trắc, PCCC & An toàn, **Nhân sự & Huấn luyện**, **Sức khỏe nghề nghiệp**, **Nội quy & Vi phạm**, **ESG · GRI · Khí nhà kính**, Hồ sơ & Tuân thủ (căn cứ pháp lý rà soát 10/2026). Hướng dẫn cài đặt: [`ehsviet/README.md`](ehsviet/README.md) |
 | `hse_integrated_platform.jsx`, `hse_deploy_ready.tar_2.gz` | Bản mẫu giao diện trước đây (dữ liệu tĩnh) |
 
 Dùng thử nhanh (không cần máy chủ):

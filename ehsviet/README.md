@@ -8,7 +8,7 @@ hoàn toàn bằng Row Level Security. Ứng dụng là **PWA** — một mã ng
 > Tên "EHSViet" là tên làm việc — đổi thương hiệu tự do (logo tại `public/favicon.svg`,
 > `public/pwa-*.png`, tên trong `vite.config.ts` và `index.html`).
 
-## Tính năng (7 module)
+## Tính năng (8 module)
 
 **1. Chất thải & CTNH** — danh mục chất thải theo mã CTNH (TT 02/2022/TT-BTNMT), nhật ký
 phát sinh theo ngày/bộ phận, lập đợt chuyển giao kèm số chứng từ CTNH, tự tính **tồn kho
@@ -51,13 +51,28 @@ dòng, CO₂ sinh khối báo cáo riêng, quy đổi TOE, cường độ trên 
 phạm…), đối chiếu 8 nhóm nội dung bắt buộc **TT 96/2020 PL IV**, đánh dấu chuyển đổi **GRI 102 /
 GRI 103 (từ kỳ 2027)**; xuất Excel.
 
+**8. Sức khỏe nghề nghiệp** — **quan trắc môi trường lao động** theo đợt: kết quả theo vị trí × yếu tố
+(vi khí hậu, ồn, bụi, bụi silic, hơi khí độc, tâm sinh lý), tự đánh giá theo QCVN 24, 26:2016/BYT và
+02, 03:2019/BYT (nhiệt độ theo cường độ lao động; **thời gian tiếp xúc ồn cho phép** – 85 dBA/8 giờ,
+tăng 3 dBA giảm một nửa; đánh dấu mẫu từ 80% giới hạn), so sánh với đợt trước, **việc phải làm sau đợt
+đo** (công khai kết quả, biện pháp kỹ thuật, khám BNN, bồi dưỡng, PTBVCN, hồ sơ vệ sinh lao động) tạo
+thẳng vào Lịch tuân thủ; nhập kết quả từ Excel; **khám sức khỏe định kỳ** (12 tháng, nghề NNĐHNH 06
+tháng) và **khám phát hiện BNN** theo yếu tố tiếp xúc của từng người, ghi đợt khám cho nhiều người,
+phân loại sức khỏe I–V; **bồi dưỡng bằng hiện vật** mức 1–4 (TT 24/2022) với dự toán tháng/năm.
+
 **Bộ mẫu nghiệp vụ nhà máy phân bón NPK** (Cài đặt) — nạp 1 lần: 8 chính sách + 11 mục tiêu ESG,
-10 nội quy (MT-HD01…07, quy định tuân thủ MT nội bộ…), checklist VSCN hằng tháng 12 khu vực và
-**bảng tự kiểm tra tuân thủ 73 mục** theo NĐ 45/2022 (môi trường), NĐ 106/2025 (PCCC & CNCH),
-NĐ 12/2022 (ATVSLĐ), hóa chất — mỗi mục kèm căn cứ, khung xử phạt, bằng chứng, gợi ý khắc phục.
+10 nội quy (MT-HD01…07, quy định tuân thủ MT nội bộ…), checklist VSCN hằng tháng 12 khu vực,
+**bảng tự kiểm tra tuân thủ 116 mục** theo nghị định xử phạt hiện hành — NĐ 45/2022 (môi trường),
+NĐ 106/2025 sửa đổi bởi NĐ 69/2026 (PCCC & CNCH), **NĐ 283/2026 (lao động – ATVSLĐ, thay NĐ 12/2022
+từ 10/9/2026)**, Luật Hóa chất 69/2025 — mỗi mục kèm điều – khoản, khung phạt, bằng chứng, gợi ý khắc
+phục; nạp lại thì checklist cũ được cập nhật tại chỗ (giữ lịch sử kiểm tra) — và **lịch nghĩa vụ
+định kỳ HSE** (24 hạn: báo cáo công tác BVMT 15/01, phí BVMT quý, EPR bao bì theo NĐ 110/2026, kiểm kê
+KNK 02 năm/lần theo QĐ 42/2026, báo cáo TNLĐ – ATVSLĐ – y tế lao động, QTMTLĐ, khám sức khỏe, huấn
+luyện, thực tập PCCC). Căn cứ pháp lý rà soát **10/2026**.
 
 **Tổng quan** — bảng trạng thái tuân thủ (quan trắc, hạn việc, tồn CTNH, sự cố mở, thiết bị
-PCCC, **huấn luyện, vi phạm nội quy, KNK năm**), tiến độ huấn luyện 3 loại, xếp loại đơn vị tháng,
+PCCC, **huấn luyện, sức khỏe NLĐ, vi phạm nội quy, KNK năm**), tiến độ huấn luyện 3 loại, sức khỏe
+nghề nghiệp (đợt QTMTLĐ gần nhất, khám định kỳ, khám BNN), xếp loại đơn vị tháng,
 biểu đồ CTNH phát sinh 6 tháng.
 
 **Bản dùng thử** — chưa cấu hình Supabase thì ứng dụng tự chạy với dữ liệu mẫu (nhà máy phân bón,
@@ -77,7 +92,7 @@ Khôi phục dữ liệu mẫu tại Cài đặt.
 ```
 supabase/
   schema.sql        ← toàn bộ bảng + hàm + RLS (chạy 1 lần)
-  migrations/       ← nâng cấp CSDL đã cài (002: nhân sự, ESG – KNK, nội quy)
+  migrations/       ← nâng cấp CSDL đã cài (002: nhân sự, ESG – KNK, nội quy; 003: sức khỏe nghề nghiệp)
   seed.sql          ← dữ liệu mẫu theo bối cảnh nhà máy phân bón (tùy chọn)
 src/
   lib/              supabase client, hằng số QCVN & nhãn tiếng Việt, utils;
@@ -87,7 +102,7 @@ src/
   hooks/useCrud.ts  useList / useSave / useRemove (react-query)
   components/       UI primitives + Layout (sidebar desktop, bottom-nav mobile)
   pages/            Login, Onboarding, Dashboard, Settings
-  modules/          waste / operations / safety / compliance / personnel / rules / esg
+  modules/          waste / operations / safety / compliance / personnel / health / rules / esg
 ```
 
 ## Triển khai (≈ 15 phút)
@@ -96,8 +111,10 @@ src/
 Lấy `Project URL` và `anon public key` tại **Settings → API**.
 
 **Bước 2 — Tạo CSDL.** Mở **SQL Editor**, dán toàn bộ `supabase/schema.sql`, Run.
-*Đã cài bản trước (chỉ 4 module)?* Chạy thêm `supabase/migrations/002_nhan_su_esg_noi_quy.sql`
-(thêm 9 bảng Nhân sự – Huấn luyện, ESG – KNK, Nội quy – Vi phạm; chạy lại nhiều lần không lỗi).
+*Đã cài bản trước?* Chạy lần lượt các file còn thiếu trong `supabase/migrations/` (chạy lại nhiều lần không lỗi):
+`002_nhan_su_esg_noi_quy.sql` (9 bảng Nhân sự – Huấn luyện, ESG – KNK, Nội quy – Vi phạm) và
+`003_suc_khoe_nghe_nghiep.sql` (quan trắc môi trường lao động, khám sức khỏe – BNN, hồ sơ sức khỏe nhân sự,
+lịch lặp 02 năm/lần).
 
 **Bước 3 — (Tùy chọn) Dữ liệu mẫu.** Chạy tiếp `supabase/seed.sql` để có tổ chức demo
 (danh mục CTNH, hệ thống xử lý, điểm quan trắc, checklist PCCC/VSCN, lịch tuân thủ…).
@@ -179,18 +196,30 @@ mã thì theo họ tên duy nhất); khóa trùng *loại – tên – ngày –
 - **Kiểm kê KNK**: phát thải = số liệu hoạt động × hệ số (CO₂ + CH₄ × 27 + N₂O × 273, GWP IPCC
   AR6); nhiên liệu theo IPCC 2006 (than NCV 26,7 GJ/t; DO ρ 0,83, 43 TJ/Gg; xe nâng theo hệ số
   di động ngoài đường bộ); điện lưới dùng EF công bố gần nhất trước năm kiểm kê (0,6766 – năm 2022;
-  0,6592 – năm 2023). Hệ số lưu theo từng dòng nên đổi hệ số mẫu (`src/lib/ghg.ts`) không làm đổi
-  số đã kiểm kê. Cường độ ghi rõ mẫu số là **tấn thành phẩm**.
+  0,6592 – năm 2023; giá trị 2024 mới ở dạng nghiên cứu, chưa dùng). Hệ số lưu theo từng dòng nên đổi
+  hệ số mẫu (`src/lib/ghg.ts`) không làm đổi số đã kiểm kê. Cường độ ghi rõ mẫu số là **tấn thành
+  phẩm**. Nghĩa vụ: NĐ 06/2022 sửa đổi bởi NĐ 119/2025, NĐ 83/2026; danh mục QĐ 42/2026/QĐ-TTg; báo
+  cáo kiểm kê 02 năm/lần trước 31/3 (kỳ tới: số liệu 2025–2026, trước 31/3/2027).
 - **Xử lý vi phạm**: hệ số % quỹ lương chỉ là căn cứ đánh giá **tập thể đơn vị** trong Quy chế
   trả lương, thưởng; không phạt tiền, cắt lương người lao động (BLLĐ 2019 Điều 127) — cá nhân xử
-  lý kỷ luật theo Nội quy lao động (Điều 124); nhà thầu theo điều khoản hợp đồng.
+  lý kỷ luật theo Nội quy lao động (Điều 124); nhà thầu theo điều khoản hợp đồng. Phạt tiền, cắt
+  lương thay xử lý kỷ luật bị xử phạt theo NĐ 283/2026/NĐ-CP Điều 25 k3.
+- **Sức khỏe nghề nghiệp**: giới hạn mặc định khi nhập/nhập Excel — nhiệt độ theo cường độ lao động
+  (QCVN 26:2016/BYT: nhẹ 20–34, vừa 18–32, nặng 16–30 °C), ồn 85 dBA (QCVN 24:2016/BYT), NH₃ 17,
+  CO 20, SO₂ 5, NO₂ 5 mg/m³ (TWA, QCVN 03:2019/BYT); giới hạn bụi chứa silic phụ thuộc hàm lượng SiO₂ —
+  nhập theo phiếu kết quả. Khám sức khỏe 12 tháng/lần, nghề NNĐHNH 06 tháng/lần; khám BNN hằng năm
+  theo yếu tố tiếp xúc; bồi dưỡng hiện vật 13.000 – 20.000 – 26.000 – 32.000 đ/ngày (TT 24/2022).
+- **Căn cứ pháp lý** của checklist, lịch nghĩa vụ, ghi chú trong ứng dụng rà soát **10/2026**: Luật
+  BVMT sửa đổi đến Luật 146/2025; NĐ 08/2022 sửa bởi NĐ 05/2025, NĐ 48/2026; TT 02/2022 (VBHN
+  55/VBHN-BNNMT); NĐ 45/2022 (còn hiệu lực, có dự thảo thay thế); QCVN 19:2024, 40:2025 theo lộ trình;
+  NĐ 106/2025 sửa bởi NĐ 69/2026; NĐ 283/2026; Luật Hóa chất 69/2025; EPR theo NĐ 110/2026.
 - **Bộ mẫu** (chính sách, nội quy, checklist) là dự thảo — rà soát, ban hành theo thẩm quyền.
 
 - Ngưỡng preset là **giá trị C cơ sở** của QCVN — khi nhập kết quả hãy điều chỉnh theo hệ số
   Kq, Kf (nước thải) hoặc Kp, Kv (khí thải) quy định tại GPMT của cơ sở.
-- Thời hạn nộp báo cáo/phí trong seed chỉ là gợi ý — **đối chiếu văn bản hiện hành**
-  (TT 02/2022/TT-BTNMT và các văn bản sửa đổi, NĐ 53/2020/NĐ-CP…) rồi chỉnh trong
-  *Lịch tuân thủ*.
+- Hạn nộp trong lịch nghĩa vụ mẫu (`src/lib/obligations.ts`) theo văn bản rà soát 10/2026 —
+  **đối chiếu văn bản hợp nhất mới nhất** trước khi nộp, tần suất quan trắc luôn theo GPMT;
+  chỉnh trực tiếp trong *Lịch tuân thủ*.
 - Trường "Liên kết file" nhận URL Google Drive/Supabase Storage; upload trực tiếp nằm trong
   lộ trình.
 

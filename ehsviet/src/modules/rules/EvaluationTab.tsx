@@ -61,7 +61,7 @@ export default function EvaluationTab({ data }: { data: RulesData }) {
           r.open,
         ]),
         [],
-        ['Ghi chú: hệ số là căn cứ đánh giá hoàn thành nhiệm vụ trong Quy chế trả lương, thưởng; không phạt tiền người lao động (BLLĐ 2019 Điều 127).'],
+        ['Ghi chú: hệ số là căn cứ đánh giá hoàn thành nhiệm vụ của đơn vị trong Quy chế trả lương, thưởng; không phạt tiền, cắt lương người lao động (BLLĐ 2019 Điều 127; NĐ 283/2026 Điều 25 k3).'],
       ]
       const columns = [{ width: 32 }, { width: 11 }, { width: 11 }, { width: 11 }, { width: 11 }, { width: 12 }, { width: 10 }, { width: 18 }, { width: 9 }]
       await writeXlsxFile(sheet, { columns } as any).toFile(`Xep_loai_don_vi_${month}.xlsx`)
@@ -181,7 +181,8 @@ export default function EvaluationTab({ data }: { data: RulesData }) {
       <Note tone="amber">
         Hệ số chỉ là <b>căn cứ đánh giá mức độ hoàn thành nhiệm vụ của đơn vị</b> trong Quy chế trả lương, thưởng (Phòng Tổ chức – Hành
         chính ban hành tỷ lệ chính thức, có ý kiến tổ chức đại diện người lao động). Không áp dụng phạt tiền, cắt lương cá nhân người lao
-        động (Bộ luật Lao động 2019 Điều 127); cá nhân vi phạm xử lý kỷ luật theo Nội quy lao động.
+        động (Bộ luật Lao động 2019 Điều 127) – áp hệ số giảm trừ cho cá nhân có thể bị xử phạt theo NĐ 283/2026/NĐ-CP Điều 25 k3 (20–40 triệu;
+        tổ chức ×2). Cá nhân vi phạm xử lý kỷ luật theo Nội quy lao động.
       </Note>
     </div>
   )

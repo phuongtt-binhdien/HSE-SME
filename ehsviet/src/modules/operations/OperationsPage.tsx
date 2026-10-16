@@ -608,7 +608,9 @@ function MonitoringTab({ fid, base, points, canEdit }: any) {
           </div>
           <p className="text-xs text-pine-800/45">
             Ngưỡng preset là giá trị C cơ sở của QCVN — điều chỉnh theo hệ số Kq, Kf (nước thải) hoặc
-            Kp, Kv (khí thải) quy định tại GPMT của cơ sở.
+            Kp, Kv (khí thải) quy định tại GPMT của cơ sở. Quy chuẩn mới: QCVN 40:2025/BTNMT (hiệu lực 01/9/2025; cơ sở
+            đang hoạt động áp dụng quy chuẩn cũ đến 31/12/2031) và QCVN 19:2024/BTNMT (hiệu lực 01/7/2025; thay QCVN 19, 21:2009
+            theo lộ trình TT 45/2024) — giới hạn áp dụng luôn theo GPMT.
           </p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Quy chuẩn áp dụng">

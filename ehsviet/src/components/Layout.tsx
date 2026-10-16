@@ -3,6 +3,7 @@ import {
   Droplets,
   Flame,
   Gavel,
+  HeartPulse,
   LayoutDashboard,
   Leaf,
   LogOut,
@@ -36,6 +37,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/nhan-su', label: 'Nhân sự & Huấn luyện', short: 'Nhân sự', icon: Users },
       { to: '/an-toan', label: 'PCCC & An toàn', short: 'An toàn', icon: Flame },
+      { to: '/suc-khoe', label: 'Sức khỏe nghề nghiệp', short: 'Sức khỏe', icon: HeartPulse },
       { to: '/noi-quy', label: 'Nội quy & Vi phạm', short: 'Nội quy', icon: Gavel },
     ],
   },

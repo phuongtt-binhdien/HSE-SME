@@ -518,9 +518,12 @@ export default function GhgTab({ data, base, canEdit }: { data: EsgData; base: a
       <Note>
         <b>Phương pháp:</b> GHG Protocol / IPCC 2006; phát thải = số liệu hoạt động × hệ số (CO₂ + CH₄×{GWP.CH4} + N₂O×{GWP.N2O}, GWP IPCC AR6).
         Điện lưới: {GRID_EF.map((g) => `${g.ef} kgCO₂/kWh (năm ${g.dataYear})`).join('; ')} — dùng hệ số công bố gần nhất trước năm kiểm kê.
-        CO₂ từ sinh khối báo cáo riêng. <b>Nghĩa vụ:</b> kiểm kê KNK cấp cơ sở 2 năm/lần và báo cáo giảm nhẹ hằng năm theo NĐ 06/2022/NĐ-CP (sửa đổi
-        bởi NĐ 119/2025/NĐ-CP), nộp trước 31/3; từ kỳ báo cáo 2027 dùng GRI 102: Climate Change 2025 thay GRI 305-1…5.
-        Ghi rõ định nghĩa sản lượng (thành phẩm) khi tính cường độ.
+        Hệ số năm 2024 (0,681) mới ở dạng nghiên cứu – chỉ dùng khi có văn bản công bố chính thức. CO₂ từ sinh khối báo cáo riêng; hệ số CH₄ đốt than
+        trong công nghiệp 10 kg/TJ. <b>Nghĩa vụ:</b> NĐ 06/2022/NĐ-CP sửa đổi bởi NĐ 119/2025/NĐ-CP (hiệu lực 01/8/2025) và NĐ 83/2026/NĐ-CP; danh
+        mục cơ sở phải kiểm kê theo QĐ 42/2026/QĐ-TTg (thay QĐ 13/2024). Báo cáo kiểm kê cấp cơ sở 02 năm/lần (Mẫu 06 Phụ lục II, gồm số liệu 02 năm
+        liền trước) gửi UBND tỉnh trước 31/3 – kỳ tới: số liệu 2025–2026, trước 31/3/2027; báo cáo giảm nhẹ KNK hằng năm (Mẫu 02 Phụ lục III) trước
+        31/3 từ năm 2027. Từ kỳ báo cáo 2027 dùng GRI 102: Climate Change 2025 và GRI 103: Energy 2025 thay GRI 305-1…5, GRI 302. Ghi rõ định nghĩa
+        sản lượng (thành phẩm) khi tính cường độ.
       </Note>
 
       {/* Nhập / sửa số liệu */}

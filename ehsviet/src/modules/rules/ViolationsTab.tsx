@@ -501,7 +501,7 @@ export default function ViolationsTab({ data, base, canEdit }: { data: RulesData
             <Note>
               {form.subject_type === 'nha_thau'
                 ? 'Nhà thầu, khách: xử lý theo điều khoản hợp đồng (tạm dừng công việc, yêu cầu thay người, phạt vi phạm hợp đồng trong mức pháp luật cho phép, bồi thường thiệt hại); doanh nghiệp không có thẩm quyền phạt hành chính.'
-                : 'Người lao động: xử lý kỷ luật theo Nội quy lao động đã đăng ký (BLLĐ 2019 Điều 124: khiển trách; kéo dài thời hạn nâng lương ≤ 6 tháng; cách chức; sa thải) và đúng trình tự Điều 122. Không phạt tiền, cắt lương (Điều 127). Kết quả xếp loại đơn vị chỉ là căn cứ đánh giá trong Quy chế trả lương, thưởng.'}
+                : 'Người lao động: xử lý kỷ luật theo Nội quy lao động đã đăng ký (BLLĐ 2019 Điều 124: khiển trách; kéo dài thời hạn nâng lương ≤ 6 tháng; cách chức; sa thải) và đúng trình tự Điều 122. Không phạt tiền, cắt lương thay xử lý kỷ luật (Điều 127; chế tài NĐ 283/2026 Điều 25 k3). Kết quả xếp loại đơn vị chỉ là căn cứ đánh giá trong Quy chế trả lương, thưởng.'}
             </Note>
             {err && <ErrorNote message={err} />}
           </div>

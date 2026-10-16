@@ -4,6 +4,7 @@
 // Ngày tháng tính tương đối theo ngày mở ứng dụng để các trạng thái hạn luôn có ý nghĩa.
 import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns'
 import { presetByKey, presetFactors } from '../ghg'
+import { obligationRows } from '../obligations'
 import { checklistRows, policyRows, ruleRows, targetRows } from '../templates'
 
 export const DEMO_ORG_ID = '11111111-1111-1111-1111-111111111111'
@@ -267,33 +268,28 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     { id: uuid(), ...base, doc_no: null, title: 'Chứng nhận ISO 14001:2015', category: 'giay_phep', issuer: 'Tổ chức chứng nhận', issued_date: null, expiry_date: '2026-12-24', file_url: null, note: 'Đánh giá tái chứng nhận trước ngày hết hạn' },
     { id: uuid(), ...base, doc_no: null, title: 'Hợp đồng thu gom, xử lý CTNH', category: 'hop_dong', issuer: 'Công ty TNHH Môi trường Cao Gia Quý', issued_date: null, expiry_date: `${year}-12-31`, file_url: null, note: null },
   ]
-  const task = (title: string, description: string, category: string, due: string, recurrence: string, remind: number) => ({
-    id: uuid(),
-    ...base,
-    title,
-    description,
-    category,
-    due_date: due,
-    recurrence,
-    remind_days: remind,
-    assigned_to: 'Phòng Kỹ thuật Sản xuất',
-    status: 'pending',
-    completed_date: null,
-  })
-  const qEnd = md(2 - (now.getMonth() % 3), 31)
-  // phí BVMT: hạn ngày 20 tháng đầu quý sau → hạn gần nhất chưa qua
-  const feeThisQuarter = md(-(now.getMonth() % 3), 20)
-  const feeDue = feeThisQuarter >= d(0) ? feeThisQuarter : md(3 - (now.getMonth() % 3), 20)
-  const compliance_tasks = [
-    task('Báo cáo công tác bảo vệ môi trường năm', 'Nộp trước 15/01 năm sau: Sở NN&MT Tây Ninh, Tập đoàn Hóa chất Việt Nam.', 'bao_cao', `${year + 1}-01-15`, 'yearly', 30),
-    task('Quan trắc khí thải định kỳ quý (dòng 01–07)', 'GPMT 2986: 03 tháng/lần, đủ thông số từng dòng; dừng lấy mẫu phải có lệnh dừng máy.', 'quan_trac', qEnd, 'quarterly', 14),
-    task('Kê khai, nộp phí BVMT đối với khí thải', 'NĐ 153/2024/NĐ-CP – hạn ngày 20 tháng đầu quý sau.', 'phi_le_phi', feeDue, 'quarterly', 10),
-    task('Kê khai, nộp phí BVMT đối với nước thải', 'NĐ 346/2025/NĐ-CP – hạn ngày 20 tháng đầu quý sau.', 'phi_le_phi', feeDue, 'quarterly', 10),
-    task('Báo cáo kiểm kê KNK cấp cơ sở (2 năm/lần)', 'NĐ 06/2022/NĐ-CP sửa đổi bởi NĐ 119/2025/NĐ-CP – gửi UBND tỉnh trước 31/3.', 'bao_cao', `${year + 1}-03-31`, 'none', 60),
-    task('Kê khai trách nhiệm tái chế (EPR) bao bì', 'Kê khai trước 31/3, nộp đóng góp Quỹ BVMT Việt Nam theo quy định.', 'bao_cao', `${year + 1}-03-31`, 'yearly', 45),
-    task('Tái chứng nhận ISO 14001:2015', 'Soát xét tài liệu, đánh giá nội bộ, xem xét lãnh đạo trước ngày hết hạn chứng chỉ.', 'giay_phep', '2026-12-24' >= d(0) ? '2026-12-24' : `${year + 1}-12-24`, 'none', 60),
-    task('Tổng hợp số liệu CTNH, CTRCN, CTRSH tháng', 'Sổ giao nhận, chứng từ chuyển giao, phục vụ báo cáo và chỉ số GRI 306.', 'bao_cao', md(1, 5), 'monthly', 5),
-    task('Huấn luyện ATVSLĐ định kỳ – nhóm 4', 'NĐ 44/2016/NĐ-CP: nhóm 4 định kỳ hằng năm. Theo dõi tại Nhân sự & Huấn luyện.', 'dao_tao', d(-6), 'yearly', 30),
+  // Lịch nghĩa vụ định kỳ theo văn bản hiện hành (lib/obligations.ts) + việc riêng của nhà máy
+  const compliance_tasks: Row[] = [
+    ...obligationRows(base, now, 'Phòng Kỹ thuật Sản xuất').map((t) => ({
+      id: uuid(),
+      ...t,
+      // ví dụ việc quá hạn để thấy cảnh báo
+      due_date: t.title === 'Huấn luyện ATVSLĐ định kỳ – nhóm 4' ? d(-6) : t.due_date,
+      completed_date: null,
+    })),
+    {
+      id: uuid(),
+      ...base,
+      title: 'Tái chứng nhận ISO 14001:2015',
+      description: 'Soát xét tài liệu, đánh giá nội bộ, xem xét lãnh đạo trước ngày hết hạn chứng chỉ.',
+      category: 'giay_phep',
+      due_date: '2026-12-24' >= d(0) ? '2026-12-24' : `${year + 1}-12-24`,
+      recurrence: 'none',
+      remind_days: 60,
+      assigned_to: 'Phòng Kỹ thuật Sản xuất',
+      status: 'pending',
+      completed_date: null,
+    },
   ]
 
   // ---------- Nhân sự & huấn luyện ----------
@@ -325,19 +321,39 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     ['NV025', 'Từ Văn Quý', 'nam', 'Xưởng Tạo hạt 3', 4, 'Công nhân vận hành'],
     ['NV026', 'Hà Văn Sang', 'nam', 'Xưởng Trộn', 4, 'Công nhân phối trộn'],
   ]
-  const employees = people.map(([code, full_name, gender, department, group, position], i) => ({
-    id: uuid(),
-    ...base,
-    code,
-    full_name,
-    gender,
-    department,
-    position,
-    atvsld_group: group,
-    hire_date: code === 'NV025' ? d(-20) : iso(addMonths(now, -(14 + ((i * 11) % 90)))),
-    status: code === 'NV026' ? 'inactive' : 'active',
-    note: code === 'NV025' ? 'Người lao động mới – huấn luyện trước khi bố trí công việc' : null,
-  }))
+  // Hồ sơ sức khỏe nghề nghiệp theo bộ phận (minh họa): nghề NNĐHNH, yếu tố tiếp xúc, mức bồi dưỡng hiện vật
+  const HEALTH_PROFILE: Record<string, { hazardous: boolean; exposures: string[]; allowance: number | null }> = {
+    'Xưởng Tạo hạt 1': { hazardous: true, exposures: ['on', 'bui_silic', 'nhiet', 'hoa_chat'], allowance: 2 },
+    'Xưởng Tạo hạt 2': { hazardous: true, exposures: ['on', 'bui_silic', 'nhiet', 'hoa_chat'], allowance: 2 },
+    'Xưởng Tạo hạt 3': { hazardous: true, exposures: ['on', 'bui', 'nhiet', 'hoa_chat'], allowance: 2 },
+    'Xưởng Trộn': { hazardous: false, exposures: ['bui', 'on'], allowance: 1 },
+    'Tổ Lò hơi': { hazardous: true, exposures: ['nhiet', 'bui', 'hoa_chat', 'on'], allowance: 2 },
+    'Tổ Cơ điện': { hazardous: false, exposures: ['on', 'hoa_chat'], allowance: 1 },
+    'Kho nguyên liệu – thành phẩm': { hazardous: false, exposures: ['bui'], allowance: 1 },
+    'Tổ vận hành HTXLNT': { hazardous: false, exposures: ['hoa_chat'], allowance: 1 },
+    'Phòng thí nghiệm (KCS)': { hazardous: false, exposures: ['hoa_chat'], allowance: 1 },
+    'Cầu cảng': { hazardous: false, exposures: ['bui', 'on'], allowance: 1 },
+  }
+  const employees = people.map(([code, full_name, gender, department, group, position], i) => {
+    const hp = HEALTH_PROFILE[department]
+    const manager = group === 1 || group === 2
+    return {
+      id: uuid(),
+      ...base,
+      code,
+      full_name,
+      gender,
+      department,
+      position,
+      atvsld_group: group,
+      hire_date: code === 'NV025' ? d(-20) : iso(addMonths(now, -(14 + ((i * 11) % 90)))),
+      status: code === 'NV026' ? 'inactive' : 'active',
+      note: code === 'NV025' ? 'Người lao động mới – huấn luyện trước khi bố trí công việc' : null,
+      hazardous: !!hp?.hazardous && !manager,
+      exposures: hp ? (manager ? hp.exposures.filter((x) => x === 'on' || x.startsWith('bui')) : hp.exposures) : [],
+      allowance_level: hp && !manager ? hp.allowance : null,
+    }
+  })
   const emp = (code: string) => employees.find((e) => e.code === code)!
 
   const course = (category: string, name: string, start: string, decision_no: string | null, hours: number, provider: string, validity: number | null = null) => ({
@@ -535,6 +551,101 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     )
   }
 
+  // ---------- Sức khỏe nghề nghiệp (minh họa) ----------
+  const camNow: Row = { id: uuid(), ...base, sample_date: `${year}-03-24`, provider: 'Tổ chức QTMTLĐ đủ điều kiện (minh họa)', report_no: 'Báo cáo minh họa', report_date: `${year}-04-20`, published_date: null, note: 'Đo cùng mùa với đợt năm trước để so sánh' }
+  const camPrev: Row = { id: uuid(), ...base, sample_date: `${year - 1}-03-27`, provider: 'Tổ chức QTMTLĐ đủ điều kiện (minh họa)', report_no: 'Báo cáo minh họa', report_date: `${year - 1}-04-25`, published_date: `${year - 1}-05-06`, note: null }
+  const wem_campaigns = [camNow, camPrev]
+  type W = [string | null, string, string, string | null, string | null, number | null, number | null, number | null, string | null, number | null, string | null]
+  // giới hạn bụi chứa silic phụ thuộc hàm lượng SiO₂ ghi trên phiếu kết quả – số minh họa
+  const SILIC_TP = 'Bụi toàn phần chứa silic'
+  const SILIC_HH = 'Bụi hô hấp chứa silic'
+  // [bộ phận, vị trí, yếu tố, thông số, đơn vị, giá trị năm nay, GH dưới, GH trên, cường độ LĐ, số NLĐ tiếp xúc, ghi chú] – giá trị năm trước = giá trị × hệ số
+  const W_ROWS: W[] = [
+    ['Xưởng Tạo hạt 1', 'Thùng sấy quay', 'nhiet_do', null, '°C', 33.2, 18, 32, 'vua', 3, null],
+    ['Xưởng Tạo hạt 1', 'Thùng sấy quay', 'on', null, 'dBA', 93.4, null, 85, null, 3, 'Nguồn ồn: vành răng, con lăn đỡ thùng'],
+    ['Xưởng Tạo hạt 1', 'Thùng sấy quay', 'bui_silic', SILIC_TP, 'mg/m³', 0.24, null, 0.3, null, 3, null],
+    ['Xưởng Tạo hạt 1', 'Thùng sấy quay', 'bui_silic', SILIC_HH, 'mg/m³', 0.084, null, 0.1, null, 3, null],
+    ['Xưởng Tạo hạt 1', 'Sàn tạo hạt', 'nhiet_do', null, '°C', 32.4, 18, 32, 'vua', 4, null],
+    ['Xưởng Tạo hạt 1', 'Sàn tạo hạt', 'hoi_khi_doc', 'NH₃', 'mg/m³', 6.8, null, 17, null, 4, null],
+    ['Xưởng Tạo hạt 1', 'Sàn tạo hạt', 'on', null, 'dBA', 84.1, null, 85, null, 4, null],
+    ['Xưởng Tạo hạt 2', 'Cấp liệu', 'on', null, 'dBA', 87.4, null, 85, null, 2, null],
+    ['Xưởng Tạo hạt 2', 'Cấp liệu', 'bui_silic', SILIC_TP, 'mg/m³', 0.18, null, 0.3, null, 2, null],
+    ['Xưởng Tạo hạt 2', 'Tạo hạt', 'nhiet_do', null, '°C', 32.9, 18, 32, 'vua', 3, null],
+    ['Xưởng Tạo hạt 2', 'Tạo hạt', 'hoi_khi_doc', 'NH₃', 'mg/m³', 7.2, null, 17, null, 3, null],
+    ['Xưởng Tạo hạt 2', 'Đóng bao', 'on', null, 'dBA', 86.0, null, 85, null, 6, null],
+    ['Xưởng Tạo hạt 2', 'Đóng bao', 'tam_sinh_ly', 'Nhịp tim, thao tác lặp lại, tư thế', null, null, null, null, null, 6, '3 chỉ tiêu ở mức cao (≥ 4/6) – minh họa'],
+    ['Xưởng Tạo hạt 3', 'Sấy – làm nguội', 'nhiet_do', null, '°C', 31.6, 18, 32, 'vua', 3, null],
+    ['Xưởng Tạo hạt 3', 'Sấy – làm nguội', 'on', null, 'dBA', 83.5, null, 85, null, 3, null],
+    ['Xưởng Tạo hạt 3', 'Sấy – làm nguội', 'bui_silic', SILIC_HH, 'mg/m³', 0.06, null, 0.1, null, 3, null],
+    ['Xưởng Trộn', 'Cấp liệu – trộn', 'on', null, 'dBA', 82.7, null, 85, null, 4, null],
+    ['Xưởng Trộn', 'Cấp liệu – trộn', 'nhiet_do', null, '°C', 31.2, 18, 32, 'vua', 4, null],
+    ['Xưởng Trộn', 'Cấp liệu – trộn', 'bui_silic', SILIC_TP, 'mg/m³', 0.15, null, 0.3, null, 4, null],
+    ['Xưởng Trộn', 'Xe nâng', 'tam_sinh_ly', 'Tư thế lao động (RULA)', null, null, null, null, null, 2, 'Tư thế ngồi vặn người khi lùi xe – minh họa'],
+    ['Tổ Lò hơi', 'Cửa cấp than', 'nhiet_do', null, '°C', 33.6, 18, 32, 'vua', 2, null],
+    ['Tổ Lò hơi', 'Cửa cấp than', 'on', null, 'dBA', 85.9, null, 85, null, 2, null],
+    ['Tổ Lò hơi', 'Cửa cấp than', 'hoi_khi_doc', 'CO', 'mg/m³', 3.1, null, 20, null, 2, null],
+    ['Tổ Lò hơi', 'Cửa cấp than', 'hoi_khi_doc', 'SO₂', 'mg/m³', 0.3, null, 5, null, 2, null],
+    ['Kho nguyên liệu – thành phẩm', 'Kho thành phẩm', 'nhiet_do', null, '°C', 32.4, 20, 34, 'nhe', 3, 'Lao động nhẹ: giới hạn 20–34 °C'],
+    ['Tổ vận hành HTXLNT', 'Nhà hóa chất', 'hoi_khi_doc', 'NH₃', 'mg/m³', 1.2, null, 17, null, 1, null],
+    ['Phòng Kỹ thuật Sản xuất', 'Văn phòng', 'nhiet_do', null, '°C', 27.6, 20, 34, 'nhe', 8, null],
+    ['Phòng Kỹ thuật Sản xuất', 'Văn phòng', 'do_am', null, '%', 72, 40, 80, null, 8, null],
+    ['Phòng Kỹ thuật Sản xuất', 'Văn phòng', 'toc_do_gio', null, 'm/s', 0.5, 0.2, 1.5, null, 8, null],
+    [null, 'Ngoài trời (đối chứng)', 'nhiet_do', null, '°C', 30.4, null, null, null, null, 'Mẫu đối chứng'],
+  ]
+  const PREV_FACTOR: Record<string, number> = { on: 1.012, nhiet_do: 1.01, bui_silic: 0.9, hoi_khi_doc: 1.1, do_am: 1, toc_do_gio: 1, tam_sinh_ly: 1 }
+  const wemRow = (cam: Row, w: W, k: number) => ({
+    id: uuid(),
+    ...base,
+    campaign_id: cam.id,
+    department: w[0],
+    position: w[1],
+    factor: w[2],
+    parameter: w[3],
+    unit: w[4],
+    value: w[5] == null ? null : Number((w[5] * k).toFixed(w[5] < 1 ? 3 : 1)),
+    limit_min: w[6],
+    limit_max: w[7],
+    work_intensity: w[8],
+    exposed_count: w[9],
+    note: w[10],
+  })
+  const wem_results = [...W_ROWS.map((w) => wemRow(camNow, w, 1)), ...W_ROWS.map((w) => wemRow(camPrev, w, PREV_FACTOR[w[2]] ?? 1))]
+
+  const PROVIDER = 'Cơ sở khám bệnh nghề nghiệp (minh họa)'
+  const annualExam = md(-7, 14)
+  const classes = ['II', 'I', 'II', 'II', 'III', 'II', 'I', 'II']
+  const health_checks: Row[] = []
+  employees.forEach((e, i) => {
+    if (e.status !== 'active') return
+    if (e.code === 'NV025') {
+      health_checks.push({ id: uuid(), ...base, employee_id: e.id, exam_date: d(-21), kind: 'truoc_bo_tri', provider: PROVIDER, health_class: 'I', conclusion: 'Đủ sức khỏe làm việc', disease: null, follow_up: null, note: null })
+      return
+    }
+    health_checks.push({ id: uuid(), ...base, employee_id: e.id, exam_date: annualExam, kind: 'dinh_ky', provider: PROVIDER, health_class: classes[i % classes.length], conclusion: 'Đủ sức khỏe làm việc', disease: null, follow_up: null, note: null })
+    // Nghề NNĐHNH: khám 06 tháng/lần – hai người chưa khám đợt giữa năm (để thấy cảnh báo quá hạn)
+    if (e.hazardous && !['NV008', 'NV015'].includes(e.code)) {
+      health_checks.push({ id: uuid(), ...base, employee_id: e.id, exam_date: md(-1, 9), kind: 'dinh_ky', provider: PROVIDER, health_class: classes[(i + 3) % classes.length], conclusion: 'Đủ sức khỏe làm việc', disease: null, follow_up: null, note: 'Khám định kỳ 06 tháng (nghề NNĐHNH)' })
+    }
+    // Khám phát hiện BNN cho người có yếu tố tiếp xúc – Tổ Cơ điện chưa được khám
+    const needBnn = (e.exposures as string[]).some((x) => x !== 'nhiet')
+    if (needBnn && e.department !== 'Tổ Cơ điện') {
+      const suspect = e.code === 'NV006'
+      health_checks.push({
+        id: uuid(),
+        ...base,
+        employee_id: e.id,
+        exam_date: annualExam,
+        kind: 'bnn',
+        provider: PROVIDER,
+        health_class: null,
+        conclusion: suspect ? 'Giảm thính lực tần số cao' : 'Chưa phát hiện bệnh nghề nghiệp',
+        disease: suspect ? 'Nghi điếc nghề nghiệp do tiếng ồn' : null,
+        follow_up: suspect ? 'Đo lại thính lực sau 03 tháng; giảm thời gian tiếp xúc ồn; xem xét giám định' : null,
+        note: null,
+      })
+    }
+  })
+
   return {
     organizations,
     facilities,
@@ -568,5 +679,8 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     ghg_activities,
     internal_rules,
     rule_violations,
+    wem_campaigns,
+    wem_results,
+    health_checks,
   }
 }

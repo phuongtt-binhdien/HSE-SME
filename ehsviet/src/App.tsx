@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import CompliancePage from './modules/compliance/CompliancePage'
 import EsgPage from './modules/esg/EsgPage'
+import HealthPage from './modules/health/HealthPage'
 import OperationsPage from './modules/operations/OperationsPage'
 import PersonnelPage from './modules/personnel/PersonnelPage'
 import RulesPage from './modules/rules/RulesPage'
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="van-hanh" element={<OperationsPage />} />
         <Route path="nhan-su" element={<PersonnelPage />} />
         <Route path="an-toan" element={<SafetyPage />} />
+        <Route path="suc-khoe" element={<HealthPage />} />
         <Route path="noi-quy" element={<RulesPage />} />
         <Route path="esg" element={<EsgPage />} />
         <Route path="tuan-thu" element={<CompliancePage />} />

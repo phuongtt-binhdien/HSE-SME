@@ -157,7 +157,7 @@ export default function RulesRegisterTab({ data, base, canEdit }: { data: RulesD
         )}
       </Card>
       <Note>
-        Bảng tự kiểm tra tuân thủ theo nghị định xử phạt (Môi trường – NĐ 45/2022; PCCC & CNCH – NĐ 106/2025; ATVSLĐ – NĐ 12/2022; hóa chất) và
+        Bảng tự kiểm tra tuân thủ theo nghị định xử phạt (Môi trường – NĐ 45/2022; PCCC & CNCH – NĐ 106/2025 sửa đổi bởi NĐ 69/2026; lao động – ATVSLĐ – NĐ 283/2026 thay NĐ 12/2022 từ 10/9/2026; hóa chất – Luật 69/2025) và
         checklist kiểm tra môi trường – VSCN hằng tháng 12 khu vực nằm ở{' '}
         <Link to="/an-toan" className="font-medium text-viridian-700 underline">
           PCCC & An toàn › Checklist
