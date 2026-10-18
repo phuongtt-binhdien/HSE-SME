@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Button, Card, CardHeader, EmptyState, ErrorNote, Field, Input, Kpi, Modal, Note, Select, Table, Td } from '../../components/UI'
 import { useRemove, useSave } from '../../hooks/useCrud'
-import { NET_ZERO_TEMPLATES, planRows, ROADMAP_METRIC_LABELS, roadmapTargetRows, type RoadmapTarget } from '../../lib/plan'
+import { interp, NET_ZERO_TEMPLATES, planRows, ROADMAP_METRIC_LABELS, roadmapTargetRows, type RoadmapTarget, type TargetPoint } from '../../lib/plan'
 import { supabase } from '../../lib/supabase'
 import { errMsg, fmtNum } from '../../lib/utils'
 import PlanItems from './PlanItems'
@@ -16,21 +16,7 @@ const GRID = '#E6E9E6'
 const TICK = { fontSize: 11, fill: '#6F7470' }
 const END = 2050
 
-type Pt = { year: number; value: number }
-
-/** Nội suy tuyến tính giữa các mốc mục tiêu; ngoài khoảng mốc → null */
-export function interp(points: Pt[], y: number): number | null {
-  if (!points.length || y < points[0].year || y > points[points.length - 1].year) return null
-  for (let i = 0; i < points.length; i++) {
-    const a = points[i]
-    if (a.year === y) return a.value
-    const b = points[i + 1]
-    if (b && a.year < y && y < b.year) return a.value + ((b.value - a.value) * (y - a.year)) / (b.year - a.year)
-  }
-  return null
-}
-
-const series = (targets: RoadmapTarget[], metric: string): Pt[] =>
+const series = (targets: RoadmapTarget[], metric: string): TargetPoint[] =>
   targets
     .filter((t) => t.metric === metric)
     .map((t) => ({ year: Number(t.year), value: Number(t.value) }))

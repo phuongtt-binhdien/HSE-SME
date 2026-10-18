@@ -21,9 +21,11 @@ import { ROLE_LABELS } from '../lib/constants'
 import { resetDemoData } from '../lib/demo/client'
 import { isDemo, supabase } from '../lib/supabase'
 import { CHECKLIST_COUNTS, LEGACY_CHECKLIST_NAMES, LEGAL_REVIEW_DATE } from '../lib/checklistTemplates'
+import { INSPECTION_CHECKLISTS, INSPECTION_PLAN_TEMPLATES } from '../lib/inspectionTemplates'
 import { OBLIGATION_TEMPLATES, obligationRows } from '../lib/obligations'
+import { annualTemplates, FIVE_YEAR_TEMPLATES, NET_ZERO_TEMPLATES, planRows } from '../lib/plan'
 import { checklistRows, ESG_POLICY_TEMPLATES, ESG_TARGET_TEMPLATES, INTERNAL_RULE_TEMPLATES, policyRows, ruleRows, targetRows } from '../lib/templates'
-import { errMsg } from '../lib/utils'
+import { errMsg, todayISO } from '../lib/utils'
 
 export default function SettingsPage() {
   const { profile, org, facilities, role, refresh } = useAuth()
@@ -358,13 +360,67 @@ function TemplatesCard() {
       return `Đã nạp ${rows.length}/${OBLIGATION_TEMPLATES.length} việc vào Lịch tuân thủ (hạn tính theo văn bản rà soát ${LEGAL_REVIEW_DATE}).`
     })
 
+  const loadInspection = () =>
+    run('inspection', async () => {
+      const { data, error } = await supabase.from('checklist_templates').select('id, name').eq('facility_id', facilityId!)
+      if (error) throw error
+      const byName = new Map((data ?? []).map((t: any) => [t.name as string, t.id as string]))
+      // checklist dùng cho các chương trình: bộ mới + checklist tự kiểm tra, VSCN trong bộ checklist chung
+      const needed = new Set(INSPECTION_PLAN_TEMPLATES.map((p) => p.checklist))
+      const pool = [...INSPECTION_CHECKLISTS.map((c) => ({ ...base, ...c })), ...checklistRows(base)]
+      const missing = pool.filter((c, i) => needed.has(c.name) && !byName.has(c.name) && pool.findIndex((x) => x.name === c.name) === i)
+      if (missing.length) {
+        const r = await supabase.from('checklist_templates').insert(missing).select('id, name')
+        if (r.error) throw r.error
+        for (const t of (r.data ?? []) as any[]) byName.set(t.name, t.id)
+      }
+      const pl = await supabase.from('inspection_plans').select('name').eq('facility_id', facilityId!)
+      if (pl.error) throw pl.error
+      const have = new Set((pl.data ?? []).map((p: any) => p.name as string))
+      const start = todayISO()
+      const plans = INSPECTION_PLAN_TEMPLATES.filter((p) => !have.has(p.name)).map((p) => ({
+        ...base,
+        name: p.name,
+        scope: p.scope,
+        frequency: p.frequency,
+        template_id: byName.get(p.checklist) ?? null,
+        team: p.team,
+        owner: p.owner,
+        basis: p.basis,
+        start_date: start,
+        active: true,
+        note: null,
+      }))
+      if (!plans.length && !missing.length) return 'Chương trình kiểm tra định kỳ mẫu đã có sẵn.'
+      if (plans.length) {
+        const r = await supabase.from('inspection_plans').insert(plans)
+        if (r.error) throw r.error
+      }
+      return `Đã nạp ${plans.length}/${INSPECTION_PLAN_TEMPLATES.length} chương trình kiểm tra và ${missing.length} checklist kèm theo; kỳ đầu tiên tính từ hôm nay.`
+    })
+
+  const loadPlans = () =>
+    run('plans', async () => {
+      const y = new Date().getFullYear()
+      const { data, error } = await supabase.from('hse_plan_items').select('title, horizon, year').eq('facility_id', facilityId!)
+      if (error) throw error
+      const have = new Set((data ?? []).map((p: any) => `${p.horizon}|${p.year}|${p.title}`))
+      const rows = [...planRows(base, 'nam', annualTemplates(y)), ...planRows(base, '5_nam', FIVE_YEAR_TEMPLATES), ...planRows(base, 'net_zero', NET_ZERO_TEMPLATES)].filter(
+        (r) => !have.has(`${r.horizon}|${r.year}|${r.title}`)
+      )
+      if (!rows.length) return 'Kế hoạch năm, lộ trình 5 năm và Net Zero mẫu đã có sẵn.'
+      const r = await supabase.from('hse_plan_items').insert(rows)
+      if (r.error) throw r.error
+      return `Đã nạp ${rows.length} hạng mục (kế hoạch HSE năm ${y}, lộ trình 2026–2030, mốc Net Zero 2050). Đường mục tiêu phát thải: tạo tại Kế hoạch & lộ trình › Net Zero 2050 khi đã có năm kiểm kê KNK.`
+    })
+
   return (
     <Card>
       <CardHeader
         title="Bộ mẫu nghiệp vụ nhà máy phân bón NPK"
         hint={'Nạp vào: ' + (facility?.name ?? '—') + '. Nội dung là dự thảo — rà soát, chỉnh sửa và ban hành theo thẩm quyền.'}
       />
-      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         <TemplateItem
           title="Chính sách & mục tiêu ESG"
           desc="8 chính sách E – S – G (môi trường ISO 14001, khí hậu, ATVSLĐ – PCCC, nhà thầu, người lao động, PCTN, công bố ESG, tuân thủ) và 11 mục tiêu gắn chỉ số tự tính."
@@ -388,6 +444,18 @@ function TemplatesCard() {
           desc={`${OBLIGATION_TEMPLATES.length} hạn nộp, thực hiện: báo cáo công tác BVMT (15/01), phí BVMT quý, EPR bao bì (NĐ 110/2026), kiểm kê – giảm nhẹ KNK (QĐ 42/2026), báo cáo TNLĐ – ATVSLĐ – y tế lao động, QTMTLĐ, khám sức khỏe, huấn luyện, PCCC.`}
           busy={busy === 'obligations'}
           onClick={loadObligations}
+        />
+        <TemplateItem
+          title="Chương trình kiểm tra định kỳ"
+          desc={`${INSPECTION_PLAN_TEMPLATES.length} chương trình kèm checklist: tổng thể HSE 03 tháng/lần, môi trường hằng tuần, kiểm tra – chạy thử PCCC hằng tuần, kho hóa chất hằng tuần, VSCN hằng tháng, tự kiểm tra tuân thủ PCCC và BVMT hằng quý.`}
+          busy={busy === 'inspection'}
+          onClick={loadInspection}
+        />
+        <TemplateItem
+          title="Kế hoạch & lộ trình"
+          desc={`Kế hoạch HSE năm (${annualTemplates(new Date().getFullYear()).length} hạng mục có căn cứ), lộ trình hồ sơ môi trường 2026–2030 (${FIVE_YEAR_TEMPLATES.length} mốc), lộ trình Net Zero 2050 (${NET_ZERO_TEMPLATES.length} giải pháp).`}
+          busy={busy === 'plans'}
+          onClick={loadPlans}
         />
       </div>
       {(msg || error) && <div className="px-4 pb-4">{error ? <ErrorNote message={error} /> : <div className="text-sm text-viridian-700">{msg}</div>}</div>}

@@ -77,6 +77,20 @@ export const ROADMAP_METRIC_LABELS: Record<string, { label: string; unit: string
   water_reuse_pct: { label: 'Nước tái sử dụng', unit: '%' },
 }
 
+export type TargetPoint = { year: number; value: number }
+
+/** Nội suy tuyến tính giữa các mốc mục tiêu (đã sắp theo năm); ngoài khoảng mốc → null */
+export function interp(points: TargetPoint[], y: number): number | null {
+  if (!points.length || y < points[0].year || y > points[points.length - 1].year) return null
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i]
+    if (a.year === y) return a.value
+    const b = points[i + 1]
+    if (b && a.year < y && y < b.year) return a.value + ((b.value - a.value) * (y - a.year)) / (b.year - a.year)
+  }
+  return null
+}
+
 /** Trạng thái hiển thị: hạng mục chưa xong mà quá hạn → "Quá hạn" */
 export function planState(p: Pick<PlanItem, 'status' | 'due_date'>): { label: string; tone: Tone; overdue: boolean } {
   if (p.status !== 'hoan_thanh' && p.status !== 'huy' && p.due_date && daysUntil(p.due_date) < 0)

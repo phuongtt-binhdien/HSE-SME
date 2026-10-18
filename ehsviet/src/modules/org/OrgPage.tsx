@@ -4,13 +4,12 @@ import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Card, CardHeader, EmptyState, ErrorNote, Field, Input, Kpi, Loading, Modal, Note, Select, Table, Td, Textarea } from '../../components/UI'
 import { useAuth } from '../../contexts/AuthContext'
-import { useList } from '../../hooks/useCrud'
-import { summarize, type GhgActivity } from '../../lib/ghg'
-import { evaluateOrg, HSE_ROLE_LABELS, isActiveRole, reqLabel, reqTone, ROLE_GROUPS, ROLE_TRAINING, type HseRole, type HseRoleKey } from '../../lib/org'
+import { HSE_ROLE_LABELS, isActiveRole, reqLabel, reqTone, ROLE_GROUPS, ROLE_TRAINING, type HseRole, type HseRoleKey } from '../../lib/org'
 import { supabase } from '../../lib/supabase'
-import { ALL_TRAINING_CATEGORIES, buildMatrix, isValid } from '../../lib/training'
+import { isValid } from '../../lib/training'
 import { cls, errMsg, fmtDate } from '../../lib/utils'
-import { byDeptThenCode, usePersonnelData } from '../personnel/shared'
+import { byDeptThenCode } from '../personnel/shared'
+import { useOrgRequirements } from './useOrgRequirements'
 
 export default function OrgPage() {
   const qc = useQueryClient()
@@ -18,9 +17,7 @@ export default function OrgPage() {
   const fid = facilityId ?? ''
   const base = { org_id: profile!.org_id, facility_id: fid }
   const canEdit = role !== 'viewer'
-  const people = usePersonnelData(fid)
-  const roles = useList<HseRole>('hse_roles', { match: { facility_id: fid }, order: 'created_at', ascending: true, enabled: !!fid })
-  const ghg = useList<GhgActivity>('ghg_activities', { match: { facility_id: fid }, order: 'year', enabled: !!fid })
+  const { people, roles, active, training, headcount, headcountEntered, reqs } = useOrgRequirements(fid)
   const [params, setParams] = useState<any>({})
   const [open, setOpen] = useState<string | null>(null)
   const [form, setForm] = useState<any>(null)
@@ -31,41 +28,6 @@ export default function OrgPage() {
   useEffect(() => {
     setParams({ headcount: facility?.headcount ?? '', hazardous_sector: !!facility?.hazardous_sector, shifts: facility?.shifts ?? '' })
   }, [facility])
-
-  const active = useMemo(() => people.employees.filter((e) => e.status === 'active'), [people.employees])
-  const training = useMemo(
-    () => buildMatrix(people.employees, people.records, people.courses, ALL_TRAINING_CATEGORIES),
-    [people.employees, people.records, people.courses]
-  )
-
-  // năng lượng năm gần nhất đã đủ số liệu (ưu tiên năm trước), để xác định cơ sở sử dụng năng lượng trọng điểm
-  const energy = useMemo(() => {
-    const acts = ghg.data ?? []
-    const y = new Date().getFullYear()
-    for (const year of [y - 1, y, y - 2]) {
-      const s = summarize(acts, year)
-      if (s.toe > 0) return { toe: s.toe, year }
-    }
-    return { toe: null as number | null, year: null as number | null }
-  }, [ghg.data])
-
-  const headcountEntered = facility?.headcount != null
-  const headcount = headcountEntered ? Number(facility!.headcount) : active.length
-  const reqs = useMemo(
-    () =>
-      evaluateOrg({
-        headcount,
-        headcountEntered,
-        hazardous: !!facility?.hazardous_sector,
-        shifts: facility?.shifts ?? null,
-        employees: people.employees,
-        roles: roles.data ?? [],
-        training,
-        toe: energy.toe,
-        toeYear: energy.year,
-      }),
-    [headcount, headcountEntered, facility, people.employees, roles.data, training, energy]
-  )
 
   const stats = useMemo(() => {
     const mandatory = reqs.filter((r) => r.required != null && r.key !== 'so_cuu')
