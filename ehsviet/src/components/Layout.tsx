@@ -2,6 +2,7 @@ import {
   CalendarClock,
   ClipboardCheck,
   Droplets,
+  FlaskConical,
   Flame,
   Gavel,
   HeartPulse,
@@ -42,6 +43,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/nhan-su', label: 'Nhân sự & Huấn luyện', short: 'Nhân sự', icon: Users },
       { to: '/thiet-bi', label: 'Thiết bị & bảo trì', short: 'Thiết bị', icon: Wrench },
+      { to: '/hoa-chat', label: 'Hóa chất', short: 'Hóa chất', icon: FlaskConical },
       { to: '/chat-thai', label: 'Chất thải & CTNH', short: 'Chất thải', icon: Recycle },
       { to: '/van-hanh', label: 'Vận hành & Quan trắc', short: 'Vận hành', icon: Droplets },
       { to: '/an-toan', label: 'PCCC & An toàn', short: 'PCCC', icon: Flame },

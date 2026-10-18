@@ -168,7 +168,7 @@ export function chemicalAlerts(c: Chemical, s: StockInfo, txns: ChemicalTxn[]): 
   if (!c.pathh_available) out.push({ tone: 'red', label: 'Thiếu PATHH' })
   if (s.stock < 0) out.push({ tone: 'red', label: 'Tồn âm – kiểm tra sổ nhập xuất' })
   else if (c.min_stock != null && s.stock <= Number(c.min_stock)) out.push({ tone: 'amber', label: 'Dưới định mức – đặt mua' })
-  if (c.max_stock != null && s.stock > Number(c.max_stock)) out.push({ tone: 'red', label: 'Vượt lượng tồn trữ tối đa' })
+  if (c.max_stock != null && s.stock > Number(c.max_stock)) out.push({ tone: 'red', label: 'Vượt tồn trữ tối đa' })
   if (s.daysLeft != null && s.daysLeft < 7 && s.stock >= 0) out.push({ tone: 'amber', label: `Còn khoảng ${s.daysLeft} ngày dùng` })
   if (c.expiry_date) {
     const n = daysUntil(c.expiry_date)
@@ -176,10 +176,10 @@ export function chemicalAlerts(c: Chemical, s: StockInfo, txns: ChemicalTxn[]): 
     else if (n <= 30) out.push({ tone: 'amber', label: `Hết hạn sau ${n} ngày` })
   }
   if (c.pathh_available && c.sds_date && daysUntil(c.sds_date) < -5 * 365)
-    out.push({ tone: 'amber', label: 'PATHH quá 5 năm – nên soát xét' })
+    out.push({ tone: 'amber', label: 'PATHH > 5 năm – soát xét' })
   if (CONTROLLED_GROUPS.includes(c.legal_group)) {
     const missing = txns.filter((t) => t.chemical_id === c.id && t.kind === 'nhap' && (!t.supplier_license || !t.invoice_no)).length
-    if (missing) out.push({ tone: 'amber', label: `${missing} lần nhập thiếu chứng từ / giấy phép bên bán` })
+    if (missing) out.push({ tone: 'amber', label: `Thiếu chứng từ mua (${missing})` })
   }
   return out
 }
