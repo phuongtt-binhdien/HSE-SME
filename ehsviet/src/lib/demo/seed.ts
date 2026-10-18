@@ -3,9 +3,10 @@
 // số liệu vận hành, chất thải, năng lượng – KNK là SỐ LIỆU MINH HỌA, không phải số liệu chính thức.
 // Ngày tháng tính tương đối theo ngày mở ứng dụng để các trạng thái hạn luôn có ý nghĩa.
 import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns'
-import { presetByKey, presetFactors } from '../ghg'
+import { presetByKey, presetFactors, summarize, type GhgActivity } from '../ghg'
 import { obligationRows } from '../obligations'
 import { checklistRows, policyRows, ruleRows, targetRows } from '../templates'
+import { buildPdcaSeed } from './seedPdca'
 
 export const DEMO_ORG_ID = '11111111-1111-1111-1111-111111111111'
 export const DEMO_FACILITY_ID = '22222222-2222-2222-2222-222222222222'
@@ -38,6 +39,10 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
       gpmt_issuer: 'Sở TN&MT Long An (nay: Sở NN&MT Tây Ninh)',
       gpmt_issued_date: '2023-04-28',
       gpmt_expiry: '2033-04-27',
+      // thông số tính bộ máy HSE – số lao động là số minh họa
+      headcount: 280,
+      hazardous_sector: true,
+      shifts: 3,
     },
   ]
   const profiles = [
@@ -52,7 +57,8 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
   ]
 
   // ---------- Chất thải ----------
-  const wt = (code: string | null, name: string, category: string, state: string, loc: string) => ({
+  // treatment_method: phương pháp xử lý cuối của đơn vị tiếp nhận (minh họa) → GRI 306-4 / 306-5
+  const wt = (code: string | null, name: string, category: string, state: string, loc: string, treatment_method: string) => ({
     id: uuid(),
     ...base,
     code,
@@ -61,15 +67,16 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     physical_state: state,
     unit: 'kg',
     storage_location: loc,
+    treatment_method,
   })
-  const wDau = wt('17 02 03', 'Dầu động cơ, hộp số, bôi trơn thải', 'CTNH', 'long', 'Kho CTNH 75 m²')
-  const wGie = wt('18 02 01', 'Giẻ lau, vải bảo vệ nhiễm thành phần nguy hại', 'CTNH', 'ran', 'Kho CTNH 75 m²')
-  const wDen = wt('16 01 06', 'Bóng đèn huỳnh quang thải', 'CTNH', 'ran', 'Kho CTNH 75 m²')
-  const wBaoBiKL = wt('18 01 02', 'Bao bì cứng thải bằng kim loại', 'CTNH', 'ran', 'Kho CTNH 75 m²')
-  const wMuc = wt('08 02 04', 'Hộp mực in thải', 'CTNH', 'ran', 'Kho CTNH 75 m²')
-  const wBaoBi = wt(null, 'Bao bì hỏng, pallet, dây PE, chỉ may', 'CTRCNTT', 'ran', 'Khu CTRCN 216,5 m²')
-  const wXi = wt(null, 'Xỉ than lò hơi, lò sấy', 'CTRCNTT', 'ran', 'Khu than – xỉ 51,25 m²')
-  const wSH = wt(null, 'Chất thải rắn sinh hoạt', 'CTRSH', 'ran', 'Khu CTRSH 5 m²')
+  const wDau = wt('17 02 03', 'Dầu động cơ, hộp số, bôi trơn thải', 'CTNH', 'long', 'Kho CTNH 75 m²', 'tai_che')
+  const wGie = wt('18 02 01', 'Giẻ lau, vải bảo vệ nhiễm thành phần nguy hại', 'CTNH', 'ran', 'Kho CTNH 75 m²', 'dot')
+  const wDen = wt('16 01 06', 'Bóng đèn huỳnh quang thải', 'CTNH', 'ran', 'Kho CTNH 75 m²', 'xu_ly_khac')
+  const wBaoBiKL = wt('18 01 02', 'Bao bì cứng thải bằng kim loại', 'CTNH', 'ran', 'Kho CTNH 75 m²', 'tai_che')
+  const wMuc = wt('08 02 04', 'Hộp mực in thải', 'CTNH', 'ran', 'Kho CTNH 75 m²', 'tai_che')
+  const wBaoBi = wt(null, 'Bao bì hỏng, pallet, dây PE, chỉ may', 'CTRCNTT', 'ran', 'Khu CTRCN 216,5 m²', 'tai_che')
+  const wXi = wt(null, 'Xỉ than lò hơi, lò sấy', 'CTRCNTT', 'ran', 'Khu than – xỉ 51,25 m²', 'tai_che')
+  const wSH = wt(null, 'Chất thải rắn sinh hoạt', 'CTRSH', 'ran', 'Khu CTRSH 5 m²', 'chon_lap')
   const waste_types = [wDau, wGie, wDen, wBaoBiKL, wMuc, wBaoBi, wXi, wSH]
 
   const waste_logs: Row[] = []
@@ -237,10 +244,6 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     { id: uuid(), ...base, name: 'Tủ chữa cháy vách tường', type: 'hong_nuoc', location: 'Nhà xưởng, kho', quantity: 76, last_inspection: md(-2, 10), next_inspection: d(12), status: 'tot', note: null },
     { id: uuid(), ...base, name: 'Trạm bơm chữa cháy bờ sông', type: 'may_bom', location: 'Bờ sông Vàm Cỏ Đông', quantity: 1, last_inspection: md(-1, 15), next_inspection: d(-3), status: 'can_bao_tri', note: 'Bơm bù áp rò rỉ phớt' },
     { id: uuid(), ...base, name: 'Trạm bơm chữa cháy kho bao bì', type: 'may_bom', location: 'Kho bao bì', quantity: 1, last_inspection: md(-1, 15), next_inspection: d(20), status: 'tot', note: null },
-  ]
-  const drills = [
-    { id: uuid(), ...base, drill_date: md(-4, 22), kind: 'PCCC', scenario: 'Cháy kho bao bì, cứu người bị nạn tại sàn thao tác TH2', participants: 85, organizer: 'Đội PCCC cơ sở phối hợp Công an PCCC', evaluation: 'Đạt; thời gian triển khai lăng vòi 4 phút' },
-    { id: uuid(), ...base, drill_date: md(-6, 12), kind: 'su_co_hoa_chat', scenario: 'Tràn NaOH tại nhà hóa chất HTXLNT', participants: 24, organizer: 'Phòng Kỹ thuật Sản xuất', evaluation: 'Bổ sung bộ ứng phó tràn đổ tại nhà hóa chất' },
   ]
   const contractor_permits = [
     { id: uuid(), ...base, contractor_name: 'Đơn vị thi công sàn thao tác ống khói (minh họa)', work_description: 'Làm việc trên cao, hàn cắt tại ống khói tạo hạt', start_date: d(-5), end_date: d(20), commitment_signed: true, safety_briefing: true, note: null },
@@ -646,6 +649,24 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     }
   })
 
+  // ---------- Vận hành theo PDCA: bộ máy, diễn tập, thiết bị, kiểm tra, CAPA, hóa chất, EPR, tuần hoàn, kế hoạch ----------
+  const pdca = buildPdcaSeed({
+    uuid,
+    now,
+    year,
+    base,
+    d,
+    md,
+    emp,
+    employees,
+    checklistTemplates: checklist_templates,
+    checklistRuns: checklist_runs,
+    incidents,
+    capaActions: capa_actions,
+    chemicals,
+    ghgBase: Math.round(summarize(ghg_activities as GhgActivity[], year - 1).total12),
+  })
+
   return {
     organizations,
     facilities,
@@ -660,14 +681,9 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     monitoring_points,
     monitoring_results,
     alerts,
-    checklist_templates,
-    checklist_runs,
     fire_equipment,
-    drills,
     contractor_permits,
     incidents,
-    capa_actions,
-    chemicals,
     legal_documents,
     compliance_tasks,
     employees,
@@ -682,5 +698,6 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     wem_campaigns,
     wem_results,
     health_checks,
+    ...pdca,
   }
 }

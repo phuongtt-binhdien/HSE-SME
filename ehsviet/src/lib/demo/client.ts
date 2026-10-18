@@ -8,9 +8,9 @@ type Row = Record<string, any>
 export type DemoDb = Record<string, Row[]>
 type Result = { data: any; error: { message: string; code?: string } | null; count?: number | null }
 
-const STORAGE_KEY = 'ehsviet_demo_db_v3'
+const STORAGE_KEY = 'ehsviet_demo_db_v4'
 /** Khóa của các phiên bản dữ liệu mẫu cũ – xóa khi nạp bản mới */
-const OLD_KEYS = ['ehsviet_demo_db_v1', 'ehsviet_demo_db_v2']
+const OLD_KEYS = ['ehsviet_demo_db_v1', 'ehsviet_demo_db_v2', 'ehsviet_demo_db_v3']
 const SESSION_KEY = 'ehsviet_demo_session'
 
 const today = () => {
@@ -26,12 +26,18 @@ const FK: Record<string, Record<string, string>> = {
   waste_transfer_items: { waste_types: 'waste_type_id', waste_transfers: 'transfer_id' },
   operation_logs: { treatment_systems: 'system_id' },
   monitoring_results: { monitoring_points: 'point_id' },
-  checklist_runs: { checklist_templates: 'template_id' },
+  checklist_runs: { checklist_templates: 'template_id', inspection_plans: 'plan_id' },
   capa_actions: { incidents: 'incident_id' },
   training_records: { employees: 'employee_id', training_courses: 'course_id' },
   rule_violations: { internal_rules: 'rule_id', employees: 'employee_id' },
   wem_results: { wem_campaigns: 'campaign_id' },
   health_checks: { employees: 'employee_id' },
+  hse_roles: { employees: 'employee_id' },
+  drill_participants: { drills: 'drill_id', employees: 'employee_id' },
+  equipment_inspections: { equipment: 'equipment_id' },
+  equipment_work_orders: { equipment: 'equipment_id' },
+  inspection_plans: { checklist_templates: 'template_id' },
+  chemical_transactions: { chemicals: 'chemical_id' },
 }
 
 /** Hành vi khi xóa bản ghi cha (theo schema.sql) */
@@ -44,13 +50,25 @@ const ON_DELETE: Record<string, { table: string; column: string; action: 'cascad
   waste_contractors: [{ table: 'waste_transfers', column: 'contractor_id', action: 'set null' }],
   treatment_systems: [{ table: 'operation_logs', column: 'system_id', action: 'cascade' }],
   monitoring_points: [{ table: 'monitoring_results', column: 'point_id', action: 'cascade' }],
-  checklist_templates: [{ table: 'checklist_runs', column: 'template_id', action: 'cascade' }],
+  checklist_templates: [
+    { table: 'checklist_runs', column: 'template_id', action: 'cascade' },
+    { table: 'inspection_plans', column: 'template_id', action: 'set null' },
+  ],
+  inspection_plans: [{ table: 'checklist_runs', column: 'plan_id', action: 'set null' }],
   incidents: [{ table: 'capa_actions', column: 'incident_id', action: 'cascade' }],
   employees: [
     { table: 'training_records', column: 'employee_id', action: 'cascade' },
     { table: 'rule_violations', column: 'employee_id', action: 'set null' },
     { table: 'health_checks', column: 'employee_id', action: 'cascade' },
+    { table: 'hse_roles', column: 'employee_id', action: 'cascade' },
+    { table: 'drill_participants', column: 'employee_id', action: 'cascade' },
   ],
+  drills: [{ table: 'drill_participants', column: 'drill_id', action: 'cascade' }],
+  equipment: [
+    { table: 'equipment_inspections', column: 'equipment_id', action: 'cascade' },
+    { table: 'equipment_work_orders', column: 'equipment_id', action: 'cascade' },
+  ],
+  chemicals: [{ table: 'chemical_transactions', column: 'chemical_id', action: 'cascade' }],
   wem_campaigns: [{ table: 'wem_results', column: 'campaign_id', action: 'cascade' }],
   training_courses: [{ table: 'training_records', column: 'course_id', action: 'cascade' }],
   internal_rules: [{ table: 'rule_violations', column: 'rule_id', action: 'set null' }],
@@ -61,6 +79,9 @@ const UNIQUE: Record<string, { cols: string[]; name: string }[]> = {
   employees: [{ cols: ['facility_id', 'code'], name: 'employees_facility_code_key' }],
   training_records: [{ cols: ['employee_id', 'course_id'], name: 'training_records_employee_id_course_id_key' }],
   esg_metrics: [{ cols: ['facility_id', 'year', 'code'], name: 'esg_metrics_facility_id_year_code_key' }],
+  drill_participants: [{ cols: ['drill_id', 'employee_id'], name: 'drill_participants_drill_id_employee_id_key' }],
+  equipment: [{ cols: ['facility_id', 'code'], name: 'equipment_facility_code_key' }],
+  roadmap_targets: [{ cols: ['facility_id', 'metric', 'year'], name: 'roadmap_targets_facility_id_metric_year_key' }],
 }
 
 /** Giá trị mặc định của cột (theo schema.sql) */
@@ -75,14 +96,58 @@ const DEFAULTS: Record<string, () => Row> = {
   monitoring_points: () => ({ kind: 'nuoc_thai' }),
   monitoring_results: () => ({ is_exceeded: false, sample_date: today() }),
   alerts: () => ({ level: 'warning', status: 'open' }),
+  facilities: () => ({ headcount: null, hazardous_sector: false, shifts: null }),
   checklist_templates: () => ({ category: 'PCCC', frequency: 'monthly', items: [] }),
-  checklist_runs: () => ({ results: [], run_date: today() }),
+  checklist_runs: () => ({ results: [], run_date: today(), plan_id: null, period: null }),
   fire_equipment: () => ({ type: 'binh_bot', quantity: 1, status: 'tot' }),
-  drills: () => ({ kind: 'PCCC', drill_date: today() }),
+  drills: () => ({ kind: 'PCCC', drill_date: today(), status: 'done', result: null, plan_no: null, location: null }),
+  drill_participants: () => ({ attended: true, role: null, note: null }),
   contractor_permits: () => ({ commitment_signed: false, safety_briefing: false }),
   incidents: () => ({ kind: 'moi_truong', severity: 'nhe', status: 'open', incident_date: today() }),
-  capa_actions: () => ({ status: 'open' }),
-  chemicals: () => ({ unit: 'kg', pathh_available: false }),
+  capa_actions: () => ({
+    status: 'open',
+    incident_id: null,
+    facility_id: null,
+    source: 'su_co',
+    source_ref: null,
+    source_label: null,
+    kind: 'khac_phuc',
+    department: null,
+    root_cause: null,
+    verified_date: null,
+    verified_by: null,
+    effective: null,
+    note: null,
+  }),
+  chemicals: () => ({
+    unit: 'kg',
+    pathh_available: false,
+    hazard_classes: [],
+    legal_group: 'thong_thuong',
+    use_area: 'san_xuat',
+    min_stock: null,
+    max_stock: null,
+    sds_date: null,
+    expiry_date: null,
+    log_key: null,
+    active: true,
+  }),
+  chemical_transactions: () => ({ txn_date: today(), kind: 'xuat' }),
+  hse_roles: () => ({ end_date: null }),
+  equipment: () => ({ category: 'san_xuat', strict_safety: false, maintainer: 'to_co_dien', status: 'van_hanh' }),
+  equipment_inspections: () => ({ kind: 'kiem_dinh', result: 'dat' }),
+  equipment_work_orders: () => ({
+    report_date: today(),
+    priority: 'trung_binh',
+    env_impact: false,
+    safety_impact: false,
+    assignee: 'to_co_dien',
+    status: 'moi',
+  }),
+  inspection_plans: () => ({ scope: 'tong_the', frequency: 'weekly', start_date: today(), active: true }),
+  packaging_records: () => ({ method: 'dong_quy' }),
+  circular_flows: () => ({ unit: 't', route: 'tai_su_dung_tai_cho' }),
+  hse_plan_items: () => ({ horizon: 'nam', area: 'moi_truong', status: 'ke_hoach', progress: 0 }),
   legal_documents: () => ({ category: 'GPMT' }),
   compliance_tasks: () => ({ category: 'bao_cao', recurrence: 'none', remind_days: 14, status: 'pending' }),
   employees: () => ({ status: 'active', hazardous: false, exposures: [], allowance_level: null }),

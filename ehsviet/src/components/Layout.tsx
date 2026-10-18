@@ -1,16 +1,19 @@
 import {
   CalendarClock,
+  ClipboardCheck,
   Droplets,
   Flame,
   Gavel,
   HeartPulse,
   LayoutDashboard,
   Leaf,
+  ListChecks,
   LogOut,
   Menu,
   Recycle,
   Settings,
   Users,
+  Wrench,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -20,39 +23,46 @@ import { ROLE_LABELS } from '../lib/constants'
 import { isDemo } from '../lib/supabase'
 import { cls } from '../lib/utils'
 
+/** Menu theo chu trình PDCA: Kế hoạch – Thực hiện – Kiểm tra – Cải tiến */
 const NAV_GROUPS = [
   {
     label: '',
-    items: [{ to: '/', label: 'Tổng quan', short: 'Tổng quan', icon: LayoutDashboard, end: true }],
+    items: [{ to: '/', label: 'Tổng quan PDCA', short: 'Tổng quan', icon: LayoutDashboard, end: true }],
   },
   {
-    label: 'Môi trường',
-    items: [
-      { to: '/chat-thai', label: 'Chất thải & CTNH', short: 'Chất thải', icon: Recycle },
-      { to: '/van-hanh', label: 'Vận hành & Quan trắc', short: 'Vận hành', icon: Droplets },
-    ],
+    label: 'P · Kế hoạch',
+    items: [{ to: '/tuan-thu', label: 'Hồ sơ & nghĩa vụ', short: 'Nghĩa vụ', icon: CalendarClock }],
   },
   {
-    label: 'An toàn',
+    label: 'D · Thực hiện',
     items: [
       { to: '/nhan-su', label: 'Nhân sự & Huấn luyện', short: 'Nhân sự', icon: Users },
-      { to: '/an-toan', label: 'PCCC & An toàn', short: 'An toàn', icon: Flame },
-      { to: '/suc-khoe', label: 'Sức khỏe nghề nghiệp', short: 'Sức khỏe', icon: HeartPulse },
-      { to: '/noi-quy', label: 'Nội quy & Vi phạm', short: 'Nội quy', icon: Gavel },
+      { to: '/thiet-bi', label: 'Thiết bị & bảo trì', short: 'Thiết bị', icon: Wrench },
+      { to: '/chat-thai', label: 'Chất thải & CTNH', short: 'Chất thải', icon: Recycle },
+      { to: '/van-hanh', label: 'Vận hành & Quan trắc', short: 'Vận hành', icon: Droplets },
+      { to: '/an-toan', label: 'PCCC & An toàn', short: 'PCCC', icon: Flame },
     ],
   },
   {
-    label: 'ESG & Tuân thủ',
+    label: 'C · Kiểm tra',
     items: [
+      { to: '/kiem-tra', label: 'Kiểm tra định kỳ', short: 'Kiểm tra', icon: ClipboardCheck },
+      { to: '/suc-khoe', label: 'Sức khỏe nghề nghiệp', short: 'Sức khỏe', icon: HeartPulse },
       { to: '/esg', label: 'ESG · GRI · Khí nhà kính', short: 'ESG', icon: Leaf },
-      { to: '/tuan-thu', label: 'Hồ sơ & Tuân thủ', short: 'Tuân thủ', icon: CalendarClock },
+    ],
+  },
+  {
+    label: 'A · Cải tiến',
+    items: [
+      { to: '/khac-phuc', label: 'Hành động khắc phục', short: 'Khắc phục', icon: ListChecks },
+      { to: '/noi-quy', label: 'Nội quy & Vi phạm', short: 'Nội quy', icon: Gavel },
     ],
   },
 ]
 
 const ALL = NAV_GROUPS.flatMap((g) => g.items)
 /** 4 mục hiện trên thanh dưới điện thoại; còn lại trong "Thêm" */
-const BOTTOM = ['/', '/nhan-su', '/an-toan', '/esg']
+const BOTTOM = ['/', '/nhan-su', '/kiem-tra', '/khac-phuc']
 
 function Brand() {
   return (

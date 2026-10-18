@@ -47,6 +47,8 @@ export const CHECKLIST_CATEGORY_LABELS: Record<string, string> = {
   ATLD: 'An toàn lao động',
   MT: 'Môi trường',
   HC: 'Hóa chất',
+  TB: 'Thiết bị',
+  HSE: 'Tổng thể HSE',
 }
 
 export const FREQUENCY_LABELS: Record<string, string> = {
@@ -54,6 +56,8 @@ export const FREQUENCY_LABELS: Record<string, string> = {
   weekly: 'Hàng tuần',
   monthly: 'Hàng tháng',
   quarterly: 'Hàng quý',
+  semiannual: '6 tháng/lần',
+  yearly: 'Hàng năm',
 }
 
 export const FIRE_TYPE_LABELS: Record<string, string> = {
@@ -70,13 +74,6 @@ export const EQUIPMENT_STATUS_LABELS: Record<string, string> = {
   tot: 'Tốt',
   can_bao_tri: 'Cần bảo trì',
   hong: 'Hỏng',
-}
-
-export const DRILL_KIND_LABELS: Record<string, string> = {
-  PCCC: 'Diễn tập PCCC',
-  su_co_hoa_chat: 'Ứng phó sự cố hóa chất',
-  su_co_moi_truong: 'Ứng phó sự cố môi trường',
-  cap_cuu_TNLD: 'Cấp cứu tai nạn lao động',
 }
 
 export const INCIDENT_KIND_LABELS: Record<string, string> = {

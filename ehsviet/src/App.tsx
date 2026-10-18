@@ -3,8 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import CompliancePage from './modules/compliance/CompliancePage'
+import ActionsPage from './modules/actions/ActionsPage'
+import EquipmentPage from './modules/equipment/EquipmentPage'
 import EsgPage from './modules/esg/EsgPage'
 import HealthPage from './modules/health/HealthPage'
+import InspectionPage from './modules/inspection/InspectionPage'
 import OperationsPage from './modules/operations/OperationsPage'
 import PersonnelPage from './modules/personnel/PersonnelPage'
 import RulesPage from './modules/rules/RulesPage'
@@ -43,6 +46,9 @@ function AppRoutes() {
         <Route path="van-hanh" element={<OperationsPage />} />
         <Route path="nhan-su" element={<PersonnelPage />} />
         <Route path="an-toan" element={<SafetyPage />} />
+        <Route path="thiet-bi" element={<EquipmentPage />} />
+        <Route path="kiem-tra" element={<InspectionPage />} />
+        <Route path="khac-phuc" element={<ActionsPage />} />
         <Route path="suc-khoe" element={<HealthPage />} />
         <Route path="noi-quy" element={<RulesPage />} />
         <Route path="esg" element={<EsgPage />} />
