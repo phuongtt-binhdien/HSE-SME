@@ -12,6 +12,7 @@ import HealthPage from './modules/health/HealthPage'
 import InspectionPage from './modules/inspection/InspectionPage'
 import OperationsPage from './modules/operations/OperationsPage'
 import OrgPage from './modules/org/OrgPage'
+import PlanPage from './modules/plan/PlanPage'
 import PersonnelPage from './modules/personnel/PersonnelPage'
 import RulesPage from './modules/rules/RulesPage'
 import SafetyPage from './modules/safety/SafetyPage'
@@ -52,6 +53,7 @@ function AppRoutes() {
         <Route path="thiet-bi" element={<EquipmentPage />} />
         <Route path="kiem-tra" element={<InspectionPage />} />
         <Route path="khac-phuc" element={<ActionsPage />} />
+        <Route path="ke-hoach" element={<PlanPage />} />
         <Route path="to-chuc" element={<OrgPage />} />
         <Route path="hoa-chat" element={<ChemicalsPage />} />
         <Route path="tuan-hoan" element={<CircularPage />} />

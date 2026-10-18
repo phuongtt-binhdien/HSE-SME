@@ -14,6 +14,7 @@ import {
   Network,
   Recycle,
   Settings,
+  Target,
   Trash2,
   Users,
   Wrench,
@@ -35,6 +36,7 @@ const NAV_GROUPS = [
   {
     label: 'P · Kế hoạch',
     items: [
+      { to: '/ke-hoach', label: 'Kế hoạch & lộ trình', short: 'Kế hoạch', icon: Target },
       { to: '/to-chuc', label: 'Tổ chức bộ máy HSE', short: 'Bộ máy', icon: Network },
       { to: '/tuan-thu', label: 'Hồ sơ & nghĩa vụ', short: 'Nghĩa vụ', icon: CalendarClock },
     ],
@@ -86,7 +88,7 @@ function Brand() {
 
 const linkCls = ({ isActive }: { isActive: boolean }) =>
   cls(
-    'group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+    'group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors md:py-1.5',
     isActive ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
   )
 
@@ -115,7 +117,7 @@ export default function Layout() {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-pine-900 md:flex">
         <Brand />
         <div className="px-4 pb-3">{facilitySwitcher}</div>
-        <nav className="flex-1 space-y-3 overflow-y-auto px-2">
+        <nav className="flex-1 space-y-2.5 overflow-y-auto px-2 pb-2">
           {NAV_GROUPS.map((g) => (
             <div key={g.label || 'root'} className="space-y-0.5">
               {g.label && (
