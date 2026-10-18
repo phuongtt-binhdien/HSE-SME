@@ -85,29 +85,34 @@ export function Badge({ tone = 'gray', children }: { tone?: Tone; children: Reac
 }
 
 /* ---------------- Form controls ---------------- */
-const controlCls =
-  'w-full rounded-lg border border-pine-800/20 bg-white px-3 py-2 text-sm text-pine-800 placeholder:text-pine-800/35 focus:border-viridian-600'
+const controlBase =
+  'rounded-lg border border-pine-800/20 bg-white px-3 py-2 text-sm text-pine-800 placeholder:text-pine-800/35 focus:border-viridian-600'
+/** Mặc định rộng 100%; truyền lớp độ rộng (vd. w-28) thì bỏ w-full để lớp đó có hiệu lực */
+const controlCls = (extra?: string) => cls(/(^|\s)w-/.test(extra ?? '') ? controlBase : 'w-full ' + controlBase, extra)
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cls(controlCls, props.className)} />
+  return <input {...props} className={controlCls(props.className)} />
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cls(controlCls, props.className)} />
+  return <select {...props} className={controlCls(props.className)} />
 }
 
 export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea rows={3} {...props} className={cls(controlCls, props.className)} />
+  return <textarea rows={3} {...props} className={controlCls(props.className)} />
 }
 
 export function Field({
   label,
   required,
+  hint,
   children,
   className,
 }: {
   label: string
   required?: boolean
+  /** gợi ý ngắn dưới ô nhập */
+  hint?: ReactNode
   children: ReactNode
   className?: string
 }) {
@@ -118,6 +123,7 @@ export function Field({
         {required && <span className="text-red-600"> *</span>}
       </span>
       {children}
+      {hint && <span className="mt-1 block text-xs text-pine-800/45">{hint}</span>}
     </label>
   )
 }

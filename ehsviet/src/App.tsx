@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ChemicalsPage from './modules/chemicals/ChemicalsPage'
+import CircularPage from './modules/circular/CircularPage'
 import CompliancePage from './modules/compliance/CompliancePage'
 import ActionsPage from './modules/actions/ActionsPage'
 import EquipmentPage from './modules/equipment/EquipmentPage'
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="khac-phuc" element={<ActionsPage />} />
         <Route path="to-chuc" element={<OrgPage />} />
         <Route path="hoa-chat" element={<ChemicalsPage />} />
+        <Route path="tuan-hoan" element={<CircularPage />} />
         <Route path="suc-khoe" element={<HealthPage />} />
         <Route path="noi-quy" element={<RulesPage />} />
         <Route path="esg" element={<EsgPage />} />

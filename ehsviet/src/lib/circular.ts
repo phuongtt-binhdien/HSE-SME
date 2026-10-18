@@ -62,7 +62,43 @@ export function eprCalc(r: Pick<PackagingRecord, 'units_domestic' | 'unit_weight
   const amount = obligationKg * Number(r.fs_vnd_per_kg ?? 0)
   const recycled = Number(r.recycled_kg ?? 0)
   const shortfallKg = r.method === 'dong_quy' ? 0 : Math.max(0, obligationKg - recycled)
-  return { V, obligationKg, amount, recycled, shortfallKg }
+  /** số phải nộp Quỹ: toàn bộ nếu đóng góp tài chính; phần tái chế còn thiếu nếu tự tái chế / ủy quyền */
+  const payable = r.method === 'dong_quy' ? amount : shortfallKg * Number(r.fs_vnd_per_kg ?? 0)
+  return { V, obligationKg, amount, recycled, shortfallKg, payable }
+}
+
+export type EprStep = 'chua_den_han' | 'can_ke_khai' | 'qua_han_ke_khai' | 'can_nop' | 'qua_han_nop' | 'hoan_thanh' | 'khong_co'
+
+export const EPR_STEP_LABELS: Record<EprStep, string> = {
+  chua_den_han: 'Đang tích lũy số liệu',
+  can_ke_khai: 'Cần kê khai',
+  qua_han_ke_khai: 'Quá hạn kê khai',
+  can_nop: 'Đã kê khai – chờ nộp',
+  qua_han_nop: 'Quá hạn nộp',
+  hoan_thanh: 'Đã kê khai, đã nộp',
+  khong_co: 'Chưa có số liệu',
+}
+
+export const EPR_STEP_TONE: Record<EprStep, Tone> = {
+  chua_den_han: 'blue',
+  can_ke_khai: 'amber',
+  qua_han_ke_khai: 'red',
+  can_nop: 'amber',
+  qua_han_nop: 'red',
+  hoan_thanh: 'green',
+  khong_co: 'gray',
+}
+
+/** Trạng thái nghĩa vụ EPR của kỳ số liệu `dataYear` tại ngày `today` (yyyy-MM-dd) */
+export function eprStep(records: PackagingRecord[], dataYear: number, today: string): EprStep {
+  if (!records.length) return 'khong_co'
+  const dl = eprDeadlines(dataYear)
+  if (today < `${dataYear + 1}-01-01`) return 'chua_den_han'
+  const declared = records.every((r) => !!r.declared_date)
+  const paid = records.filter((r) => eprCalc(r).payable > 0).every((r) => !!r.paid_date)
+  if (!declared) return today > dl.declare ? 'qua_han_ke_khai' : 'can_ke_khai'
+  if (!paid) return today > dl.pay ? 'qua_han_nop' : 'can_nop'
+  return 'hoan_thanh'
 }
 
 /** Hạn kê khai, nộp tiền cho số liệu năm `dataYear` */
@@ -112,6 +148,23 @@ export const TREATMENT_LABELS: Record<string, string> = {
 export const DIVERTED_METHODS = ['tai_che', 'tai_su_dung', 'dong_xu_ly']
 export const isDiverted = (m: string | null | undefined) => !!m && DIVERTED_METHODS.includes(m)
 
+/** Quy đổi khối lượng về kg theo đơn vị khai báo (kg, t/tấn); đơn vị khác (m³, cái…) không cộng khối lượng */
+export function toKg(qty: number, unit?: string | null) {
+  const u = (unit ?? 'kg').trim().toLowerCase()
+  if (u === 't' || u === 'tấn' || u === 'tan') return qty * 1000
+  if (u === 'kg') return qty
+  return 0
+}
+
+export interface WasteMass {
+  date: string
+  kg: number
+  method: string | null
+  /** CTNH | CTRCNTT | CTRSH */
+  category?: string | null
+  typeId?: string
+}
+
 export interface WasteFate {
   diverted: number
   disposed: number
@@ -120,31 +173,119 @@ export interface WasteFate {
   /** % khối lượng được chuyển hướng (trên phần đã xác định phương pháp) */
   divertedPct: number | null
   byMethod: Record<string, number>
+  /** tách nguy hại / không nguy hại theo yêu cầu GRI 306-4, 306-5 (kg) */
+  hazardous: { diverted: number; disposed: number; unknown: number }
+  nonHazardous: { diverted: number; disposed: number; unknown: number }
 }
 
-/** Phân loại khối lượng chất thải phát sinh trong năm theo phương pháp xử lý (kg) */
-export function wasteFate(
-  logs: { log_date: string; quantity: number; waste_type_id: string }[],
-  types: { id: string; treatment_method: string | null }[],
-  year: number
-): WasteFate {
-  const m = new Map(types.map((t) => [t.id, t.treatment_method]))
-  const out: WasteFate = { diverted: 0, disposed: 0, unknown: 0, total: 0, divertedPct: null, byMethod: {} }
-  for (const l of logs) {
-    if (Number(l.log_date.slice(0, 4)) !== year) continue
-    const q = Number(l.quantity ?? 0)
-    const method = m.get(l.waste_type_id) ?? null
+/** Phân loại khối lượng chất thải phát sinh trong năm theo phương pháp xử lý (kg) → GRI 306-3/306-4/306-5 */
+export function wasteFate(items: WasteMass[], year: number): WasteFate {
+  const out: WasteFate = {
+    diverted: 0,
+    disposed: 0,
+    unknown: 0,
+    total: 0,
+    divertedPct: null,
+    byMethod: {},
+    hazardous: { diverted: 0, disposed: 0, unknown: 0 },
+    nonHazardous: { diverted: 0, disposed: 0, unknown: 0 },
+  }
+  for (const it of items) {
+    if (Number(it.date.slice(0, 4)) !== year) continue
+    const q = Number(it.kg ?? 0)
+    if (!Number.isFinite(q) || q <= 0) continue
+    const bucket = it.category === 'CTNH' ? out.hazardous : out.nonHazardous
     out.total += q
-    if (!method) out.unknown += q
-    else {
-      out.byMethod[method] = (out.byMethod[method] ?? 0) + q
-      if (isDiverted(method)) out.diverted += q
-      else out.disposed += q
+    if (!it.method) {
+      out.unknown += q
+      bucket.unknown += q
+    } else {
+      out.byMethod[it.method] = (out.byMethod[it.method] ?? 0) + q
+      if (isDiverted(it.method)) {
+        out.diverted += q
+        bucket.diverted += q
+      } else {
+        out.disposed += q
+        bucket.disposed += q
+      }
     }
   }
   const known = out.diverted + out.disposed
   out.divertedPct = known > 0 ? (out.diverted / known) * 100 : null
   return out
+}
+
+/** Dòng hồi lưu trong công nghệ: vật liệu chưa bị thải bỏ nên không phải chất thải theo GRI 306 */
+export const INTERNAL_STREAMS = ['bui_hoi_luu', 'hat_ngoai_co', 'phe_pham', 'bao_bi_tai_su_dung']
+export const WATER_STREAMS = ['nuoc_tuan_hoan', 'nuoc_mua']
+
+export interface WaterReuse {
+  reuse: number
+  wastewater: number | null
+  pct: number | null
+  basis: string
+}
+
+/**
+ * Tỷ lệ tái sử dụng nước thải = nước sau xử lý được tái sử dụng / nước thải xử lý.
+ * Có số liệu nước thải cả năm (GRI 303-4 nhập tay) → dùng trực tiếp; không có → ghép theo tháng
+ * với nhật ký HTXLNT, chỉ lấy tháng có nhật ký ≥ 20 ngày để tránh lệch kỳ.
+ */
+export function waterReuse(
+  flows: Pick<CircularFlow, 'year' | 'month' | 'stream' | 'quantity'>[],
+  year: number,
+  wastewaterAnnual: number | null,
+  logs: { log_date: string; influent_flow: number | null }[]
+): WaterReuse {
+  const rows = flows.filter((f) => Number(f.year) === year && f.stream === 'nuoc_tuan_hoan')
+  const reuse = rows.reduce((s, f) => s + Number(f.quantity ?? 0), 0)
+  if (!rows.length) return { reuse: 0, wastewater: wastewaterAnnual, pct: null, basis: 'Chưa ghi nhận nước tuần hoàn' }
+  if (wastewaterAnnual && wastewaterAnnual > 0)
+    return { reuse, wastewater: wastewaterAnnual, pct: (reuse / wastewaterAnnual) * 100, basis: 'Nước thải cả năm theo GRI 303-4' }
+  const byMonth = new Map<number, { flow: number; days: Set<string> }>()
+  for (const l of logs) {
+    if (Number(l.log_date.slice(0, 4)) !== year) continue
+    const m = Number(l.log_date.slice(5, 7))
+    const cur = byMonth.get(m) ?? { flow: 0, days: new Set<string>() }
+    cur.flow += Number(l.influent_flow ?? 0)
+    cur.days.add(l.log_date)
+    byMonth.set(m, cur)
+  }
+  if (rows.some((f) => f.month == null)) {
+    const total = [...byMonth.values()].reduce((s, x) => s + x.flow, 0)
+    const full = [...byMonth.values()].filter((x) => x.days.size >= 20).length
+    return full >= 12 && total > 0
+      ? { reuse, wastewater: total, pct: (reuse / total) * 100, basis: 'Nhật ký HTXLNT cả năm' }
+      : { reuse, wastewater: null, pct: null, basis: 'Thiếu nước thải cả năm (nhập GRI 303-4 tại ESG)' }
+  }
+  let r = 0
+  let w = 0
+  let months = 0
+  for (let m = 1; m <= 12; m++) {
+    const x = byMonth.get(m)
+    if (!x || x.days.size < 20 || x.flow <= 0) continue
+    const rm = rows.filter((f) => Number(f.month) === m).reduce((s, f) => s + Number(f.quantity ?? 0), 0)
+    if (!rm) continue
+    r += rm
+    w += x.flow
+    months++
+  }
+  return months
+    ? { reuse, wastewater: w, pct: (r / w) * 100, basis: `Ghép ${months} tháng có nhật ký HTXLNT đủ ≥ 20 ngày` }
+    : { reuse, wastewater: null, pct: null, basis: 'Chưa có tháng nào đủ nhật ký HTXLNT để ghép' }
+}
+
+/** Tỷ lệ lượt quan trắc nước thải đạt (một lượt = một điểm × một ngày lấy mẫu; vượt 1 thông số là không đạt) */
+export function wastewaterCompliance(results: { point_id: string; sample_date: string; is_exceeded: boolean }[], pointIds: Set<string>, year: number) {
+  const samples = new Map<string, boolean>()
+  for (const r of results) {
+    if (!pointIds.has(r.point_id) || Number(r.sample_date.slice(0, 4)) !== year) continue
+    const k = r.point_id + '|' + r.sample_date
+    samples.set(k, (samples.get(k) ?? true) && !r.is_exceeded)
+  }
+  const total = samples.size
+  const ok = [...samples.values()].filter(Boolean).length
+  return { total, ok, pct: total ? (ok / total) * 100 : null }
 }
 
 export type CriterionState = 'dat' | 'chua_dat' | 'thieu'
@@ -184,7 +325,7 @@ export function circularCriteria(x: {
       threshold: '≥ 10% so với năm cơ sở',
       value: raw == null ? '—' : `${pct(raw)} (${x.rawPerT.baseYear} → ${x.rawPerT.year})`,
       state: raw == null ? 'thieu' : raw >= 10 ? 'dat' : 'chua_dat',
-      note: 'Cần chỉ số "Nguyên liệu thô sử dụng (t)" và sản lượng thành phẩm tại ESG › GRI (nhập theo năm).',
+      note: 'Nguyên liệu, vật liệu sử dụng (GRI 301-1) chia sản lượng thành phẩm – nhập theo năm tại ESG › Chỉ số GRI.',
     },
     {
       key: 'nang_luong',

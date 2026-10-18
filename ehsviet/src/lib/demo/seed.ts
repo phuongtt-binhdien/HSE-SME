@@ -434,6 +434,8 @@ export function buildSeed(uuid: () => string): Record<string, Row[]> {
     metric(year - 2, 'production_t', 400000, 't'),
     metric(year - 1, 'production_t', 440000, 't'),
     metric(year, 'production_t', Math.round(37000 * Math.max(ytdMonths, 1)), 't', `Lũy kế ${Math.max(ytdMonths, 1)} tháng`),
+    metric(year - 2, 'GRI 301-1', 414000, 't', 'Nguyên liệu chính và bao bì'),
+    metric(year - 1, 'GRI 301-1', 452300, 't', 'Nguyên liệu chính và bao bì'),
     metric(year - 1, 'GRI 303-3', 78000, 'm³'),
     metric(year - 1, 'GRI 2-27', 0, 'vụ', 'Không bị xử phạt vi phạm hành chính về môi trường'),
     metric(year - 1, 'GRI 303-4', 17500, 'm³', 'Theo nhật ký vận hành HTXLNT'),

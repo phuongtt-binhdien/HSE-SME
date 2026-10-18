@@ -2,6 +2,7 @@
 // thành ngữ cảnh theo năm cho chỉ mục GRI và mục tiêu ESG.
 import { useCallback, useMemo } from 'react'
 import { useList } from '../../hooks/useCrud'
+import { isDiverted, toKg } from '../../lib/circular'
 import { summarize, type GhgActivity } from '../../lib/ghg'
 import type { GriContext } from '../../lib/gri'
 import { coverage, MATRIX_CATEGORIES, trainingStatsForYear } from '../../lib/training'
@@ -18,14 +19,6 @@ export interface EsgMetric {
   note: string | null
 }
 
-/** Quy đổi khối lượng chất thải về kg theo đơn vị khai báo của loại chất thải */
-const toKg = (qty: number, unit?: string | null) => {
-  const u = (unit ?? 'kg').trim().toLowerCase()
-  if (u === 't' || u === 'tấn' || u === 'tan') return qty * 1000
-  if (u === 'kg') return qty
-  return 0
-}
-
 const yearOf = (d?: string | null) => (d ? Number(d.slice(0, 4)) : NaN)
 
 export function useEsgData(fid: string) {
@@ -36,7 +29,7 @@ export function useEsgData(fid: string) {
   const policies = useList<any>('esg_policies', { match, order: 'created_at', ascending: true, enabled: on })
   const incidents = useList<any>('incidents', { match, order: 'incident_date', enabled: on })
   const wasteLogs = useList<any>('waste_logs', {
-    select: 'log_date, quantity, waste_types(category, unit)',
+    select: 'log_date, quantity, waste_types(category, unit, treatment_method)',
     match,
     order: 'log_date',
     enabled: on,
@@ -54,6 +47,7 @@ export function useEsgData(fid: string) {
     enabled: on,
   })
   const violations = useList<any>('rule_violations', { match, order: 'violation_date', enabled: on })
+  const flows = useList<any>('circular_flows', { match, select: 'year, stream, quantity', order: 'year', enabled: on })
   const people = usePersonnelData(fid)
 
   const acts = activities.data ?? []
@@ -79,13 +73,20 @@ export function useEsgData(fid: string) {
       const inYear = (d?: string | null) => yearOf(d) === year
       const inc = (incidents.data ?? []).filter((i) => inYear(i.incident_date))
       const waste = { ctnhKg: 0, ctrcnKg: 0, ctrshKg: 0, transferredKg: 0 }
+      const wasteFate = { divertedKg: 0, disposedKg: 0, unknownKg: 0 }
       for (const l of wasteLogs.data ?? []) {
         if (!inYear(l.log_date)) continue
         const kg = toKg(Number(l.quantity ?? 0), l.waste_types?.unit)
         if (l.waste_types?.category === 'CTNH') waste.ctnhKg += kg
         else if (l.waste_types?.category === 'CTRCNTT') waste.ctrcnKg += kg
         else if (l.waste_types?.category === 'CTRSH') waste.ctrshKg += kg
+        const method = l.waste_types?.treatment_method
+        if (!method) wasteFate.unknownKg += kg
+        else if (isDiverted(method)) wasteFate.divertedKg += kg
+        else wasteFate.disposedKg += kg
       }
+      const reuse = (flows.data ?? []).filter((f) => Number(f.year) === year && f.stream === 'nuoc_tuan_hoan')
+      const withdrawal = metric(year, 'GRI 303-3')?.value
       for (const t of transfers.data ?? []) {
         if (!inYear(t.transfer_date) || (t.status !== 'signed' && t.status !== 'completed')) continue
         for (const it of t.waste_transfer_items ?? []) waste.transferredKg += toKg(Number(it.quantity ?? 0), it.waste_types?.unit)
@@ -107,13 +108,16 @@ export function useEsgData(fid: string) {
           env: inc.filter((i) => i.kind === 'moi_truong').length,
         },
         waste,
+        wasteFate,
         wastewaterM3: wwLogs.length ? wwLogs.reduce((s, l) => s + Number(l.influent_flow ?? 0), 0) : null,
+        waterReuseM3: reuse.length ? reuse.reduce((s, f) => s + Number(f.quantity ?? 0), 0) : null,
+        waterWithdrawalM3: withdrawal == null ? null : Number(withdrawal),
         violations: (violations.data ?? []).filter((v) => inYear(v.violation_date)).length,
         policiesActive: (policies.data ?? []).filter((p) => p.status === 'active').length,
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [acts, metric, people.employees, people.records, people.courses, coverageNow, incidents.data, wasteLogs.data, transfers.data, opLogs.data, violations.data, policies.data]
+    [acts, metric, people.employees, people.records, people.courses, coverageNow, incidents.data, wasteLogs.data, transfers.data, opLogs.data, violations.data, policies.data, flows.data]
   )
 
   /** Các năm có số liệu (KNK, chỉ số nhập tay) và năm hiện tại, mới nhất trước */

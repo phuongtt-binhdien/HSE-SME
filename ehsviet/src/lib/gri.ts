@@ -1,4 +1,4 @@
-// Chỉ mục GRI (GRI Standards 2021 + chủ đề), ánh xạ nội dung bắt buộc TT 96/2020 PL IV
+// Chỉ số GRI (GRI Standards 2021 + chủ đề), ánh xạ nội dung bắt buộc TT 96/2020 PL IV
 // và chỉ số tự tính cho mục tiêu ESG. Số liệu tự động lấy từ các module; phần còn lại nhập tay
 // theo năm (bảng esg_metrics).
 import type { GhgSummary } from './ghg'
@@ -16,7 +16,12 @@ export interface GriContext {
   coverage: Record<string, number>
   incidents: { tnld: number; tnldSerious: number; env: number }
   waste: { ctnhKg: number; ctrcnKg: number; ctrshKg: number; transferredKg: number }
+  /** phát sinh theo phương pháp xử lý khai báo của loại chất thải (kg) → GRI 306-4 / 306-5 */
+  wasteFate: { divertedKg: number; disposedKg: number; unknownKg: number }
   wastewaterM3: number | null
+  /** nước sau xử lý tái sử dụng (Dòng tuần hoàn) và nước khai thác (GRI 303-3 nhập tay), m³ */
+  waterReuseM3: number | null
+  waterWithdrawalM3: number | null
   violations: number
   policiesActive: number
 }
@@ -188,7 +193,19 @@ export const GRI_ITEMS: GriItem[] = [
     title: 'Tỷ lệ nước tái chế, tái sử dụng',
     pillar: 'E',
     unit: '%',
-    kind: 'manual',
+    kind: 'auto',
+    auto: (c) => (c.waterReuseM3 && c.waterWithdrawalM3 ? (c.waterReuseM3 / c.waterWithdrawalM3) * 100 : null),
+    source: 'Nước sau xử lý tái sử dụng (EPR & Tuần hoàn) ÷ nước khai thác GRI 303-3',
+    tt96: 4,
+  },
+  {
+    code: 'TT96 II.4 (m³)',
+    title: 'Lượng nước tái chế, tái sử dụng',
+    pillar: 'E',
+    unit: 'm³',
+    kind: 'auto',
+    auto: (c) => (c.waterReuseM3 ? c.waterReuseM3 : null),
+    source: 'Dòng tuần hoàn – nước sau xử lý tái sử dụng',
     tt96: 4,
   },
   {
@@ -286,20 +303,23 @@ export const GRI_ITEMS: GriItem[] = [
   },
   {
     code: 'GRI 306-4',
-    title: 'Chất thải chuyển hướng khỏi thải bỏ (tái sử dụng, tái chế)',
-    pillar: 'E',
-    unit: 't',
-    kind: 'manual',
-    hint: 'Hạt nix, phế phẩm, bao bì tái sử dụng tại chỗ; phế liệu bán tái chế.',
-  },
-  {
-    code: 'GRI 306-5',
-    title: 'Chất thải chuyển giao xử lý, thải bỏ',
+    title: 'Chất thải chuyển hướng khỏi thải bỏ (tái sử dụng, tái chế, thu hồi)',
     pillar: 'E',
     unit: 't',
     kind: 'auto',
-    auto: (c) => nz(c.waste.transferredKg / 1000),
-    source: 'Chứng từ bàn giao đã ký / hoàn tất',
+    auto: (c) => nz(c.wasteFate.divertedKg / 1000),
+    source: 'Phát sinh × phương pháp xử lý khai báo (EPR & Tuần hoàn › Chất thải → GRI 306)',
+    hint: 'Bụi, hạt hồi lưu trong công nghệ không phải chất thải – không cộng vào chỉ số này.',
+  },
+  {
+    code: 'GRI 306-5',
+    title: 'Chất thải đưa đi thải bỏ (đốt, chôn lấp, xử lý khác)',
+    pillar: 'E',
+    unit: 't',
+    kind: 'auto',
+    auto: (c) =>
+      c.wasteFate.divertedKg + c.wasteFate.disposedKg > 0 ? nz(c.wasteFate.disposedKg / 1000) : nz(c.waste.transferredKg / 1000),
+    source: 'Phát sinh × phương pháp xử lý; chưa khai báo phương pháp → theo chứng từ chuyển giao',
   },
   {
     code: 'GRI 308-1',
@@ -487,6 +507,21 @@ export const TARGET_METRICS: TargetMetric[] = [
   { key: 'lti', label: 'Tai nạn lao động', unit: 'vụ', compute: (c) => c.incidents.tnld },
   { key: 'violations', label: 'Vi phạm nội quy nội bộ', unit: 'vụ', compute: (c) => c.violations },
   { key: 'ctnh_kg', label: 'CTNH phát sinh', unit: 'kg', compute: (c) => nz(c.waste.ctnhKg) },
+  {
+    key: 'waste_diverted_pct',
+    label: 'Tỷ lệ chất thải chuyển hướng khỏi thải bỏ',
+    unit: '%',
+    compute: (c) => {
+      const known = c.wasteFate.divertedKg + c.wasteFate.disposedKg
+      return known > 0 ? (c.wasteFate.divertedKg / known) * 100 : null
+    },
+  },
+  {
+    key: 'water_reuse_pct',
+    label: 'Tỷ lệ nước tái sử dụng (so với nước khai thác)',
+    unit: '%',
+    compute: (c) => (c.waterReuseM3 && c.waterWithdrawalM3 ? (c.waterReuseM3 / c.waterWithdrawalM3) * 100 : null),
+  },
 ]
 
 export const metricByKey = (key?: string | null) => TARGET_METRICS.find((m) => m.key === key)

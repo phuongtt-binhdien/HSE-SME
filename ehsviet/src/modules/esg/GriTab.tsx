@@ -1,4 +1,4 @@
-// Chỉ mục GRI theo năm: số liệu tự động từ các module + nhập tay; đối chiếu nội dung bắt buộc TT 96/2020
+// Chỉ số GRI theo năm: số liệu tự động từ các module + nhập tay; đối chiếu nội dung bắt buộc TT 96/2020
 import { useQueryClient } from '@tanstack/react-query'
 import { Download, Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'

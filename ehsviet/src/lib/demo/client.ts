@@ -8,9 +8,9 @@ type Row = Record<string, any>
 export type DemoDb = Record<string, Row[]>
 type Result = { data: any; error: { message: string; code?: string } | null; count?: number | null }
 
-const STORAGE_KEY = 'ehsviet_demo_db_v4'
+const STORAGE_KEY = 'ehsviet_demo_db_v5'
 /** Khóa của các phiên bản dữ liệu mẫu cũ – xóa khi nạp bản mới */
-const OLD_KEYS = ['ehsviet_demo_db_v1', 'ehsviet_demo_db_v2', 'ehsviet_demo_db_v3']
+const OLD_KEYS = ['ehsviet_demo_db_v1', 'ehsviet_demo_db_v2', 'ehsviet_demo_db_v3', 'ehsviet_demo_db_v4']
 const SESSION_KEY = 'ehsviet_demo_session'
 
 const today = () => {
