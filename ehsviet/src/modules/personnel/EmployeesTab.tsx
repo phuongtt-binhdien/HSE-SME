@@ -31,6 +31,7 @@ import { expiryOf, MATRIX_CATEGORIES, stateOf, type Employee, type TrainingRecor
 import { daysUntil, errMsg, fmtDate } from '../../lib/utils'
 import { normalize } from './excel'
 import { byDeptThenCode, DepartmentInput, matchesSearch, STATE_TONE, StateBadge, type PersonnelData } from './shared'
+import HseProfileSections from './HseProfile'
 import TrainingRecordModal from './TrainingRecordModal'
 
 export default function EmployeesTab({ data, base, canEdit }: { data: PersonnelData; base: any; canEdit: boolean }) {
@@ -190,7 +191,7 @@ export default function EmployeesTab({ data, base, canEdit }: { data: PersonnelD
                 <Td className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="outline" onClick={() => setDetail(e)}>
-                      <ClipboardList size={15} /> Hồ sơ HL
+                      <ClipboardList size={15} /> Hồ sơ HSE
                     </Button>
                     {canEdit && (
                       <>
@@ -286,7 +287,7 @@ export default function EmployeesTab({ data, base, canEdit }: { data: PersonnelD
       </Modal>
 
       {/* Hồ sơ huấn luyện cá nhân */}
-      <Modal open={!!detail} onClose={() => setDetail(null)} title={'Hồ sơ huấn luyện – ' + (detail?.full_name ?? '')} wide>
+      <Modal open={!!detail} onClose={() => setDetail(null)} title={'Hồ sơ HSE – ' + (detail?.full_name ?? '')} wide>
         {detail && (
           <div className="space-y-3">
             <div className="text-sm text-pine-800/60">
@@ -344,6 +345,7 @@ export default function EmployeesTab({ data, base, canEdit }: { data: PersonnelD
                 <Plus size={15} /> Thêm lượt huấn luyện
               </Button>
             )}
+            <HseProfileSections employee={detail} fid={base.facility_id} history={history} />
           </div>
         )}
       </Modal>

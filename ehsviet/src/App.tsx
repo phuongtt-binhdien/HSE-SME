@@ -9,6 +9,7 @@ import EsgPage from './modules/esg/EsgPage'
 import HealthPage from './modules/health/HealthPage'
 import InspectionPage from './modules/inspection/InspectionPage'
 import OperationsPage from './modules/operations/OperationsPage'
+import OrgPage from './modules/org/OrgPage'
 import PersonnelPage from './modules/personnel/PersonnelPage'
 import RulesPage from './modules/rules/RulesPage'
 import SafetyPage from './modules/safety/SafetyPage'
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="thiet-bi" element={<EquipmentPage />} />
         <Route path="kiem-tra" element={<InspectionPage />} />
         <Route path="khac-phuc" element={<ActionsPage />} />
+        <Route path="to-chuc" element={<OrgPage />} />
         <Route path="suc-khoe" element={<HealthPage />} />
         <Route path="noi-quy" element={<RulesPage />} />
         <Route path="esg" element={<EsgPage />} />

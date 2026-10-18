@@ -10,6 +10,7 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  Network,
   Recycle,
   Settings,
   Users,
@@ -31,7 +32,10 @@ const NAV_GROUPS = [
   },
   {
     label: 'P · Kế hoạch',
-    items: [{ to: '/tuan-thu', label: 'Hồ sơ & nghĩa vụ', short: 'Nghĩa vụ', icon: CalendarClock }],
+    items: [
+      { to: '/to-chuc', label: 'Tổ chức bộ máy HSE', short: 'Bộ máy', icon: Network },
+      { to: '/tuan-thu', label: 'Hồ sơ & nghĩa vụ', short: 'Nghĩa vụ', icon: CalendarClock },
+    ],
   },
   {
     label: 'D · Thực hiện',

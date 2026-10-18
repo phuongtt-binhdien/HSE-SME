@@ -34,6 +34,11 @@ export interface Facility {
   address: string | null
   gpmt_number: string | null
   gpmt_issuer: string | null
+  /** tổng số lao động thực tế – tính bộ máy HSE */
+  headcount?: number | null
+  /** ngành nghề điểm a k1 Điều 36 NĐ 39/2016 (sản xuất hóa chất – phân bón…) */
+  hazardous_sector?: boolean | null
+  shifts?: number | null
 }
 
 interface AuthState {

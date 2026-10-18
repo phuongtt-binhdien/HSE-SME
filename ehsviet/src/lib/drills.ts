@@ -90,12 +90,13 @@ export const DRILL_STATE_LABELS: Record<DrillState, string> = {
   chua: 'Chưa tham gia',
 }
 
+/** Tham gia diễn tập là quy định nội bộ theo kế hoạch ứng phó – cảnh báo mức nhắc nhở, không tô đỏ */
 export const DRILL_STATE_TONE: Record<DrillState, Tone> = {
   dat: 'green',
   sap_het: 'amber',
-  qua_han: 'red',
+  qua_han: 'amber',
   vang: 'amber',
-  chua: 'red',
+  chua: 'gray',
 }
 
 /** employee_id → cột → trạng thái tham gia */
