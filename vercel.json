@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd ehsviet && npm ci",
+  "buildCommand": "cd ehsviet && npm run build",
+  "outputDirectory": "ehsviet/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
