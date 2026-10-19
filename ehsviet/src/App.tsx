@@ -1,26 +1,29 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import ChemicalsPage from './modules/chemicals/ChemicalsPage'
-import CircularPage from './modules/circular/CircularPage'
-import CompliancePage from './modules/compliance/CompliancePage'
-import ActionsPage from './modules/actions/ActionsPage'
-import EquipmentPage from './modules/equipment/EquipmentPage'
-import EsgPage from './modules/esg/EsgPage'
-import HealthPage from './modules/health/HealthPage'
-import InspectionPage from './modules/inspection/InspectionPage'
-import OperationsPage from './modules/operations/OperationsPage'
-import OrgPage from './modules/org/OrgPage'
-import PlanPage from './modules/plan/PlanPage'
-import PersonnelPage from './modules/personnel/PersonnelPage'
-import RulesPage from './modules/rules/RulesPage'
-import SafetyPage from './modules/safety/SafetyPage'
-import WastePage from './modules/waste/WastePage'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
-import SettingsPage from './pages/Settings'
+
+// Các phân hệ tải theo trang (tách gói) – trang Tổng quan tải sẵn
+const ActionsPage = lazy(() => import('./modules/actions/ActionsPage'))
+const ChemicalsPage = lazy(() => import('./modules/chemicals/ChemicalsPage'))
+const CircularPage = lazy(() => import('./modules/circular/CircularPage'))
+const CompliancePage = lazy(() => import('./modules/compliance/CompliancePage'))
+const EquipmentPage = lazy(() => import('./modules/equipment/EquipmentPage'))
+const EsgPage = lazy(() => import('./modules/esg/EsgPage'))
+const HealthPage = lazy(() => import('./modules/health/HealthPage'))
+const InspectionPage = lazy(() => import('./modules/inspection/InspectionPage'))
+const OperationsPage = lazy(() => import('./modules/operations/OperationsPage'))
+const OrgPage = lazy(() => import('./modules/org/OrgPage'))
+const PersonnelPage = lazy(() => import('./modules/personnel/PersonnelPage'))
+const PlanPage = lazy(() => import('./modules/plan/PlanPage'))
+const RulesPage = lazy(() => import('./modules/rules/RulesPage'))
+const SafetyPage = lazy(() => import('./modules/safety/SafetyPage'))
+const SettingsPage = lazy(() => import('./pages/Settings'))
+const WastePage = lazy(() => import('./modules/waste/WastePage'))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },

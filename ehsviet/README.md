@@ -8,7 +8,20 @@ hoàn toàn bằng Row Level Security. Ứng dụng là **PWA** — một mã ng
 > Tên "EHSViet" là tên làm việc — đổi thương hiệu tự do (logo tại `public/favicon.svg`,
 > `public/pwa-*.png`, tên trong `vite.config.ts` và `index.html`).
 
-## Tính năng (8 module)
+## Tính năng — vận hành theo chu trình PDCA (15 phân hệ)
+
+| Bước | Phân hệ |
+|---|---|
+| **P · Kế hoạch** | Kế hoạch & lộ trình (kế hoạch HSE năm, lộ trình hồ sơ 2026–2030, Net Zero 2050) · Tổ chức bộ máy HSE · Hồ sơ & nghĩa vụ |
+| **D · Thực hiện** | Nhân sự & Huấn luyện · Thiết bị & bảo trì · Hóa chất · Chất thải & CTNH · EPR & Tuần hoàn · Vận hành & Quan trắc · PCCC & An toàn |
+| **C · Kiểm tra** | Kiểm tra định kỳ · Sức khỏe nghề nghiệp · ESG · GRI · Khí nhà kính |
+| **A · Cải tiến** | Hành động khắc phục · Nội quy & Vi phạm |
+
+**Tổng quan PDCA** gom cảnh báo của mọi phân hệ thành danh sách *Việc cần xử lý* (đỏ: quá hạn, vi phạm
+quy định; vàng: sắp đến hạn), xếp ưu tiên an toàn → pháp lý → quản lý, lọc theo P – D – C – A, bấm để mở
+đúng phân hệ; 4 khối Kế hoạch – Thực hiện – Kiểm tra – Cải tiến hiển thị chỉ số chính và mức huấn luyện.
+Kế hoạch triển khai 3 tháng: [`docs/KE_HOACH_PDCA.md`](docs/KE_HOACH_PDCA.md).
+
 
 **1. Chất thải & CTNH** — danh mục chất thải theo mã CTNH (TT 02/2022/TT-BTNMT), nhật ký
 phát sinh theo ngày/bộ phận, lập đợt chuyển giao kèm số chứng từ CTNH, tự tính **tồn kho
@@ -35,7 +48,9 @@ huấn luyện **an toàn – phòng cháy (PCCC & CNCH) – ứng phó sự c�
 **Khóa – Ngày – Quyết định**, tô màu còn hạn / sắp hết hạn (≤ 30 ngày) / hết hạn / chưa huấn
 luyện; khóa huấn luyện ghi một lần cho cả danh sách học viên (một quyết định); **nhập từ Excel**
 (.xlsx, .csv hoặc dán từ Excel, tiêu đề 1 hoặc 2 tầng) và **xuất ma trận ra Excel**. Còn theo dõi
-an toàn hóa chất, sơ cứu, đào tạo khác.
+an toàn hóa chất, sơ cứu, đào tạo khác. **Diễn tập theo người**: danh sách tham gia từng đợt diễn tập
+(PCCC & CNCH, sự cố chất thải, tràn dầu, hóa chất, sơ cứu) — có mặt / vắng, nhiệm vụ — và ma trận ai đã
+tham gia, ngày nào; **hồ sơ HSE cá nhân** (huấn luyện, diễn tập, sức khỏe, vai trò HSE, vi phạm) in được.
 
 **6. Nội quy & Vi phạm** — danh mục nội quy, quy định nội bộ; biên bản vi phạm theo **đơn vị,
 cá nhân người lao động, nhà thầu – khách** (gợi ý hình thức xử lý theo lần tái phạm trong 12
@@ -60,6 +75,41 @@ thẳng vào Lịch tuân thủ; nhập kết quả từ Excel; **khám sức kh
 tháng) và **khám phát hiện BNN** theo yếu tố tiếp xúc của từng người, ghi đợt khám cho nhiều người,
 phân loại sức khỏe I–V; **bồi dưỡng bằng hiện vật** mức 1–4 (TT 24/2022) với dự toán tháng/năm.
 
+**9. Kế hoạch & lộ trình (P)** — kế hoạch HSE năm theo lĩnh vực (căn cứ, chỉ tiêu, chủ trì, hạn, tiến độ,
+tự báo quá hạn; nạp mẫu, sao chép năm trước, xuất Excel); **lộ trình hồ sơ môi trường – HSE 2026–2030**
+(ISO 14001, kiểm kê – giảm nhẹ KNK, kiểm toán năng lượng, rà soát GPMT, QCVN 19:2024, QCVN 40:2025);
+**lộ trình Net Zero 2050**: phát thải phạm vi 1 + 2 và tỷ lệ năng lượng tái tạo thực tế so với đường mục
+tiêu nội suy giữa các mốc, bảng mục tiêu theo năm, các mốc giải pháp có tiến độ.
+
+**10. Tổ chức bộ máy HSE (P)** — nhập tổng số lao động, ngành nghề nặng nhọc – độc hại, số ca → tự tính
+số người tối thiểu (NĐ 39/2016: người làm công tác ATVSLĐ, y tế, Hội đồng ATVSLĐ, an toàn – vệ sinh viên;
+đội PCCC cơ sở; người quản lý năng lượng khi ≥ 1.000 TOE) và so với phân công thực tế (quyết định, hiệu
+lực huấn luyện của từng người); sơ đồ bộ máy theo nhóm vai trò.
+
+**11. Thiết bị & bảo trì (D)** — danh mục thiết bị (yêu cầu nghiêm ngặt theo TT 36/2019, chu kỳ kiểm
+định); **biên bản hư hỏng → sửa chữa (Tổ Cơ điện / thuê ngoài, hạn theo mức ưu tiên) → nghiệm thu an toàn
+→ đưa vào vận hành hoặc thanh lý**; cảnh báo quá hạn sửa, quá hạn kiểm định; in biên bản; sổ sửa chữa
+Excel; thời gian sửa trung bình.
+
+**12. Hóa chất (D)** — vòng đời mua – nhập kho – sử dụng (sản xuất, phòng thí nghiệm, HTXLNT, cơ điện) –
+thải bỏ; phân loại theo Luật Hóa chất 69/2025, PATHH, định mức tồn tối thiểu / tối đa, hạn dùng; lưu hóa
+đơn, giấy phép bên bán cho nhóm kiểm soát; chặn xuất vượt tồn và nhập hóa chất cấm; trừ tồn tự động theo
+nhật ký HTXLNT, liều dùng g/m³, số ngày còn dùng; báo cáo quý MT-HD02-BM01.
+
+**13. EPR & Tuần hoàn (D)** — trách nhiệm tái chế bao bì **F = V × R × Fs** theo từng loại bao (loại trừ
+xuất khẩu), hạn kê khai – nộp và trạng thái từng kỳ; **dòng tuần hoàn** nhập theo tháng (bụi thu hồi, hạt
+ngoài cỡ, phế phẩm hồi lưu, nước sau xử lý tái sử dụng…); phương pháp xử lý cuối của từng loại chất thải
+→ **bảng công bố GRI 306-4 / 306-5** tách nguy hại – không nguy hại; đối chiếu tiêu chí tuần hoàn
+QĐ 46/2026/QĐ-TTg.
+
+**14. Kiểm tra định kỳ (C)** — chương trình theo kỳ: **tổng thể HSE 03 tháng/lần, môi trường hằng tuần,
+kiểm tra – chạy thử PCCC hằng tuần**, kho hóa chất hằng tuần, VSCN hằng tháng, tự kiểm tra tuân thủ PCCC
+và BVMT hằng quý; lịch kỳ (đã kiểm tra / bỏ sót / đến kỳ), chấm checklist, mục không đạt tạo hành động
+khắc phục; in phiếu kiểm tra.
+
+**15. Hành động khắc phục (A)** — CAPA tập trung từ sự cố, kiểm tra, thiết bị, QTMTLĐ, đánh giá, khiếu
+nại; nguyên nhân gốc, người – hạn, xác nhận hiệu lực; xuất Excel.
+
 **Bộ mẫu nghiệp vụ nhà máy phân bón NPK** (Cài đặt) — nạp 1 lần: 8 chính sách + 11 mục tiêu ESG,
 10 nội quy (MT-HD01…07, quy định tuân thủ MT nội bộ…), checklist VSCN hằng tháng 12 khu vực,
 **bảng tự kiểm tra tuân thủ 116 mục** theo nghị định xử phạt hiện hành — NĐ 45/2022 (môi trường),
@@ -68,12 +118,8 @@ từ 10/9/2026)**, Luật Hóa chất 69/2025 — mỗi mục kèm điều – k
 phục; nạp lại thì checklist cũ được cập nhật tại chỗ (giữ lịch sử kiểm tra) — và **lịch nghĩa vụ
 định kỳ HSE** (24 hạn: báo cáo công tác BVMT 15/01, phí BVMT quý, EPR bao bì theo NĐ 110/2026, kiểm kê
 KNK 02 năm/lần theo QĐ 42/2026, báo cáo TNLĐ – ATVSLĐ – y tế lao động, QTMTLĐ, khám sức khỏe, huấn
-luyện, thực tập PCCC). Căn cứ pháp lý rà soát **10/2026**.
-
-**Tổng quan** — bảng trạng thái tuân thủ (quan trắc, hạn việc, tồn CTNH, sự cố mở, thiết bị
-PCCC, **huấn luyện, sức khỏe NLĐ, vi phạm nội quy, KNK năm**), tiến độ huấn luyện 3 loại, sức khỏe
-nghề nghiệp (đợt QTMTLĐ gần nhất, khám định kỳ, khám BNN), xếp loại đơn vị tháng,
-biểu đồ CTNH phát sinh 6 tháng.
+luyện, thực tập PCCC), **chương trình kiểm tra định kỳ** (7 chương trình kèm checklist) và **kế hoạch &
+lộ trình** (kế hoạch năm, lộ trình 2026–2030, Net Zero 2050). Căn cứ pháp lý rà soát **10/2026**.
 
 **Bản dùng thử** — chưa cấu hình Supabase thì ứng dụng tự chạy với dữ liệu mẫu (nhà máy phân bón,
 số liệu **minh họa**) lưu trong trình duyệt: `npm install && npm run dev` → *Vào bản dùng thử*.
@@ -92,17 +138,21 @@ Khôi phục dữ liệu mẫu tại Cài đặt.
 ```
 supabase/
   schema.sql        ← toàn bộ bảng + hàm + RLS (chạy 1 lần)
-  migrations/       ← nâng cấp CSDL đã cài (002: nhân sự, ESG – KNK, nội quy; 003: sức khỏe nghề nghiệp)
+  migrations/       ← nâng cấp CSDL đã cài (002: nhân sự, ESG – KNK, nội quy; 003: sức khỏe nghề nghiệp;
+                       004: PDCA – thiết bị, kiểm tra định kỳ, CAPA, hóa chất, EPR – tuần hoàn, kế hoạch, bộ máy)
   seed.sql          ← dữ liệu mẫu theo bối cảnh nhà máy phân bón (tùy chọn)
 src/
   lib/              supabase client, hằng số QCVN & nhãn tiếng Việt, utils;
                     training.ts (hạn huấn luyện), ghg.ts (hệ số KNK), gri.ts (chỉ mục GRI),
-                    rules.ts (xếp loại, thi đua), templates.ts (bộ mẫu), demo/ (bản dùng thử)
+                    rules.ts (xếp loại, thi đua), templates.ts (bộ mẫu), demo/ (bản dùng thử);
+                    PDCA: plan.ts, org.ts, equipment.ts, chemicals.ts, circular.ts, inspection.ts,
+                    inspectionTemplates.ts, capa.ts, drills.ts, print.ts
   contexts/         AuthContext (phiên, hồ sơ, tổ chức, chuyển nhà máy)
   hooks/useCrud.ts  useList / useSave / useRemove (react-query)
   components/       UI primitives + Layout (sidebar desktop, bottom-nav mobile)
   pages/            Login, Onboarding, Dashboard, Settings
-  modules/          waste / operations / safety / compliance / personnel / health / rules / esg
+  modules/          waste / operations / safety / compliance / personnel / health / rules / esg /
+                    plan / org / equipment / chemicals / circular / inspection / actions / drills / dashboard
 ```
 
 ## Triển khai (≈ 15 phút)
@@ -114,7 +164,9 @@ Lấy `Project URL` và `anon public key` tại **Settings → API**.
 *Đã cài bản trước?* Chạy lần lượt các file còn thiếu trong `supabase/migrations/` (chạy lại nhiều lần không lỗi):
 `002_nhan_su_esg_noi_quy.sql` (9 bảng Nhân sự – Huấn luyện, ESG – KNK, Nội quy – Vi phạm) và
 `003_suc_khoe_nghe_nghiep.sql` (quan trắc môi trường lao động, khám sức khỏe – BNN, hồ sơ sức khỏe nhân sự,
-lịch lặp 02 năm/lần).
+lịch lặp 02 năm/lần) và `004_pdca_thiet_bi_hoa_chat_tuan_hoan.sql` (11 bảng: vai trò HSE, danh sách diễn
+tập, thiết bị – kiểm định – phiếu sửa chữa, chương trình kiểm tra, sổ nhập xuất hóa chất, EPR bao bì, dòng
+tuần hoàn, kế hoạch – lộ trình; mở rộng CAPA, hóa chất, diễn tập, thông số nhà máy).
 
 **Bước 3 — (Tùy chọn) Dữ liệu mẫu.** Chạy tiếp `supabase/seed.sql` để có tổ chức demo
 (danh mục CTNH, hệ thống xử lý, điểm quan trắc, checklist PCCC/VSCN, lịch tuân thủ…).
@@ -183,8 +235,11 @@ mã thì theo họ tên duy nhất); khóa trùng *loại – tên – ngày –
 - `anon key` an toàn để nhúng phía client; **tuyệt đối không** đưa `service_role key` vào
   frontend.
 - Hàm `current_org_id()` / `is_admin()` dạng `security definer` cố định `search_path`.
-- 9 bảng mới (nhân sự, huấn luyện, ESG, KNK, nội quy, vi phạm) chặn ghi ở tầng CSDL với vai trò
-  **Chỉ xem** (`can_write()`), không chỉ ẩn nút trên giao diện.
+- Các bảng thêm từ migration 002 – 004 (nhân sự, huấn luyện, ESG, KNK, nội quy, sức khỏe, thiết bị,
+  kiểm tra, hóa chất, EPR, kế hoạch…) chặn ghi ở tầng CSDL với vai trò **Chỉ xem** (`can_write()`),
+  không chỉ ẩn nút trên giao diện. Đã kiểm thử RLS 11 bảng của 004 trên PostgreSQL 16 (118/118 ca):
+  cùng tổ chức đọc – ghi đúng quyền; tổ chức khác không đọc, không sửa, không chèn dữ liệu mang
+  `org_id` của tổ chức khác; không chuyển bản ghi sang tổ chức khác; khách ẩn danh không thấy gì.
 - Dữ liệu cá nhân tối thiểu: chỉ lưu thông tin cần cho quản lý an toàn (không CCCD, địa chỉ…).
 
 ## Ghi chú nghiệp vụ
@@ -214,6 +269,20 @@ mã thì theo họ tên duy nhất); khóa trùng *loại – tên – ngày –
   55/VBHN-BNNMT); NĐ 45/2022 (còn hiệu lực, có dự thảo thay thế); QCVN 19:2024, 40:2025 theo lộ trình;
   NĐ 106/2025 sửa bởi NĐ 69/2026; NĐ 283/2026; Luật Hóa chất 69/2025; EPR theo NĐ 110/2026.
 - **Bộ mẫu** (chính sách, nội quy, checklist) là dự thảo — rà soát, ban hành theo thẩm quyền.
+- **Kiểm tra PCCC "1 tuần/lần"**: không có văn bản quy định tần suất 1 tuần/lần cho toàn hệ thống; Luật
+  PCCC & CNCH 2024, NĐ 105/2025 yêu cầu tự kiểm tra, bảo dưỡng phương tiện; tần suất kỹ thuật theo
+  TCVN 3890:2023 và hướng dẫn nhà sản xuất. Mặc định của phần mềm (sửa được): kiểm tra – chạy thử
+  hằng tuần, tự kiểm tra tuân thủ hằng quý, thực tập phương án chữa cháy ít nhất 01 lần/năm.
+- **Bộ máy HSE**: số người tối thiểu theo NĐ 39/2016 (Điều 36, 37, 38) và quy mô lao động, ngành nghề;
+  môi trường và PCCC không có định mức chuyên trách — phần mềm theo dõi người được phân công và hiệu
+  lực huấn luyện.
+- **GRI 306**: bụi, hạt ngoài cỡ, phế phẩm hồi lưu trong công nghệ là vật liệu chưa bị thải bỏ nên không
+  cộng vào 306-4; 306-4/306-5 tính từ khối lượng phát sinh × phương pháp xử lý cuối của từng loại chất thải
+  (đối chiếu chứng từ chuyển giao trước khi công bố).
+- **Tiêu chí tuần hoàn QĐ 46/2026**: nhà máy NPK phối trộn – tạo hạt có tiêu hao nguyên liệu/tấn sát cân
+  bằng vật chất; chỉ tiêu giảm ≥ 10% thường cần thay đổi công thức, nguyên liệu, công nghệ.
+- **Net Zero**: đường mục tiêu là tham chiếu; chỉ công bố "trung hòa carbon", "Net Zero" khi có kiểm kê
+  được thẩm định và bù trừ bằng tín chỉ hợp lệ.
 
 - Ngưỡng preset là **giá trị C cơ sở** của QCVN — khi nhập kết quả hãy điều chỉnh theo hệ số
   Kq, Kf (nước thải) hoặc Kp, Kv (khí thải) quy định tại GPMT của cơ sở.
@@ -232,7 +301,8 @@ mã thì theo họ tên duy nhất); khóa trùng *loại – tên – ngày –
 5. **Xuất báo cáo** DOCX/PDF theo mẫu phụ lục TT 02/2022 từ dữ liệu đã nhập.
 6. **Kết nối quan trắc tự động (CEMS)** đổ dữ liệu vào `monitoring_results` qua API.
 7. **Thanh toán gói** (VNPay/Stripe) gắn với cột `organizations.plan`.
-8. Tối ưu bundle: `manualChunks` tách recharts/supabase (hiện ~264 KB gzip).
+8. Tách dữ liệu mẫu khỏi gói chính (chỉ tải ở bản dùng thử). Đã tách gói theo trang: gói chính
+   ~216 KB gzip, biểu đồ tải riêng khi mở trang có biểu đồ.
 
 ## Lệnh
 

@@ -20,9 +20,10 @@ import {
   Wrench,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { Loading } from './UI'
 import { ROLE_LABELS } from '../lib/constants'
 import { isDemo } from '../lib/supabase'
 import { cls } from '../lib/utils'
@@ -177,7 +178,9 @@ export default function Layout() {
               cho cả nhà máy.
             </div>
           )}
-          <Outlet />
+          <Suspense fallback={<Loading />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 

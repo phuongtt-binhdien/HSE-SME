@@ -127,6 +127,22 @@ Phần mềm có sẵn bộ mẫu. Mỗi hạng mục ghi căn cứ, người ch
 | 9–10 | 14/12 – 27/12 | Mở rộng ra toàn nhà máy. Kiểm tra tổng thể quý IV. Xuất hồ sơ minh chứng tái chứng nhận ISO 14001 và báo cáo xem xét lãnh đạo | Nhà máy, Claude | Hồ sơ ISO đủ minh chứng |
 | 11–13 | 28/12/2026 – 18/01/2027 | Chốt số liệu 2026. Xuất: BC ATVSLĐ, BC y tế lao động (10/01); BC công tác BVMT (15/01); BC hóa chất. Chuẩn bị KKK KNK 2025–2026 (31/3/2027) và EPR kỳ 2026. Nghiệm thu, hướng dẫn sử dụng, bàn giao | Nhà máy, Claude | Báo cáo nộp đúng hạn bằng số liệu phần mềm |
 
+### Tiến độ tuần 1–2 (cập nhật 19/10/2026)
+
+| Hạng mục | Trạng thái |
+|---|---|
+| Migration 004 (11 bảng mới, mở rộng CAPA, hóa chất, diễn tập, thông số nhà máy) | Xong. Cài mới = nâng cấp v1 → 002 → 003 → 004; chạy lại không lỗi |
+| P · Kế hoạch & lộ trình (năm, 2026–2030, Net Zero 2050), Tổ chức bộ máy HSE | Xong |
+| D · Thiết bị & bảo trì, Hóa chất, EPR & Tuần hoàn, diễn tập theo người, hồ sơ HSE cá nhân | Xong |
+| C · Kiểm tra định kỳ (tổng thể quý, tuần, PCCC, hóa chất, VSCN, tự kiểm tra quý) | Xong |
+| A · Hành động khắc phục tập trung | Xong |
+| Tổng quan PDCA: việc cần xử lý từ mọi phân hệ, 4 khối P-D-C-A | Xong |
+| Chỉ số GRI 306-4, 306-5, TT96 II.4 tự tính; mục tiêu ESG chất thải chuyển hướng, nước tái sử dụng | Xong |
+| Bộ mẫu trong Cài đặt: chương trình kiểm tra định kỳ; kế hoạch & lộ trình | Xong |
+| Kiểm thử | RLS 118/118 ca (PostgreSQL 16); 13/13 luồng giao diện; 50 màn hình × 2 cỡ (1400 px, 390 px) không lỗi, không tràn ngang; build production OK, tách gói theo trang (gói chính ~216 KB gzip) |
+
+Việc tiếp theo (tuần 3): nhà máy rà soát bản dùng thử, chốt danh mục thiết bị, hóa chất, tần suất kiểm tra; **chuyển repo sang private trước khi nhập dữ liệu thật**.
+
 ## 5. Cổng chất lượng cho mỗi lần cập nhật
 
 - Kiểm tra mã:
