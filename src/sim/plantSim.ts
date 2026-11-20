@@ -38,7 +38,7 @@ export const EQUIP: EqDef[] = [
   { id: "LB01", name: "Lọc bụi túi vải", zone: "air", kw: 7.5, desc: "432 túi Ø130 × 3.360 mm, 556 m², 48 van solenoid; hiệu suất ≥ 99 %; ΔP làm việc 150–260 mmH₂O (MT-QP.01)", requires: [],
     actions: [{ id: "pulse", label: "Rũ bụi (xung khí nén)", hint: "Giảm ΔP khi vượt 260 mmH₂O" }, { id: "replace", label: "Thay túi lọc thủng", hint: "Khắc phục bụi vượt chuẩn do thủng túi" }] },
   { id: "QH01", name: "Quạt hút", zone: "air", kw: 116, desc: "Q = 55.000 m³/h, P = 350 mmH₂O, 155 HP; tạo áp âm cho hệ lò sấy – cyclone – lọc bụi – tháp hấp thụ", requires: ["LB01", "HT01"] },
-  { id: "HT01", name: "Tháp hấp thụ NH₃", zone: "air", kw: 22, desc: "Hấp thụ NH₃ bằng dung dịch H₂SO₄; bơm tuần hoàn phải chạy trước quạt hút", requires: [],
+  { id: "HT01", name: "Tháp hấp thụ NH₃", zone: "air", kw: 22, desc: "Hấp thụ NH₃ bằng dung dịch H₂SO₄; bơm tuần hoàn phải chạy trước quạt hút. Theo BOQ (dự án): tháp ngược dòng Ø3,5 × H10 m, bơm tuần hoàn 150 m³/h, pH 4–5, tỷ trọng dịch SA 28–35 %, cảnh báo ngập tháp ΔP > 120 mmH₂O", requires: [],
     actions: [{ id: "recharge", label: "Thay dung dịch hấp thụ", hint: "Khôi phục hiệu suất khi dung dịch cạn" }] },
   { id: "LH01", name: "Lò hơi sinh khối 6 t/h", zone: "boiler", kw: 45, desc: "Lò tầng sôi 14 bar; chạy ngày thường (T2–T6)", requires: [], excludes: ["LH02"] },
   { id: "LH02", name: "Lò hơi than 8 t/h", zone: "boiler", kw: 55, desc: "Lò hiện hữu, chạy luân phiên cuối tuần; xử lý ướt + hấp thụ kiềm", requires: [], excludes: ["LH01"] },

@@ -9,7 +9,7 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
 import PlantSim from "../sim/PlantSim.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
-import { LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
+import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2412,6 +2412,27 @@ function FacilityModule() {
         <Table heads={["Ký hiệu","Thiết bị","Đặc tính kỹ thuật","Tình trạng"]} rows={LINE2_EQUIPMENT.map(e=>(<tr key={e.id}><TD><Mono c={T.text} s={11}>{e.id}</Mono></TD><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{e.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.spec}</TD><TD style={{ color:T.dim, fontSize:11 }}>{e.status}</TD></tr>))}/>
         <div style={{ fontSize:11, color:T.sub, marginTop:10, lineHeight:1.6 }}><b style={{ color:T.text }}>Mặt bằng thiết bị phân xưởng:</b> {LINE2_LAYOUT.join(" · ")}. Bản vẽ ghi 02 máy sấy (khô 1, khô 2); mô phỏng 3D mới đưa máy sấy khô 1 (Nguồn 04) vào vận hành.</div>
       </div>
+      <div style={card}>
+        <SectionHeader title="So sánh thiết bị lò đốt sinh khối – hệ thống sấy nóng (hiện hữu than → điều chỉnh 2026)" sub="Bảng so sánh cập nhật 29/06/2026 · dây chuyền tạo hạt thùng quay urê hóa lỏng số 2"/>
+        <Table heads={["Thiết bị","Hiện hữu","Điều chỉnh 2026"]} rows={FURNACE_COMPARE.map(r=>(<tr key={r[0]}><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{r[0]}</TD><TD style={{ color:T.sub, fontSize:11 }}>{r[1]}</TD><TD style={{ color:T.sub, fontSize:11 }}>{r[2]}</TD></tr>))}/>
+      </div>
+      <div style={card}>
+        <SectionHeader title="Cải tạo HTXLNT 120 m³/ngày.đêm — khảo sát Global Green" sub="Khảo sát 09/09/2026 · báo cáo 14/10/2026"/>
+        <div style={{ fontSize:11, color:T.sub, lineHeight:1.7 }}>
+          <div><b style={{ color:T.text }}>Hiện hữu:</b> {WWTP_RETROFIT.before}</div>
+          <div style={{ marginTop:6 }}><b style={{ color:T.text }}>Sau cải tạo:</b> {WWTP_RETROFIT.after}</div>
+          {WWTP_RETROFIT.changes.map((c,i)=><div key={i}>• {c}</div>)}
+          <div style={{ marginTop:6 }}>{WWTP_RETROFIT.jar}</div>
+        </div>
+        <div style={{ fontSize:10, fontWeight:700, color:T.dim, textTransform:"uppercase", letterSpacing:".5px", margin:"12px 0 4px" }}>Nước thải đầu vào 2021–2022 (08 mẫu) so với QCVN 14:2025/BTNMT Bảng 2 cột A</div>
+        <Table heads={["Chỉ tiêu","Đơn vị","Nhỏ nhất","Lớn nhất","Trung bình","Giới hạn"]} rows={WWTP_RETROFIT.influent.map(r=>(<tr key={r[0]}><TD style={{ color:T.text, fontWeight:600 }}>{r[0]}</TD>{r.slice(1).map((v,i)=><TD key={i} style={{ color:T.sub, fontSize:11 }}>{v}</TD>)}</tr>))}/>
+      </div>
+      <div style={card}>
+        <SectionHeader title="Hệ thống tháp hấp thụ NH₃ — BOQ" sub={`Tổng dự toán ${NH3_TOWER_BOQ.total.toLocaleString("vi-VN")} đồng`}/>
+        <Table heads={["Hạng mục","Thành tiền (đồng)"]} rows={NH3_TOWER_BOQ.parts.map(([n,v])=>(<tr key={n}><TD style={{ color:T.text, fontSize:12 }}>{n}</TD><TD><Mono c={T.text} s={11}>{Number(v).toLocaleString("vi-VN")}</Mono></TD></tr>))}/>
+        <div style={{ fontSize:11, color:T.sub, marginTop:8 }}>{NH3_TOWER_BOQ.notes}</div>
+      </div>
+
       <div style={card}>
         <SectionHeader title="Gói thầu lò hơi sinh khối 6 t/h" sub={`E-TBMT ${BOILER_TENDER.code} · mở thầu ${BOILER_TENDER.opened}`}/>
         <Table heads={["Nhà thầu","Giá chào (gồm VAT, đồng)"]} rows={BOILER_TENDER.bids.map(([n,v])=>(<tr key={n}><TD style={{ color:T.text, fontWeight:600 }}>{n}</TD><TD><Mono c={T.text} s={11}>{Number(v).toLocaleString("vi-VN")}</Mono></TD></tr>))}/>
