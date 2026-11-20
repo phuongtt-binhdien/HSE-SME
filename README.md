@@ -33,6 +33,11 @@ Tab **GPMT Nguồn 01 — Lò Hơi**: 4 kịch bản vận hành của ống kh�
 
 Tab **Nguồn Thấp · Đường · Mặt** (`src/lib/lowSources.ts`) theo Giáo trình Kiểm soát ô nhiễm không khí, mục 1.2.3: nguồn thấp cạnh nhà rộng đứng độc lập (Bảng 1.3, PT 1.21–1.27, hệ số S PT 1.40–1.44, k số hóa từ Hình 1.6), nguồn đường (PT 1.48–1.50, σ Pasquill–Gifford), đường phố hẻm (PT 1.52–1.53), nguồn mặt Gifford–Hanna (PT 1.55, Bảng 1.5) và mô hình hộp cố định (PT 1.57).
 
+## Hồ sơ nhà máy và huấn luyện ATVSLĐ
+
+- Tab **Hồ Sơ Nhà Máy** (`src/data/facility.ts`): thông tin, tiếp giáp, quy mô, hóa chất cần kiểm soát, văn bản nội bộ (QĐ 385/2026, 759, 199…), nội quy an toàn, căn cứ pháp lý và các điểm số liệu chưa thống nhất giữa tài liệu. Nguồn: `docs/tong-hop-tai-lieu-nha-may.md`.
+- Tab **Huấn Luyện ATVSLĐ** (`src/data/training2026.ts`): 328 lượt học viên nhóm 4, 5, 6 năm 2026 — lọc, tìm kiếm, hạn huấn luyện lại, đánh dấu đã ký (lưu trên trình duyệt), chép danh sách sang Excel. Chỉ lưu họ tên, năm sinh, bộ phận; không lưu số CCCD.
+
 ## Deploy
 
 App xuất ra web tĩnh (`output: "export"`), không cần Next.js server khi chạy.

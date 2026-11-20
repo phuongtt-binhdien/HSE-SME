@@ -6,6 +6,8 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, Pol
 import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN,
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
+import { SESSIONS, TRAINEES } from "../data/training2026";
+import { PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2264,11 +2266,190 @@ function LowSourceModule() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODULE: HUẤN LUYỆN ATVSLĐ 2026
+// ═══════════════════════════════════════════════════════════════
+const titleCaseVi = s => s.toLocaleLowerCase("vi").split(" ").map(w=>w ? w[0].toLocaleUpperCase("vi")+w.slice(1) : w).join(" ");
+const fmtDateVi = iso => { const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; };
+const HL_STORE = "hse-training2026-v1";
+
+function TrainingModule() {
+  const [sess, setSess] = useState("all");
+  const [unit, setUnit] = useState("all");
+  const [q, setQ] = useState("");
+  const [cycle, setCycle] = useState(2);
+  const [copied, setCopied] = useState(false);
+  const [done, setDone] = useState(()=>{ try { return JSON.parse(localStorage.getItem(HL_STORE)||"{}"); } catch(e) { return {}; } });
+  useEffect(()=>{ try { localStorage.setItem(HL_STORE, JSON.stringify(done)); } catch(e) {} }, [done]);
+
+  const people = useMemo(()=>TRAINEES.map((t,i)=>({ ...t, key:`${t.s}#${i}`, display:titleCaseVi(t.name), session:SESSIONS.find(x=>x.id===t.s) })), []);
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/gi,"d").toLowerCase();
+  const rows = people.filter(p=>(sess==="all"||p.s===sess) && (unit==="all"||p.unit===unit) && (!q || norm(p.display+" "+p.dept).includes(norm(q))));
+
+  const byDept = useMemo(()=>{
+    const m = new Map();
+    for (const p of rows) { const k = p.dept.replace(/^Sản xuất – .*/, "Sản xuất (các tổ)"); m.set(k, (m.get(k)||0)+1); }
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+  }, [rows]);
+  const signed = rows.filter(p=>done[p.key]).length;
+  const uniqueNames = new Set(people.map(p=>norm(p.display)+p.born)).size;
+  const multi = useMemo(()=>{
+    const m = new Map();
+    for (const p of people) { const k = norm(p.display)+"|"+(p.born??""); m.set(k, [...(m.get(k)||[]), p]); }
+    return [...m.values()].filter(v=>new Set(v.map(x=>x.s)).size>1);
+  }, [people]);
+  const due = s => { const d = new Date(s.date); d.setFullYear(d.getFullYear()+Number(cycle||2)); return d.toISOString().slice(0,10); };
+  const today = new Date().toISOString().slice(0,10);
+
+  const tsv = () => [["STT","Họ và tên","Năm sinh","Đơn vị","Bộ phận","Nhóm","Ngày huấn luyện","Hạn huấn luyện lại","Đã ký"],
+    ...rows.map((p,i)=>[i+1,p.display,p.born??"",p.unit,p.dept,p.session.group,fmtDateVi(p.session.date),fmtDateVi(due(p.session)),done[p.key]?"x":""])].map(r=>r.join("\t")).join("\n");
+  const copy = async () => { try { await navigator.clipboard.writeText(tsv()); setCopied(true); setTimeout(()=>setCopied(false), 2000); } catch(e) {} };
+
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+  return (
+    <div className="anim-fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+        <KPICard icon="👥" label="Lượt huấn luyện 2026" value={people.length} color={T.green} sub={`${uniqueNames} người · ${SESSIONS.length} lớp`}/>
+        {SESSIONS.map(s=>(
+          <KPICard key={s.id} label={`Nhóm ${s.group} · ${s.scope}`} value={people.filter(p=>p.s===s.id).length} unit="người" color={s.group===6?T.violet:s.group===5?T.cyan:T.blue} sub={`${fmtDateVi(s.date)} · ${s.time}`} onClick={()=>setSess(s.id)}/>
+        ))}
+      </div>
+
+      <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-start" }}>
+        <div style={{ ...card, flex:"999 1 560px" }}>
+          <SectionHeader title="Danh sách học viên" sub={`${rows.length} người đang hiển thị · đã đánh dấu ký ${signed}/${rows.length}`}
+            action={<Btn small outline color={T.cyan} onClick={copy}>{copied?"✓ Đã chép":"Chép danh sách (Excel)"}</Btn>}/>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:10, marginBottom:12 }}>
+            <SelIn label="Lớp" value={sess} onChange={setSess} options={[{v:"all",l:"Tất cả"}, ...SESSIONS.map(s=>({ v:s.id, l:`Nhóm ${s.group} — ${s.scope} (${fmtDateVi(s.date)})` }))]}/>
+            <SelIn label="Đơn vị" value={unit} onChange={setUnit} options={[{v:"all",l:"Tất cả"},{v:"Công ty",l:"Công ty"},{v:"Nhà máy",l:"Nhà máy"},{v:"Phòng Tổng hợp",l:"Phòng Tổng hợp"}]}/>
+            <label style={{ display:"block", minWidth:0 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:T.sub, marginBottom:5, textTransform:"uppercase", letterSpacing:".5px" }}>Tìm tên / bộ phận</div>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="vd: nguyen van, bao ve" style={{ ...inputStyle(false), padding:"8px 11px" }}/>
+            </label>
+          </div>
+          <div style={{ overflowX:"auto", maxHeight:520, overflowY:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:620 }}>
+              <thead><tr>{["#","Họ và tên","Năm sinh","Bộ phận","Nhóm · ngày","Hạn HL lại","Đã ký"].map(h=>(
+                <th key={h} style={{ position:"sticky", top:0, background:T.card, textAlign:"left", padding:"7px 9px", color:T.dim, fontSize:10, textTransform:"uppercase", letterSpacing:".5px", borderBottom:`1px solid ${T.border}` }}>{h}</th>))}</tr></thead>
+              <tbody>{rows.map((p,i)=>{ const dd = due(p.session); return (
+                <tr key={p.key} style={{ background:done[p.key]?`${T.green}08`:"transparent" }}>
+                  <td style={{ padding:"6px 9px", color:T.dim, fontVariantNumeric:"tabular-nums" }}>{i+1}</td>
+                  <td style={{ padding:"6px 9px", color:T.text, fontWeight:600 }}>{p.display}</td>
+                  <td style={{ padding:"6px 9px", color:T.sub, fontVariantNumeric:"tabular-nums" }}>{p.born ?? <span style={{ color:T.amber }}>thiếu</span>}</td>
+                  <td style={{ padding:"6px 9px", color:T.sub }}>{p.dept}</td>
+                  <td style={{ padding:"6px 9px" }}><Pill label={`N${p.session.group} · ${fmtDateVi(p.session.date)}`} color={p.session.group===6?T.violet:p.session.group===5?T.cyan:T.blue} size={9}/></td>
+                  <td style={{ padding:"6px 9px", color:dd<=today?T.red:T.sub, fontVariantNumeric:"tabular-nums" }}>{fmtDateVi(dd)}</td>
+                  <td style={{ padding:"6px 9px" }}><input type="checkbox" aria-label={`Đã ký: ${p.display}`} checked={!!done[p.key]} onChange={e=>setDone(d=>({ ...d, [p.key]:e.target.checked }))} style={{ accentColor:T.green, width:15, height:15, cursor:"pointer" }}/></td>
+                </tr>); })}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={{ flex:"1 1 280px", minWidth:0, display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={card}>
+            <SectionHeader title="Theo bộ phận" sub="Theo bộ lọc hiện tại"/>
+            {byDept.map(([k,v])=>(
+              <div key={k} style={{ marginBottom:8 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:3 }}><span style={{ color:T.sub }}>{k}</span><b style={{ color:T.text, fontVariantNumeric:"tabular-nums" }}>{v}</b></div>
+                <ProgressBar val={v} max={byDept[0][1]} color={T.blue} h={4}/>
+              </div>))}
+          </div>
+          <div style={card}>
+            <SectionHeader title="Chu kỳ huấn luyện lại"/>
+            <NumIn label="Định kỳ" unit="năm" value={cycle} onChange={setCycle} min={1} hint="Mặc định 2 năm — đối chiếu NĐ 44/2016/NĐ-CP (sửa đổi NĐ 140/2018) theo từng nhóm"/>
+          </div>
+          <div style={card}>
+            <SectionHeader title="Ghi chú dữ liệu"/>
+            <div style={{ fontSize:11, color:T.sub, lineHeight:1.6 }}>
+              <div>• {multi.length} người có tên ở hơn một lớp (vd: an toàn vệ sinh viên nhóm 6 đồng thời học nhóm 4).</div>
+              <div>• Nguyễn Văn Rì (Nhóm Dịch vụ) thiếu năm sinh; Nguyễn Trường Sơn (Nhóm Dịch vụ) chỉ có năm sinh.</div>
+              <div>• Danh sách nhóm 6: số CCCD dòng 2 (Hứa Văn Vui) trùng dãy số dòng 1, dòng 5 (Kiều Thanh Truyền) chỉ 11 chữ số — cần kiểm tra lại bản gốc.</div>
+              <div>• Danh sách nhóm 3 (an toàn điện, 28/09/2026) chưa có bản scan.</div>
+              <div style={{ color:T.dim, marginTop:6 }}>Không lưu số CCCD và ngày sinh đầy đủ. Đánh dấu "đã ký" lưu trên trình duyệt này.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE: HỒ SƠ NHÀ MÁY & KIẾN THỨC
+// ═══════════════════════════════════════════════════════════════
+function FacilityModule() {
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+  const AREA_C = { "Môi trường":T.green, "Hóa chất":T.orange, "PCCC":T.red, "An toàn thiết bị":T.amber, "ATVSLĐ":T.violet, "Dự án":T.blue };
+  return (
+    <div className="anim-fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ ...card, display:"flex", gap:20, flexWrap:"wrap" }}>
+        <div style={{ flex:"1 1 320px", minWidth:0 }}>
+          <Syne s={16} style={{ display:"block" }}>{PLANT.name}</Syne>
+          <div style={{ fontSize:12, color:T.sub, marginTop:6, lineHeight:1.7 }}>{PLANT.company} · {PLANT.ceo}<br/>{PLANT.address}<br/><Mono c={T.text}>{PLANT.coord}</Mono></div>
+        </div>
+        <div style={{ flex:"1 1 320px", minWidth:0 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:T.dim, textTransform:"uppercase", letterSpacing:".5px", marginBottom:6 }}>Tiếp giáp</div>
+          {PLANT.neighbors.map(([d,v])=>(
+            <div key={d} style={{ display:"flex", gap:10, fontSize:12, padding:"4px 0" }}><b style={{ color:T.text, width:40, flexShrink:0 }}>{d}</b><span style={{ color:T.sub }}>{v}</span></div>))}
+        </div>
+      </div>
+
+      <div style={card}>
+        <SectionHeader title="Quy mô và công trình bảo vệ môi trường"/>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10 }}>
+          {PLANT.figures.map(([k,v])=>(
+            <div key={k} style={{ background:T.ghost, borderRadius:10, padding:"9px 11px" }}>
+              <div style={{ fontSize:9, color:T.dim, textTransform:"uppercase", letterSpacing:".5px", fontWeight:700 }}>{k}</div>
+              <div style={{ fontSize:12, color:T.text, fontWeight:600, marginTop:3, lineHeight:1.4 }}>{v}</div>
+            </div>))}
+        </div>
+      </div>
+
+      <AlertBox level="warn" msg={<span><b>Số liệu chưa thống nhất giữa các tài liệu:</b>{DATA_GAPS.map((g,i)=><span key={i} style={{ display:"block", marginTop:4 }}>• {g}</span>)}</span>}/>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(360px, 1fr))", gap:14 }}>
+        <div style={card}>
+          <SectionHeader title="Văn bản nội bộ và hồ sơ pháp lý" sub={`${DOCUMENTS.length} văn bản`}/>
+          {DOCUMENTS.map(d=>(
+            <div key={d.no} style={{ padding:"8px 0", borderBottom:`1px solid ${T.border}66` }}>
+              <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                <Mono c={T.text} s={11}>{d.no}</Mono><span style={{ fontSize:10, color:T.dim }}>{d.date}</span><Pill label={d.area} color={AREA_C[d.area]||T.sub} size={9}/>
+              </div>
+              <div style={{ fontSize:11, color:T.sub, marginTop:3, lineHeight:1.5 }}>{d.title}</div>
+            </div>))}
+        </div>
+        <div style={card}>
+          <SectionHeader title="Hóa chất cần kiểm soát" sub="Biện pháp phòng ngừa, ứng phó sự cố hóa chất 2026 · nhóm nguy hiểm chính: 8 (ăn mòn), 3 (dễ cháy), 5.1 (oxy hóa)"/>
+          <Table heads={["Hóa chất","Đặc tính nguy hiểm","Ghi chú"]} rows={CONTROLLED_CHEMICALS.map(c=>(
+            <tr key={c.name}><TD style={{ color:T.text, fontWeight:600 }}>{c.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{c.hazard}</TD><TD style={{ color:T.dim, fontSize:11 }}>{c.note}</TD></tr>))}/>
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:14 }}>
+        {SAFETY_RULES.map(r=>(
+          <div key={r.title} style={card}>
+            <div style={{ fontSize:12, fontWeight:700, color:T.text, marginBottom:8 }}>{r.title}</div>
+            {r.items.map((it,i)=><div key={i} style={{ fontSize:11, color:T.sub, lineHeight:1.6 }}>• {it}</div>)}
+          </div>))}
+      </div>
+
+      <div style={card}>
+        <SectionHeader title="Căn cứ pháp lý chính"/>
+        {LEGAL_BASIS.map(([k,v])=>(
+          <div key={k} style={{ display:"flex", gap:12, padding:"6px 0", borderBottom:`1px solid ${T.border}66`, flexWrap:"wrap" }}>
+            <b style={{ fontSize:11, color:T.text, width:110, flexShrink:0 }}>{k}</b><span style={{ fontSize:11, color:T.sub, flex:"1 1 300px" }}>{v}</span>
+          </div>))}
+      </div>
+    </div>
+  );
+}
+
 const NAV_GROUPS = [
   {
     group:"🌍 Môi Trường",
     items:[
       { id:"dashboard", icon:"⬛", label:"Dashboard Tổng hợp" },
+      { id:"facility",  icon:"🏭", label:"Hồ Sơ Nhà Máy" },
       { id:"chemicals",  icon:"🧪", label:"Hóa Chất" },
       { id:"wastewater", icon:"🌊", label:"Nước Thải" },
       { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
@@ -2285,6 +2466,7 @@ const NAV_GROUPS = [
       { id:"contractors", icon:"👷", label:"Quản Lý Nhà Thầu", badge:"ctrnew" },
       { id:"safety",      icon:"✅", label:"Kiểm Soát Nội Bộ", badge:"clpending" },
       { id:"incidents",   icon:"🚨", label:"Sự Cố & Vi Phạm", badge:"incopen" },
+      { id:"training",    icon:"🎓", label:"Huấn Luyện ATVSLĐ" },
     ]
   }
 ];
@@ -2354,9 +2536,9 @@ function WasteModuleStub() {
   const totals = { ctnh:WASTE_DATA.reduce((a,b)=>a+b.ctnh,0), cn:WASTE_DATA.reduce((a,b)=>a+b.cn,0), sh:WASTE_DATA.reduce((a,b)=>a+b.sh,0) };
   return <div className="anim-fade">
     <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:16 }}>
-      <KPICard icon="☣" label="CTNH YTD" value={totals.ctnh.toFixed(3)} unit="tấn" color={T.red} sub="GRI 306-2 · TT 02/2022"/>
-      <KPICard icon="🗑" label="CN thường YTD" value={totals.cn.toFixed(1)} unit="tấn" color={T.amber} sub="GRI 306-3"/>
-      <KPICard icon="♻" label="Sinh hoạt" value={totals.sh.toFixed(1)} unit="tấn" color={T.sub} sub="Phân loại tại nguồn"/>
+      <KPICard icon="☣" label="CTNH YTD" value={fmtN(totals.ctnh,3)} unit="tấn" color={T.red} sub="GRI 306-2 · TT 02/2022"/>
+      <KPICard icon="🗑" label="CN thường YTD" value={fmtN(totals.cn,1)} unit="tấn" color={T.amber} sub="GRI 306-3"/>
+      <KPICard icon="♻" label="Sinh hoạt" value={fmtN(totals.sh,1)} unit="tấn" color={T.sub} sub="Phân loại tại nguồn"/>
     </div>
     <div style={{ background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px 16px 10px" }}>
       <div style={{ fontSize:12,fontWeight:700,marginBottom:12 }}>CTNH theo tháng (tấn)</div>
@@ -2397,6 +2579,8 @@ export default function App() {
       case "dispersion":  return <DispersionModule/>;
       case "gpmt01":      return <GpmtModule/>;
       case "lowsrc":      return <LowSourceModule/>;
+      case "training":    return <TrainingModule/>;
+      case "facility":    return <FacilityModule/>;
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;
