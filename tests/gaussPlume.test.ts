@@ -106,3 +106,32 @@ test("Gió dưới 1 m/s bị nâng lên 1 m/s và được đánh dấu", () =>
   assert.equal(m.u, 1);
   assert.equal(m.uClamped, true);
 });
+
+import { screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight } from "../src/lib/gaussPlume.ts";
+
+const stack18 = { terrain: "rural" as const, hs: 18, d: 0.7, vs: 8.2, Ts: 443.15, Ta: 303.15, riseMode: "final" as const, windProfile: true };
+
+test("Sàng lọc: tổ hợp bất lợi nhất lớn hơn mọi tổ hợp, đúng số tổ hợp SCREEN3", () => {
+  const { cases, worst } = screenWorstCase(stack18);
+  const n = Object.values(SCREEN_WINDS).reduce((a, w) => a + w.length, 0);
+  assert.equal(cases.length, n);
+  for (const c of cases) assert.ok(c.cPerQ <= worst.cPerQ);
+  // Kiểm tra chéo một tổ hợp bằng mô hình đơn lẻ
+  const one = cases.find(c => c.stability === "D" && c.u10 === 3)!;
+  const m = buildModel({ ...stack18, Q: 1, u10: 3, stability: "D" });
+  close(one.cPerQ, maxOnCenterline(m, 1.5).c, 1e-9);
+});
+
+test("Sàng lọc tại khoảng cách cố định không vượt cực đại toàn miền", () => {
+  const { worst } = screenWorstCase(stack18);
+  for (const x of [100, 300, 1000, 3000]) assert.ok(screenAtDistance(stack18, x).cPerQ <= worst.cPerQ * (1 + 1e-9));
+});
+
+test("Quy đổi lưu lượng và vận tốc: khớp tính tay trong báo cáo (7.000 Nm³/h, 170 °C → ≈11.400 m³/h, ≈8,2 m/s)", () => {
+  const qa = actualFlow(7000, 170);
+  close(qa, 11357, 1e-3);
+  close(normalFlow(qa, 170), 7000, 1e-12);
+  close(exitVelocity(11400, 0.7), 8.23, 2e-3);
+  assert.equal(gepHeight(12, 30), 30);
+  assert.equal(gepHeight(12, 6), 21);
+});

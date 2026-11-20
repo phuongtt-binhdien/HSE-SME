@@ -25,6 +25,10 @@ Tab **Lan Truyền Khí Thải** tính nồng độ chất ô nhiễm trong khô
 - Kiểm thử (bảo toàn khối lượng, công thức mặt đất, độ nâng Briggs…): `npm test`
 - Phạm vi: nguồn điểm liên tục, địa hình phẳng, 100 m – 10 km; dùng để đánh giá nhanh, không thay thế AERMOD/CALPUFF trong hồ sơ ĐTM/GPMT.
 
+## Đánh giá phát tán cho hồ sơ điều chỉnh GPMT — nguồn số 01 (lò hơi)
+
+Tab **GPMT Nguồn 01 — Lò Hơi**: 4 kịch bản vận hành của ống khói chung (lò sinh khối T2–T6 / lò than luân phiên T7–CN; số liệu thiết kế, xả bằng giới hạn GPMT, kết quả quan trắc), sàng lọc 54 tổ hợp lớp ổn định × tốc độ gió theo SCREEN3 để tìm điều kiện khí tượng bất lợi nhất, so sánh QCVN 05:2023 (1 giờ, cộng nền) và QCVN 19:2009 cột B (Kp 0,8; Kv 1,0), kiểm tra chiều cao GEP, nồng độ tại khu dân cư, xuất bảng và đoạn văn cho mục 2.2.2.c của hồ sơ. Số liệu nhập được lưu trên trình duyệt.
+
 ## Deploy
 
 App xuất ra web tĩnh (`output: "export"`), không cần Next.js server khi chạy.

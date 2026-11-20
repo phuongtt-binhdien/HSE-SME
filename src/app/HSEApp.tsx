@@ -2,8 +2,9 @@
 // @ts-nocheck
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN } from "../lib/gaussPlume";
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from "recharts";
+import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN,
+  screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight } from "../lib/gaussPlume";
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN SYSTEM — Industrial Precision
@@ -1688,6 +1689,341 @@ function DispersionModule() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODULE: ĐÁNH GIÁ PHÁT TÁN — HỒ SƠ ĐIỀU CHỈNH GPMT NGUỒN SỐ 01 (LÒ HƠI)
+// ═══════════════════════════════════════════════════════════════
+// Số liệu mặc định lấy từ "BC_Dieu_chinh_GPMT_Lo_hoi_sinh_khoi_BinhDien_LongAn.docx" và
+// "Phu-luc-sua-doi-GPMT-Lo-hoi-sinh-khoi-2026-11-20.docx". Giới hạn khí thải: QCVN 19:2009/BTNMT
+// Cmax cột B, Kp = 0,8; Kv = 1,0 (theo GPMT 2986). Giới hạn 1 giờ không khí xung quanh: QCVN 05:2023/BTNMT.
+const GP_POLL = [
+  { id:"tsp", name:"Bụi tổng",  q19:160, q05:300 },
+  { id:"so2", name:"SO₂",       q19:400, q05:350 },
+  { id:"nox", name:"NO₂ (NOₓ)", q19:680, q05:200 },
+  { id:"co",  name:"CO",        q19:800, q05:30000 },
+];
+const GP_LIMITS = { tsp:160, so2:400, nox:680, co:800 };
+const GP_SCEN_DEFAULT = [
+  { id:"s1", name:"Lò sinh khối — số liệu thiết kế", sched:"Thứ Hai – Thứ Sáu", flowMode:"N", flow:7000, tC:170,
+    c:{ tsp:3.8, so2:59.5, nox:330, co:"" },
+    src:"Bảng 2.2 báo cáo: 1.050 kg/h × 6,72 Nm³/kg ≈ 7.000 Nm³/h, 170 °C. CO chưa có số liệu nhà thầu (mục B1 ghi chú nội bộ)." },
+  { id:"s2", name:"Lò sinh khối — xả bằng giới hạn GPMT", sched:"Thứ Hai – Thứ Sáu", flowMode:"A", flow:25000, tC:170,
+    c:{ ...GP_LIMITS },
+    src:"Kịch bản bảo thủ: lưu lượng xả lớn nhất cấp phép 25.000 m³/h (quạt 40.000 m³/h khống chế bằng biến tần), nồng độ bằng giới hạn QCVN 19:2009 cột B." },
+  { id:"s3", name:"Lò than luân phiên — xả bằng giới hạn GPMT", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", flow:25000, tC:60,
+    c:{ ...GP_LIMITS },
+    src:"Quạt hút hiện hữu 25.000 m³/h, nồng độ bằng giới hạn GPMT. Nhiệt độ 60 °C sau tháp hấp thụ ướt là GIẢ ĐỊNH — thay bằng số đo." },
+  { id:"s4", name:"Lò than luân phiên — kết quả quan trắc", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", flow:"", tC:"",
+    c:{ tsp:"", so2:"", nox:"", co:"" },
+    src:"Nhập từ kết quả quan trắc định kỳ dòng thải số 01 (04 quý gần nhất — tài liệu số 10 trong Phụ lục hồ sơ). Lấy giá trị lớn nhất." },
+];
+const GP_SHARED_DEFAULT = { taC:30, terrain:"rural", z:1.5, bg:{ tsp:"", so2:"", nox:"", co:"" }, q05:{ tsp:300, so2:350, nox:200, co:30000 }, recDist:"", bH:"", bW:"" };
+const GP_STORE = "hse-gpmt01-v1";
+const GPMT_STACK = { hs:18, d:0.7, x:"1172156", y:"580206", flowMax:25000 };
+
+const num = v => (v===""||v===null||v===undefined||!Number.isFinite(Number(v))) ? null : Number(v);
+const gpColor = pct => pct==null ? T.dim : pct>=100 ? T.red : pct>=80 ? T.amber : T.green;
+
+function gpDerive(s, shared) {
+  const flow = num(s.flow), tC = num(s.tC);
+  if (flow==null || flow<=0 || tC==null) return null;
+  const flowN = s.flowMode==="N" ? flow : normalFlow(flow, tC);
+  const flowA = s.flowMode==="N" ? actualFlow(flow, tC) : flow;
+  const vs = exitVelocity(flowA, GPMT_STACK.d);
+  const src = { terrain:shared.terrain, hs:GPMT_STACK.hs, d:GPMT_STACK.d, vs, Ts:celsiusToK(tC), Ta:celsiusToK(num(shared.taC) ?? 30), riseMode:"final", windProfile:true };
+  const Q = {};
+  for (const p of GP_POLL) { const c = num(s.c[p.id]); Q[p.id] = c==null ? null : emissionRateFromStack(c, flowN); }
+  return { flowN, flowA, vs, src, Q };
+}
+
+function GpmtModule() {
+  const load = () => { try { const s = JSON.parse(localStorage.getItem(GP_STORE)||"null"); if (s?.scen?.length===4 && s.shared) return s; } catch(e) {} return null; };
+  const [state, setState] = useState(()=>load() || { scen:GP_SCEN_DEFAULT, shared:GP_SHARED_DEFAULT });
+  useEffect(()=>{ try { localStorage.setItem(GP_STORE, JSON.stringify(state)); } catch(e) {} }, [state]);
+  const { scen, shared } = state;
+  const [sel, setSel] = useState("s3");
+  const [pol, setPol] = useState("nox");
+  const [copied, setCopied] = useState("");
+  const textRef = useRef(null);
+
+  const setScen = (id, patch) => setState(st=>({ ...st, scen:st.scen.map(s=>s.id===id?{ ...s, ...patch }:s) }));
+  const setScenC = (id, pid, v) => setState(st=>({ ...st, scen:st.scen.map(s=>s.id===id?{ ...s, c:{ ...s.c, [pid]:v } }:s) }));
+  const setShared = patch => setState(st=>({ ...st, shared:{ ...st.shared, ...patch } }));
+  const reset = () => setState({ scen:GP_SCEN_DEFAULT, shared:GP_SHARED_DEFAULT });
+
+  const z = num(shared.z) ?? 1.5;
+  const bgOf = pid => num(shared.bg[pid]) ?? 0;
+  const q05Of = pid => num(shared.q05[pid]);
+  const recDist = num(shared.recDist);
+
+  // Kết quả sàng lọc cho từng kịch bản (nồng độ tỷ lệ thuận Q → tính 1 lần cho Q = 1 g/s)
+  const results = useMemo(()=>scen.map(s=>{
+    const d = gpDerive(s, shared);
+    if (!d) return { s, d:null };
+    const scr = screenWorstCase(d.src, z);
+    const rec = recDist && recDist>=X_MIN ? screenAtDistance(d.src, recDist, z) : null;
+    const per = {};
+    for (const p of GP_POLL) {
+      if (d.Q[p.id]==null) { per[p.id]=null; continue; }
+      const model = d.Q[p.id]*scr.worst.cPerQ, total = model + bgOf(p.id), lim = q05Of(p.id);
+      const recModel = rec ? d.Q[p.id]*rec.cPerQ : null;
+      per[p.id] = { model, total, pct: lim ? total/lim*100 : null,
+        rec: rec ? { model:recModel, total:recModel+bgOf(p.id), pct: lim ? (recModel+bgOf(p.id))/lim*100 : null } : null,
+        stackPct: num(s.c[p.id])/p.q19*100 };
+    }
+    return { s, d, scr, rec, per };
+  }), [scen, shared, z, recDist]);
+
+  const cur = results.find(r=>r.s.id===sel);
+  const curPoll = GP_POLL.find(p=>p.id===pol);
+
+  // Biểu đồ: cực đại theo lớp ổn định (đã chọn gió bất lợi nhất của mỗi lớp)
+  const byClass = useMemo(()=>{
+    if (!cur?.d || cur.d.Q[pol]==null) return [];
+    return ["A","B","C","D","E","F"].map(k=>{
+      const cs = cur.scr.cases.filter(c=>c.stability===k);
+      const w = cs.reduce((a,b)=>b.cPerQ>a.cPerQ?b:a);
+      return { cls:k, c:+(w.cPerQ*cur.d.Q[pol] + bgOf(pol)).toPrecision(4), u10:w.u10, x:w.x, worst:k===cur.scr.worst.stability };
+    });
+  }, [cur, pol, shared.bg]);
+
+  // Bản đồ cho điều kiện bất lợi nhất của kịch bản/chất đang chọn
+  const mapModel = useMemo(()=>{
+    if (!cur?.d || cur.d.Q[pol]==null) return null;
+    return buildModel({ ...cur.d.src, Q:cur.d.Q[pol], u10:cur.scr.worst.u10, stability:cur.scr.worst.stability });
+  }, [cur, pol]);
+  const mapMax = useMemo(()=>mapModel ? maxOnCenterline(mapModel, z) : null, [mapModel, z]);
+  const xPlot = useMemo(()=>{
+    if (!mapMax) return 1000;
+    const raw = Math.min(Math.max(mapMax.x*4, 600, (recDist||0)*1.2), 10000);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    return Math.ceil(raw/(mag/2))*(mag/2);
+  }, [mapMax, recDist]);
+  const yPlot = useMemo(()=>{
+    if (!cur?.d) return 100;
+    const raw = Math.max(sigmas(xPlot, cur.scr.worst.stability, shared.terrain).sy*2.5, 60);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    return Math.ceil(raw/(mag/2))*(mag/2);
+  }, [xPlot, cur, shared.terrain]);
+
+  // GEP
+  const bH = num(shared.bH), bW = num(shared.bW);
+  const gep = bH!=null && bW!=null && bH>0 && bW>0 ? gepHeight(bH, bW) : null;
+
+  const nCases = Object.values(SCREEN_WINDS).reduce((a,w)=>a+w.length,0);
+  const bgMissing = GP_POLL.every(p=>num(shared.bg[p.id])==null);
+  const exceed = results.flatMap(r=>r.d ? GP_POLL.filter(p=>r.per[p.id]?.pct>=100).map(p=>({ r, p })) : []);
+  const stackExceed = results.flatMap(r=>r.d ? GP_POLL.filter(p=>r.per[p.id] && r.per[p.id].stackPct>100).map(p=>({ r, p })) : []);
+
+  // Văn bản cho hồ sơ
+  const reportText = useMemo(()=>{
+    const ok = results.filter(r=>r.d);
+    const lines = [];
+    lines.push(`Đánh giá khả năng phát tán bụi, khí thải từ nguồn số 01 (ống khói cao ${fmtN(GPMT_STACK.hs,0)} m, đường kính ${fmtN(GPMT_STACK.d*1000,0)} mm, tọa độ X = ${GPMT_STACK.x}; Y = ${GPMT_STACK.y}, VN2000) được thực hiện bằng mô hình vệt khói Gauss: hệ số phân tán σy, σz theo Briggs (1973) cho điều kiện ${shared.terrain==="rural"?"nông thôn":"đô thị"}, độ nâng luồng khói theo Briggs (dạng EPA ISC3), tốc độ gió quy đổi về độ cao miệng ống khói theo hàm mũ. Điều kiện khí tượng bất lợi nhất được xác định bằng phương pháp sàng lọc ${nCases} tổ hợp lớp ổn định khí quyển (A–F) – tốc độ gió (1–20 m/s) theo hướng dẫn SCREEN3 của US EPA; nhiệt độ không khí ${fmtN(num(shared.taC)??30,0)} °C; điểm tiếp nhận ở độ cao ${fmtN(z,1)} m. Kết quả được so sánh với giá trị giới hạn trung bình 1 giờ của QCVN 05:2023/BTNMT${bgMissing?" (chưa cộng nồng độ nền)":", đã cộng nồng độ nền khu vực"}.`);
+    for (const r of ok) {
+      const parts = GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].total)} μg/m³ (${fmtN(r.per[p.id].pct,0)}% giới hạn)`);
+      lines.push(`- ${r.s.name} (${r.s.sched}; ${fmtN(r.d.flowN,0)} Nm³/h, ${fmtN(num(r.s.tC),0)} °C, vận tốc thoát ${fmtN(r.d.vs,1)} m/s): nồng độ 1 giờ lớn nhất tại mặt đất ${parts.join("; ")}; xuất hiện ở khoảng cách ${fmtDist(r.scr.worst.x)} xuôi gió, điều kiện ổn định lớp ${r.scr.worst.stability}, gió 10 m ${fmtN(r.scr.worst.u10,1)} m/s.`);
+      if (r.rec) lines.push(`  Tại khu dân cư gần nhất (${fmtDist(recDist)}): ${GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].rec.total)} μg/m³`).join("; ")}.`);
+    }
+    if (exceed.length) lines.push(`Kết luận: kịch bản ${[...new Set(exceed.map(e=>e.r.s.name))].join(", ")} cho nồng độ ${[...new Set(exceed.map(e=>e.p.name))].join(", ")} vượt giới hạn 1 giờ QCVN 05:2023/BTNMT trong điều kiện khí tượng bất lợi nhất; cần sử dụng số liệu quan trắc thực tế hoặc bổ sung biện pháp giảm thiểu trước khi kết luận.`);
+    else if (ok.length) lines.push(`Kết luận: trong mọi kịch bản vận hành và điều kiện khí tượng bất lợi nhất, nồng độ các chất ô nhiễm tại mặt đất đều thấp hơn giới hạn 1 giờ QCVN 05:2023/BTNMT.`);
+    lines.push(`Giới hạn của phương pháp: mô hình Gauss sàng lọc cho địa hình bằng phẳng, nguồn liên tục ổn định; không xét hiệu ứng cuốn xuống do công trình (downwash), lắng đọng, chuyển hóa hóa học; NOₓ được coi toàn bộ là NO₂ (bảo thủ).`);
+    return lines.join("\n");
+  }, [results, shared, z, recDist, exceed.length]);
+
+  const tableTSV = useMemo(()=>{
+    const head = ["Kịch bản","Lịch vận hành","Nm³/h","°C","v (m/s)", ...GP_POLL.map(p=>`${p.name} (μg/m³)`), ...GP_POLL.map(p=>`${p.name} (% QCVN 05)`), "x max (m)","Lớp","Gió 10 m (m/s)"];
+    const rows = results.filter(r=>r.d).map(r=>[r.s.name, r.s.sched, fmtN(r.d.flowN,0), fmtN(num(r.s.tC),0), fmtN(r.d.vs,1),
+      ...GP_POLL.map(p=>r.per[p.id]?fmtC(r.per[p.id].total):"—"), ...GP_POLL.map(p=>r.per[p.id]?fmtN(r.per[p.id].pct,0):"—"),
+      fmtN(r.scr.worst.x,0), r.scr.worst.stability, fmtN(r.scr.worst.u10,1)]);
+    return [head, ...rows].map(r=>r.join("\t")).join("\n");
+  }, [results]);
+
+  const copy = async (txt, key) => {
+    try { await navigator.clipboard.writeText(txt); setCopied(key); setTimeout(()=>setCopied(""), 2000); }
+    catch(e) { if (textRef.current) { textRef.current.focus(); textRef.current.select(); } setCopied("sel"); }
+  };
+
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+  const sc = scen.find(s=>s.id===sel), curD = cur?.d;
+
+  return (
+    <div className="anim-fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      {/* Thông tin nguồn */}
+      <div style={{ ...card, display:"flex", gap:20, flexWrap:"wrap", alignItems:"flex-start" }}>
+        <div style={{ flex:"1 1 320px", minWidth:0 }}>
+          <Syne s={14} style={{ display:"block" }}>Nguồn khí thải số 01 — lò hơi (GPMT 2986/GPMT-STNMT)</Syne>
+          <div style={{ fontSize:11, color:T.sub, marginTop:6, lineHeight:1.7 }}>
+            02 lò hơi vận hành <b style={{ color:T.text }}>luân phiên, không đồng thời</b>, dùng chung 01 ống khói: lò tầng sôi đốt sinh khối 6.000 kg hơi/h (Thứ Hai – Thứ Sáu) và lò than hiện hữu 8 tấn hơi/h (Thứ Bảy, Chủ Nhật). Mỗi kịch bản dưới đây là một chế độ vận hành, đánh giá riêng.
+          </div>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(120px, 1fr))", gap:10, flex:"2 1 420px", minWidth:0 }}>
+          {[["Ống khói", `${GPMT_STACK.hs} m · Ø${GPMT_STACK.d*1000} mm`],["Tọa độ VN2000", `X ${GPMT_STACK.x} · Y ${GPMT_STACK.y}`],["Lưu lượng xả lớn nhất", "25.000 m³/h"],["Giới hạn khí thải", "QCVN 19:2009 cột B, Kp 0,8; Kv 1,0"]].map(([k,v])=>(
+            <div key={k} style={{ background:T.ghost, borderRadius:10, padding:"9px 11px" }}>
+              <div style={{ fontSize:9, color:T.dim, textTransform:"uppercase", letterSpacing:".5px", fontWeight:700 }}>{k}</div>
+              <div style={{ fontSize:12, color:T.text, fontWeight:600, marginTop:3 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bảng tổng hợp */}
+      <div style={card}>
+        <SectionHeader title="Kết quả sàng lọc — nồng độ 1 giờ lớn nhất tại mặt đất"
+          sub={`${nCases} tổ hợp lớp ổn định × tốc độ gió (SCREEN3) · độ cao ${fmtN(z,1)} m · ${bgMissing?"chưa cộng nồng độ nền":"đã cộng nồng độ nền"} · % so với QCVN 05:2023 (1 giờ)`}
+          action={<Btn small outline color={T.cyan} onClick={()=>copy(tableTSV,"tsv")}>{copied==="tsv"?"✓ Đã chép":"Chép bảng (dán vào Word/Excel)"}</Btn>}/>
+        <div style={{ overflowX:"auto" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:720 }}>
+            <thead><tr>
+              {["Kịch bản vận hành", ...GP_POLL.map(p=>p.name), "Điều kiện bất lợi nhất"].map(h=><th key={h} style={{ textAlign:"left", padding:"8px 10px", color:T.dim, fontSize:10, textTransform:"uppercase", letterSpacing:".5px", borderBottom:`1px solid ${T.border}`, whiteSpace:"nowrap" }}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {results.map(r=>(
+                <tr key={r.s.id} onClick={()=>setSel(r.s.id)} style={{ cursor:"pointer", background:sel===r.s.id?`${T.green}0d`:"transparent" }}>
+                  <td style={{ padding:"10px", borderBottom:`1px solid ${T.border}55`, borderLeft:`3px solid ${sel===r.s.id?T.green:"transparent"}` }}>
+                    <div style={{ fontWeight:700, color:T.text }}>{r.s.name}</div>
+                    <div style={{ fontSize:10, color:T.sub, marginTop:2 }}>{r.s.sched}{r.d?` · ${fmtN(r.d.flowN,0)} Nm³/h · ${fmtN(num(r.s.tC),0)} °C · ${fmtN(r.d.vs,1)} m/s`:""}</div>
+                  </td>
+                  {GP_POLL.map(p=>{
+                    const v = r.per?.[p.id];
+                    return <td key={p.id} style={{ padding:"10px", borderBottom:`1px solid ${T.border}55`, fontVariantNumeric:"tabular-nums" }}>
+                      {!r.d ? <span style={{ fontSize:11, color:T.dim }}>chưa nhập</span>
+                        : !v ? <span style={{ fontSize:11, color:T.dim }}>—</span>
+                        : <div>
+                            <div style={{ fontWeight:700, color:T.text }}>{fmtC(v.total)} <span style={{ fontSize:10, color:T.sub, fontWeight:500 }}>μg/m³</span></div>
+                            <div style={{ marginTop:3 }}><Pill label={`${v.pct>=100?"✕ ":v.pct>=80?"! ":"✓ "}${fmtN(v.pct,0)}%`} color={gpColor(v.pct)} size={9}/></div>
+                          </div>}
+                    </td>;
+                  })}
+                  <td style={{ padding:"10px", borderBottom:`1px solid ${T.border}55`, fontSize:11, color:T.sub }}>
+                    {r.d ? <>Lớp <b style={{ color:T.text }}>{r.scr.worst.stability}</b>, gió {fmtN(r.scr.worst.u10,1)} m/s<br/>tại {fmtDist(r.scr.worst.x)} · H = {fmtN(r.scr.worst.H,1)} m</> : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {recDist>0 && <div style={{ marginTop:10, fontSize:11, color:T.sub, lineHeight:1.7 }}>Tại khu dân cư gần nhất ({fmtDist(recDist)}, điều kiện bất lợi nhất tại khoảng cách đó): {results.filter(r=>r.rec).map(r=><div key={r.s.id}>• {r.s.name}: {GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].rec.total)} μg/m³ (${fmtN(r.per[p.id].rec.pct,0)}%)`).join(" · ")}</div>)}</div>}
+      </div>
+
+      {exceed.length>0 && <AlertBox level="err" msg={`Vượt giới hạn 1 giờ QCVN 05:2023: ${exceed.map(e=>`${e.p.name} — ${e.r.s.name} (${fmtN(e.r.per[e.p.id].pct,0)}%)`).join("; ")}. Kịch bản “xả bằng giới hạn GPMT” là giả thiết bảo thủ; cần đối chiếu số liệu quan trắc thực tế (kịch bản 4) trước khi đưa vào hồ sơ.`}/>}
+      {stackExceed.length>0 && <AlertBox level="err" msg={`Nồng độ tại ống khói vượt QCVN 19:2009 cột B: ${stackExceed.map(e=>`${e.p.name} — ${e.r.s.name}`).join("; ")}.`}/>}
+      {bgMissing && <AlertBox level="warn" compact msg="Chưa nhập nồng độ nền: kết quả mới là phần đóng góp riêng của nguồn 01. Nhập kết quả quan trắc không khí xung quanh (báo cáo công tác BVMT) ở mục Thông số chung."/>}
+      {gep!=null && GPMT_STACK.hs < gep && <AlertBox level="warn" msg={`Ống khói ${GPMT_STACK.hs} m thấp hơn chiều cao GEP ${fmtN(gep,1)} m (nhà xưởng cao ${fmtN(bH,1)} m, rộng ${fmtN(bW,1)} m): có nguy cơ cuốn xuống do công trình (downwash) — mô hình này chưa xét, nồng độ thực tế gần nguồn có thể cao hơn. Cân nhắc chạy AERMOD/SCREEN3 có downwash.`}/>}
+      {gep!=null && GPMT_STACK.hs >= gep && <AlertBox level="ok" compact msg={`Ống khói ${GPMT_STACK.hs} m ≥ chiều cao GEP ${fmtN(gep,1)} m: ảnh hưởng cuốn xuống do công trình không đáng kể.`}/>}
+
+      <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-start" }}>
+        {/* Nhập liệu kịch bản */}
+        <div style={{ ...card, flex:"1 1 320px", maxWidth:420 }}>
+          <div style={{ display:"flex", gap:6, marginBottom:14 }}>
+            {scen.map((s,i)=>(
+              <button key={s.id} onClick={()=>setSel(s.id)} style={{ flex:"1 1 0", minWidth:0, padding:"7px 4px", borderRadius:9, cursor:"pointer", fontFamily:"inherit", fontSize:11, fontWeight:700,
+                background:sel===s.id?`${T.green}18`:T.ghost, color:sel===s.id?T.green:T.sub, border:`1px solid ${sel===s.id?T.green+"55":T.border}` }}>KB {i+1}</button>
+            ))}
+          </div>
+          <div style={{ fontSize:13, fontWeight:700, color:T.text }}>{sc.name}</div>
+          <div style={{ fontSize:10, color:T.sub, marginTop:4, lineHeight:1.6, marginBottom:14 }}>{sc.src}</div>
+          <InGroup title="Lưu lượng & nhiệt độ khí thải">
+            <SelIn label="Đơn vị lưu lượng" value={sc.flowMode} onChange={v=>setScen(sc.id,{ flowMode:v })} options={[{v:"N",l:"Nm³/h (tiêu chuẩn)"},{v:"A",l:"m³/h (thực tế)"}]}/>
+            <NumIn label="Lưu lượng" unit={sc.flowMode==="N"?"Nm³/h":"m³/h"} value={sc.flow} onChange={v=>setScen(sc.id,{ flow:v })} min={0}/>
+            <NumIn label="Nhiệt độ khí thải" unit="°C" value={sc.tC} onChange={v=>setScen(sc.id,{ tC:v })}/>
+            <div style={{ fontSize:11, color:T.sub, alignSelf:"end", paddingBottom:8 }}>
+              {curD ? <>≈ {fmtN(curD.flowA,0)} m³/h · v = <b style={{ color:curD.vs>25?T.amber:T.text }}>{fmtN(curD.vs,1)} m/s</b></> : "—"}
+            </div>
+            {curD && curD.flowA>GPMT_STACK.flowMax*1.001 && <div style={{ gridColumn:"1 / -1", fontSize:10, color:T.red }}>Lưu lượng thực vượt lưu lượng xả lớn nhất cấp phép 25.000 m³/h.</div>}
+          </InGroup>
+          <InGroup title="Nồng độ khí thải tại ống khói (mg/Nm³)">
+            {GP_POLL.map(p=>{
+              const v = num(sc.c[p.id]);
+              return <NumIn key={p.id} label={p.name} unit="mg/Nm³" value={sc.c[p.id]} onChange={x=>setScenC(sc.id,p.id,x)} min={0}
+                hint={v==null?`QCVN 19: ${p.q19}`:`${fmtN(v/p.q19*100,0)}% QCVN 19 (${p.q19}) · Q = ${fmtN(curD?.Q[p.id]??0,4)} g/s`}/>;
+            })}
+          </InGroup>
+          <div style={{ display:"flex", gap:8 }}>
+            {sc.id!=="s4" && <Btn small outline color={T.sub} onClick={()=>setScen(sc.id,{ c:{ ...GP_LIMITS } })}>Điền giới hạn QCVN 19</Btn>}
+            <Btn small outline color={T.sub} onClick={reset}>Khôi phục mặc định</Btn>
+          </div>
+        </div>
+
+        {/* Biểu đồ & bản đồ */}
+        <div style={{ flex:"999 1 480px", minWidth:0, display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ ...card, paddingBottom:8 }}>
+            <SectionHeader title={`${curPoll.name} — cực đại theo lớp ổn định`} sub={`${sc.name} · mỗi cột là tốc độ gió bất lợi nhất của lớp đó · gồm nền`}
+              action={<div style={{ display:"flex", gap:4 }}>{GP_POLL.map(p=>(
+                <button key={p.id} onClick={()=>setPol(p.id)} style={{ padding:"5px 9px", borderRadius:8, fontSize:10, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+                  background:pol===p.id?T.amber+"22":"transparent", color:pol===p.id?T.amber:T.sub, border:`1px solid ${pol===p.id?T.amber+"66":T.border}` }}>{p.name}</button>))}</div>}/>
+            {byClass.length ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={byClass} margin={{ top:8, right:16, left:0, bottom:0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false}/>
+                  <XAxis dataKey="cls" tick={{ fontSize:10, fill:T.sub }} stroke={T.border2} tickFormatter={v=>`Lớp ${v}`}/>
+                  <YAxis tick={{ fontSize:9, fill:T.dim }} stroke={T.border2} domain={[0, dm=>Math.max(dm, (q05Of(pol)||0)*1.1)]} tickFormatter={v=>fmtN(v,0)}/>
+                  <Tooltip cursor={{ fill:T.ghost }} content={({ active, payload })=>active&&payload?.length ? (
+                    <div style={{ background:T.card2, border:`1px solid ${T.border2}`, borderRadius:8, padding:"7px 10px", fontSize:11 }}>
+                      <div style={{ color:T.sub, fontSize:10 }}>Lớp {payload[0].payload.cls} · gió {fmtN(payload[0].payload.u10,1)} m/s · tại {fmtDist(payload[0].payload.x)}</div>
+                      <div style={{ color:T.text, fontWeight:700, marginTop:3 }}>{fmtC(payload[0].value)} μg/m³</div>
+                    </div>) : null}/>
+                  {q05Of(pol) && <ReferenceLine y={q05Of(pol)} stroke={T.red} strokeDasharray="4 4" label={{ value:`QCVN 05: ${fmtN(q05Of(pol),0)}`, position:"insideTopRight", fontSize:9, fill:T.sub }}/>}
+                  <Bar dataKey="c" radius={[4,4,0,0]} isAnimationActive={false}>
+                    {byClass.map(d=><Cell key={d.cls} fill={d.worst?T.amber:T.amber+"66"}/>)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <div style={{ padding:"40px 0", textAlign:"center", fontSize:12, color:T.dim }}>Nhập lưu lượng, nhiệt độ và nồng độ {curPoll.name} cho kịch bản này để xem kết quả.</div>}
+          </div>
+
+          <div style={card}>
+            <SectionHeader title="Bản đồ nồng độ — điều kiện bất lợi nhất" sub={mapModel ? `${curPoll.name} · lớp ${cur.scr.worst.stability}, gió 10 m ${fmtN(cur.scr.worst.u10,1)} m/s · ống khói ở gốc tọa độ, gió theo trục x · rê chuột để đọc` : "—"}/>
+            {mapModel ? <>
+              <PlumeMap model={mapModel} z={z} cRef={mapMax.c} bg={bgOf(pol)} limit={q05Of(pol)||0} receptor={{ x:recDist||-1, y:0 }} xPlot={xPlot} yPlot={yPlot}/>
+              <div style={{ display:"flex", gap:16, flexWrap:"wrap", marginTop:8, fontSize:10, color:T.sub }}>
+                <span>Màu: nồng độ mô hình, 3 bậc logarit dưới cực đại {fmtC(mapMax.c)} μg/m³</span>
+                {q05Of(pol) && <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:14, borderTop:`2px solid ${T.red}` }}/>Vùng vượt QCVN 05 (gồm nền)</span>}
+                {recDist>0 && <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:8, height:8, borderRadius:"50%", background:T.cyan }}/>Khu dân cư gần nhất</span>}
+              </div>
+            </> : <div style={{ padding:"30px 0", textAlign:"center", fontSize:12, color:T.dim }}>Chưa đủ số liệu.</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Thông số chung */}
+      <div style={card}>
+        <SectionHeader title="Thông số chung" sub="Áp dụng cho cả 4 kịch bản · được lưu trên trình duyệt này"/>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:12 }}>
+          <NumIn label="Nhiệt độ không khí" unit="°C" value={shared.taC} onChange={v=>setShared({ taC:v })}/>
+          <SelIn label="Địa hình (σ Briggs)" value={shared.terrain} onChange={v=>setShared({ terrain:v })} options={[{v:"rural",l:"Nông thôn"},{v:"urban",l:"Đô thị / công nghiệp"}]}/>
+          <NumIn label="Độ cao điểm tiếp nhận" unit="m" value={shared.z} onChange={v=>setShared({ z:v })} min={0}/>
+          <NumIn label="Khu dân cư gần nhất" unit="m" value={shared.recDist} onChange={v=>setShared({ recDist:v })} min={0} hint="Khoảng cách từ ống khói"/>
+          <NumIn label="Nhà xưởng cạnh ống khói — cao" unit="m" value={shared.bH} onChange={v=>setShared({ bH:v })} min={0} hint="Để kiểm tra chiều cao GEP"/>
+          <NumIn label="Nhà xưởng — bề rộng" unit="m" value={shared.bW} onChange={v=>setShared({ bW:v })} min={0}/>
+        </div>
+        <div style={{ marginTop:14, overflowX:"auto" }}>
+          <table style={{ borderCollapse:"collapse", fontSize:12, minWidth:520 }}>
+            <thead><tr>{["Thông số","Nồng độ nền (μg/m³)","Giới hạn 1 giờ QCVN 05:2023 (μg/m³)","Giới hạn khí thải QCVN 19:2009 cột B (mg/Nm³)"].map(h=><th key={h} style={{ textAlign:"left", padding:"6px 10px", color:T.dim, fontSize:10, textTransform:"uppercase", letterSpacing:".5px", borderBottom:`1px solid ${T.border}` }}>{h}</th>)}</tr></thead>
+            <tbody>{GP_POLL.map(p=>(
+              <tr key={p.id}>
+                <td style={{ padding:"6px 10px", fontWeight:700, color:T.text }}>{p.name}</td>
+                <td style={{ padding:"6px 10px", width:170 }}><NumIn value={shared.bg[p.id]} onChange={v=>setShared({ bg:{ ...shared.bg, [p.id]:v } })} unit="μg/m³" min={0}/></td>
+                <td style={{ padding:"6px 10px", width:170 }}><NumIn value={shared.q05[p.id]} onChange={v=>setShared({ q05:{ ...shared.q05, [p.id]:v } })} unit="μg/m³" min={0}/></td>
+                <td style={{ padding:"6px 10px", color:T.sub, fontFamily:"'DM Mono',monospace" }}>{p.q19}</td>
+              </tr>))}
+            </tbody>
+          </table>
+          <div style={{ fontSize:10, color:T.dim, marginTop:6 }}>Giới hạn QCVN 05:2023 điền sẵn theo trí nhớ — đối chiếu bản gốc trước khi dùng. NOₓ coi toàn bộ là NO₂ (bảo thủ).</div>
+        </div>
+      </div>
+
+      {/* Văn bản cho hồ sơ */}
+      <div style={card}>
+        <SectionHeader title="Đoạn văn đưa vào hồ sơ (mục 2.2.2.c)" sub="Tự cập nhật theo số liệu ở trên · rà soát trước khi dán"
+          action={<Btn small color={T.green} onClick={()=>copy(reportText,"txt")}>{copied==="txt"?"✓ Đã chép":"Chép đoạn văn"}</Btn>}/>
+        <textarea ref={textRef} readOnly value={reportText} rows={12}
+          style={{ ...inputStyle(false), fontSize:12, lineHeight:1.6, resize:"vertical", fontFamily:"'Outfit',sans-serif" }}/>
+        {copied==="sel" && <div style={{ fontSize:10, color:T.amber, marginTop:4 }}>Trình duyệt chặn sao chép tự động — văn bản đã được chọn, nhấn Ctrl+C.</div>}
+      </div>
+    </div>
+  );
+}
+
 const NAV_GROUPS = [
   {
     group:"🌍 Môi Trường",
@@ -1696,6 +2032,7 @@ const NAV_GROUPS = [
       { id:"chemicals",  icon:"🧪", label:"Hóa Chất" },
       { id:"wastewater", icon:"🌊", label:"Nước Thải" },
       { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
+      { id:"gpmt01",     icon:"📑", label:"GPMT Nguồn 01 — Lò Hơi" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
@@ -1817,6 +2154,7 @@ export default function App() {
       case "chemicals":   return <ChemModuleStub/>;
       case "wastewater":  return <WastewaterModule/>;
       case "dispersion":  return <DispersionModule/>;
+      case "gpmt01":      return <GpmtModule/>;
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;

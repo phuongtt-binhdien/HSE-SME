@@ -191,3 +191,67 @@ export function emissionRateFromStack(cMgNm3: number, flowNm3h: number): number 
 }
 
 export const celsiusToK = (c: number) => c + 273.15;
+
+// ─── Sàng lọc điều kiện khí tượng bất lợi nhất (kiểu SCREEN3) ───────────────
+
+/** Tổ hợp lớp ổn định × gió 10 m hợp lệ theo bảng sàng lọc SCREEN3 (EPA-454/B-95-004). */
+export const SCREEN_WINDS: Record<Stability, number[]> = {
+  A: [1, 1.5, 2, 2.5, 3],
+  B: [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
+  C: [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10],
+  D: [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 8, 10, 15, 20],
+  E: [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5],
+  F: [1, 1.5, 2, 2.5, 3, 3.5, 4],
+};
+
+export type SourceInput = Omit<PlumeInput, "Q" | "u10" | "stability">;
+
+export interface ScreenCase {
+  stability: Stability;
+  u10: number;
+  /** Khoảng cách xảy ra cực đại trên trục gió (m). */
+  x: number;
+  /** Nồng độ cực đại ứng với Q = 1 g/s (μg/m³ trên g/s). Nồng độ tỷ lệ thuận với Q. */
+  cPerQ: number;
+  /** Chiều cao hiệu dụng tại x (m). */
+  H: number;
+}
+
+/** Quét mọi tổ hợp khí tượng hợp lệ, trả về cực đại trên trục gió của từng tổ hợp và tổ hợp bất lợi nhất. */
+export function screenWorstCase(src: SourceInput, z = 1.5): { cases: ScreenCase[]; worst: ScreenCase } {
+  const cases: ScreenCase[] = [];
+  for (const stability of Object.keys(SCREEN_WINDS) as Stability[]) {
+    for (const u10 of SCREEN_WINDS[stability]) {
+      const m = buildModel({ ...src, Q: 1, u10, stability });
+      const mx = maxOnCenterline(m, z);
+      cases.push({ stability, u10, x: mx.x, cPerQ: mx.c, H: m.H(mx.x) });
+    }
+  }
+  const worst = cases.reduce((a, b) => (b.cPerQ > a.cPerQ ? b : a));
+  return { cases, worst };
+}
+
+/** Nồng độ lớn nhất (trên Q = 1 g/s) tại một khoảng cách cố định, xét mọi tổ hợp khí tượng hợp lệ. */
+export function screenAtDistance(src: SourceInput, x: number, z = 1.5): ScreenCase {
+  let best: ScreenCase | null = null;
+  for (const stability of Object.keys(SCREEN_WINDS) as Stability[]) {
+    for (const u10 of SCREEN_WINDS[stability]) {
+      const m = buildModel({ ...src, Q: 1, u10, stability });
+      const c = m.conc(x, 0, z);
+      if (!best || c > best.cPerQ) best = { stability, u10, x, cPerQ: c, H: m.H(x) };
+    }
+  }
+  return best as ScreenCase;
+}
+
+// ─── Quy đổi thông số ống khói ─────────────────────────────────────────────
+
+/** Lưu lượng ở điều kiện tiêu chuẩn (Nm³/h, 0 °C) → lưu lượng thực ở nhiệt độ khí thải (m³/h). Bỏ qua chênh áp suất. */
+export const actualFlow = (flowNm3h: number, tC: number) => (flowNm3h * (273.15 + tC)) / 273.15;
+/** Lưu lượng thực (m³/h) → điều kiện tiêu chuẩn (Nm³/h). */
+export const normalFlow = (flowM3h: number, tC: number) => (flowM3h * 273.15) / (273.15 + tC);
+/** Vận tốc khí thoát miệng ống khói (m/s) từ lưu lượng thực (m³/h) và đường kính (m). */
+export const exitVelocity = (flowM3h: number, d: number) => flowM3h / 3600 / ((Math.PI * d * d) / 4);
+
+/** Chiều cao ống khói theo thực hành kỹ thuật tốt (GEP, EPA): Hg = Hb + 1,5·L, L = min(chiều cao, bề rộng công trình). */
+export const gepHeight = (buildingH: number, buildingW: number) => buildingH + 1.5 * Math.min(buildingH, buildingW);
