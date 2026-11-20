@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "build:standalone": "node scripts/build-standalone.mjs",
-    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts tests/lowSources.test.ts tests/plantSim.test.ts",
+    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts tests/lowSources.test.ts tests/plantSim.test.ts tests/wwtp.test.ts",
     "model:plant": "node --experimental-strip-types --no-warnings scripts/plant-dispersion.ts"
   },
   "dependencies": {

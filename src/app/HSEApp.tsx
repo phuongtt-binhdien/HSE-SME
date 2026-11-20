@@ -7,6 +7,7 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
 import PlantSim from "../sim/PlantSim.tsx";
+import WwtpSim from "../sim/WwtpSim.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
@@ -2626,6 +2627,7 @@ const NAV_GROUPS = [
       { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
       { id:"gpmt01",     icon:"📑", label:"GPMT Nguồn 01 — Lò Hơi" },
       { id:"sim3d",       icon:"🎮", label:"Mô Phỏng 3D Nhà Máy" },
+      { id:"wwsim",       icon:"💧", label:"Mô Phỏng Dòng Nước Thải" },
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
@@ -2752,6 +2754,7 @@ export default function App() {
       case "dispersion":  return <DispersionModule/>;
       case "gpmt01":      return <GpmtModule/>;
       case "sim3d":       return <PlantSim/>;
+      case "wwsim":       return <WwtpSim/>;
       case "lowsrc":      return <LowSourceModule/>;
       case "training":    return <TrainingModule/>;
       case "facility":    return <FacilityModule/>;
