@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:standalone": "node scripts/build-standalone.mjs"
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts"
   },
   "dependencies": {
     "next": "14.2.35",

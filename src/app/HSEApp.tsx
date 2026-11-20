@@ -1,8 +1,9 @@
 "use client";
 // @ts-nocheck
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN } from "../lib/gaussPlume";
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN SYSTEM — Industrial Precision
@@ -1338,6 +1339,355 @@ function GRIModule() {
 // ═══════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// MODULE: LAN TRUYỀN KHÍ THẢI — MÔ HÌNH GAUSS
+// ═══════════════════════════════════════════════════════════════
+// Giới hạn trung bình 1 giờ trong không khí xung quanh (μg/m³) — QCVN 05:2023/BTNMT.
+// Số liệu phát thải mặc định là VÍ DỤ, cần thay bằng kết quả quan trắc thực tế.
+const POLLUTANTS = [
+  { id:"nh3", name:"NH₃",       limit:200,   cStack:50,  src:"Tháp hấp thụ khí thải tạo hạt" },
+  { id:"tsp", name:"Bụi TSP",   limit:300,   cStack:80,  src:"Lọc bụi túi vải / cyclone" },
+  { id:"so2", name:"SO₂",       limit:350,   cStack:300, src:"Ống khói lò hơi" },
+  { id:"no2", name:"NO₂ (NOx)", limit:200,   cStack:250, src:"Ống khói lò hơi — coi toàn bộ NOx là NO₂" },
+  { id:"co",  name:"CO",        limit:30000, cStack:400, src:"Ống khói lò hơi" },
+];
+
+const fmtN = (v, d=1) => Number.isFinite(v) ? v.toLocaleString("vi-VN", { maximumFractionDigits:d, minimumFractionDigits:0 }) : "—";
+const fmtC = (v) => !Number.isFinite(v) ? "—" : v>=100 ? fmtN(v,0) : v>=10 ? fmtN(v,1) : v>=1 ? fmtN(v,2) : fmtN(v,3);
+const fmtDist = (m) => m>=1000 ? `${fmtN(m/1000, m>=10000?1:2)} km` : `${fmtN(m,0)} m`;
+
+function NumIn({ label, unit, value, onChange, step="any", min, hint }) {
+  const [f, setF] = useState(false);
+  return (
+    <label style={{ display:"block", minWidth:0 }}>
+      <div style={{ fontSize:10, fontWeight:700, color:T.sub, marginBottom:5, textTransform:"uppercase", letterSpacing:".5px" }}>{label}</div>
+      <div style={{ position:"relative" }}>
+        <input type="number" step={step} min={min} value={value}
+          onChange={e=>onChange(e.target.value===""?"":Number(e.target.value))}
+          onFocus={()=>setF(true)} onBlur={()=>setF(false)}
+          style={{ ...inputStyle(f), padding:"8px 11px", paddingRight:unit?58:11, fontVariantNumeric:"tabular-nums" }}/>
+        {unit && <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:T.dim, pointerEvents:"none", fontFamily:"'DM Mono',monospace" }}>{unit}</span>}
+      </div>
+      {hint && <div style={{ fontSize:10, color:T.dim, marginTop:3 }}>{hint}</div>}
+    </label>
+  );
+}
+
+function SelIn({ label, value, onChange, options }) {
+  return (
+    <label style={{ display:"block", minWidth:0 }}>
+      <div style={{ fontSize:10, fontWeight:700, color:T.sub, marginBottom:5, textTransform:"uppercase", letterSpacing:".5px" }}>{label}</div>
+      <select value={value} onChange={e=>onChange(e.target.value)} style={{ ...inputStyle(false), padding:"8px 11px", cursor:"pointer" }}>
+        {options.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function InGroup({ title, children }) {
+  return (
+    <div style={{ marginBottom:16 }}>
+      <div style={{ fontSize:11, fontWeight:700, color:T.text, marginBottom:10, paddingBottom:6, borderBottom:`1px solid ${T.border}` }}>{title}</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>{children}</div>
+    </div>
+  );
+}
+
+// Thang màu tuần tự một sắc (hổ phách): nền tối → sáng theo log10(C/Cmax), 3 bậc thập phân.
+const RAMP = [[13,19,32],[92,58,10],[201,128,20],[255,194,77],[255,236,190]];
+function rampColor(t) {
+  const s = Math.max(0, Math.min(1, t)) * (RAMP.length-1);
+  const i = Math.min(Math.floor(s), RAMP.length-2), f = s - i;
+  return RAMP[i].map((c,k)=>Math.round(c + (RAMP[i+1][k]-c)*f));
+}
+const DECADES = 3;
+
+function PlumeMap({ model, z, cRef, bg, limit, receptor, xPlot, yPlot }) {
+  const ref = useRef(null);
+  const [hover, setHover] = useState(null);
+  const W = 760, Hc = 300, PAD = { l:58, r:12, t:12, b:28 };
+  const pw = W-PAD.l-PAD.r, ph = Hc-PAD.t-PAD.b;
+  const toX = px => (px/pw)*xPlot;
+  const toY = py => yPlot - (py/ph)*2*yPlot;
+
+  useEffect(()=>{
+    const cv = ref.current; if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = W*dpr; cv.height = Hc*dpr;
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle = T.card; ctx.fillRect(0,0,W,Hc);
+    // Lưới nồng độ (mỗi ô 2 px)
+    const step = 2, nx = Math.ceil(pw/step), ny = Math.ceil(ph/step);
+    const img = ctx.createImageData(nx, ny);
+    const over = new Uint8Array(nx*ny);
+    const allow = limit - bg; // nồng độ mô hình được phép trước khi tổng vượt giới hạn
+    for (let j=0;j<ny;j++) {
+      const y = toY((j+.5)*step);
+      for (let i=0;i<nx;i++) {
+        const c = model.conc(toX((i+.5)*step), y, z);
+        const k = (j*nx+i)*4;
+        const t = c>0 && cRef>0 ? 1 + Math.log10(c/cRef)/DECADES : 0;
+        const [r,g,b] = rampColor(t);
+        img.data[k]=r; img.data[k+1]=g; img.data[k+2]=b; img.data[k+3]=255;
+        if (limit>0 && c>=allow) over[j*nx+i]=1;
+      }
+    }
+    const off = document.createElement("canvas"); off.width=nx; off.height=ny;
+    off.getContext("2d").putImageData(img,0,0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, PAD.l, PAD.t, pw, ph);
+    // Đường bao vùng vượt giới hạn
+    ctx.fillStyle = T.red;
+    for (let j=0;j<ny;j++) for (let i=0;i<nx;i++) {
+      const o = over[j*nx+i];
+      if (!o) continue;
+      const edge = i===0||j===0||i===nx-1||j===ny-1||!over[j*nx+i-1]||!over[j*nx+i+1]||!over[(j-1)*nx+i]||!over[(j+1)*nx+i];
+      if (edge) ctx.fillRect(PAD.l+i*step, PAD.t+j*step, step, step);
+    }
+    // Trục
+    ctx.strokeStyle = T.border2; ctx.lineWidth = 1;
+    ctx.strokeRect(PAD.l+.5, PAD.t+.5, pw-1, ph-1);
+    ctx.fillStyle = T.dim; ctx.font = "10px 'DM Mono', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (let k=0;k<=5;k++) { const xm = xPlot*k/5, px = PAD.l + pw*k/5; ctx.fillText(fmtDist(xm), Math.min(Math.max(px, PAD.l+18), W-PAD.r-22), PAD.t+ph+7); }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let k=0;k<=4;k++) { const ym = yPlot - 2*yPlot*k/4, py = PAD.t + ph*k/4; ctx.fillText(`${fmtN(ym,0)}`, PAD.l-6, py); }
+    ctx.save(); ctx.translate(11, PAD.t+ph/2); ctx.rotate(-Math.PI/2); ctx.textAlign="center"; ctx.fillText("y ngang gió (m)", 0, 0); ctx.restore();
+    // Ống khói, điểm cực đại, điểm nhận
+    const sx = PAD.l, sy = PAD.t + ph/2;
+    ctx.fillStyle = T.text; ctx.beginPath(); ctx.arc(sx+4, sy, 4, 0, 2*Math.PI); ctx.fill();
+    if (receptor.x>=0 && receptor.x<=xPlot && Math.abs(receptor.y)<=yPlot) {
+      const rx = PAD.l + receptor.x/xPlot*pw, ry = PAD.t + (yPlot-receptor.y)/(2*yPlot)*ph;
+      ctx.strokeStyle = T.card; ctx.lineWidth = 2; ctx.fillStyle = T.cyan;
+      ctx.beginPath(); ctx.arc(rx, ry, 5, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
+    }
+  }, [model, z, cRef, bg, limit, receptor.x, receptor.y, xPlot, yPlot]);
+
+  const onMove = e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W/r.width) - PAD.l, py = (e.clientY - r.top) * (Hc/r.height) - PAD.t;
+    if (px<0||py<0||px>pw||py>ph) { setHover(null); return; }
+    const x = toX(px), y = toY(py);
+    setHover({ x, y, c:model.conc(x,y,z), left:(e.clientX-r.left), top:(e.clientY-r.top) });
+  };
+
+  return (
+    <div style={{ position:"relative" }}>
+      <canvas ref={ref} onMouseMove={onMove} onMouseLeave={()=>setHover(null)}
+        role="img" aria-label="Bản đồ nồng độ mặt bằng theo hướng gió"
+        style={{ width:"100%", height:"auto", aspectRatio:`${W}/${Hc}`, display:"block", borderRadius:10, cursor:"crosshair" }}/>
+      {hover && (
+        <div style={{ position:"absolute", left:Math.min(hover.left+12, 9999), top:hover.top+12, pointerEvents:"none", background:T.card2, border:`1px solid ${T.border2}`, borderRadius:8, padding:"7px 10px", fontSize:11, whiteSpace:"nowrap", zIndex:2, transform:hover.left>380?"translateX(calc(-100% - 24px))":"none" }}>
+          <div style={{ color:T.sub, fontFamily:"'DM Mono',monospace", fontSize:10 }}>x = {fmtDist(hover.x)} · y = {fmtN(hover.y,0)} m</div>
+          <div style={{ color:T.text, fontWeight:700, marginTop:3 }}>{fmtC(hover.c + bg)} μg/m³ <span style={{ color:T.sub, fontWeight:500 }}>(mô hình {fmtC(hover.c)} + nền {fmtC(bg)})</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DispersionModule() {
+  const [pol, setPol] = useState("nh3");
+  const P = POLLUTANTS.find(p=>p.id===pol);
+  const [qMode, setQMode] = useState("stack");
+  const [p, setP] = useState({
+    cStack:50, flow:60000, qDirect:0.833, limit:200, bg:20,
+    hs:25, d:1.2, vs:12, tsC:70,
+    u10:2.5, taC:30, stability:"D", terrain:"rural", windProfile:true, riseMode:"final",
+    rx:500, ry:0, rz:1.5,
+  });
+  const set = k => v => setP(s=>({ ...s, [k]:v }));
+  const n = v => (v===""||!Number.isFinite(v)) ? 0 : v;
+
+  const choosePol = id => {
+    const np = POLLUTANTS.find(x=>x.id===id);
+    setPol(id); setP(s=>({ ...s, limit:np.limit, cStack:np.cStack }));
+  };
+
+  const Q = qMode==="stack" ? emissionRateFromStack(n(p.cStack), n(p.flow)) : n(p.qDirect);
+  const model = useMemo(()=>buildModel({
+    Q, u10:n(p.u10), stability:p.stability, terrain:p.terrain,
+    hs:n(p.hs), d:n(p.d), vs:n(p.vs), Ts:celsiusToK(n(p.tsC)), Ta:celsiusToK(n(p.taC)),
+    riseMode:p.riseMode, windProfile:p.windProfile,
+  }), [Q, p.u10, p.stability, p.terrain, p.hs, p.d, p.vs, p.tsC, p.taC, p.riseMode, p.windProfile]);
+
+  const z = n(p.rz), bg = n(p.bg), limit = n(p.limit);
+  const mx = useMemo(()=>maxOnCenterline(model, z), [model, z]);
+  const cPoint = model.conc(n(p.rx), n(p.ry), z);
+  const totalPoint = cPoint + bg, totalMax = mx.c + bg;
+  const pctPoint = limit>0 ? totalPoint/limit*100 : 0;
+  const pctMax = limit>0 ? totalMax/limit*100 : 0;
+  const sg = n(p.rx)>=X_MIN ? sigmas(n(p.rx), p.stability, p.terrain) : null;
+
+  // Miền vẽ: tới ~3 lần khoảng cách cực đại, làm tròn đẹp
+  const xPlot = useMemo(()=>{
+    const raw = Math.min(Math.max(mx.x*3, 1000, n(p.rx)*1.2), 20000);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    return Math.ceil(raw/(mag/2))*(mag/2);
+  }, [mx.x, p.rx]);
+  const yPlot = useMemo(()=>{
+    const raw = Math.max(sigmas(xPlot, p.stability, p.terrain).sy*2.5, 100);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    return Math.ceil(raw/(mag/2))*(mag/2);
+  }, [xPlot, p.stability, p.terrain]);
+
+  const profile = useMemo(()=>{
+    const pts = [];
+    for (let i=0;i<=160;i++) {
+      const x = X_MIN + (xPlot-X_MIN)*i/160;
+      pts.push({ x:Math.round(x), c:+(model.conc(x,0,z)+bg).toPrecision(4) });
+    }
+    return pts;
+  }, [model, z, bg, xPlot]);
+
+  // Cảnh báo phạm vi áp dụng
+  const warns = [];
+  if (model.uClamped) warns.push(`Gió tại độ cao ống khói < ${U_MIN} m/s: mô hình Gauss không áp dụng cho lặng gió, đã dùng ${U_MIN} m/s.`);
+  if ((p.stability==="A" && n(p.u10)>3) || (p.stability==="B" && n(p.u10)>5) || ((p.stability==="E"||p.stability==="F") && n(p.u10)>5))
+    warns.push(`Lớp ổn định ${p.stability} ít gặp khi gió 10 m = ${fmtN(n(p.u10),1)} m/s — kiểm tra lại cách chọn lớp (mục 4 tài liệu).`);
+  if (n(p.rx)>0 && (n(p.rx)<100 || n(p.rx)>10000)) warns.push("Điểm nhận nằm ngoài khoảng 100 m – 10 km: công thức Briggs kém tin cậy, cân nhắc AERMOD/CALPUFF.");
+  if (mx.x<100 || mx.x>10000) warns.push(`Cực đại mặt đất ở ${fmtDist(mx.x)}, ngoài khoảng tin cậy 100 m – 10 km.`);
+  if (p.riseMode!=="none" && model.F===0) warns.push("Khí thải không nóng hơn không khí: không có độ nâng do lực nổi (độ nâng do động lượng không được tính).");
+
+  const status = limit<=0 ? null : pctMax>=100 ? "err" : pctMax>=80 ? "warn" : "ok";
+
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+
+  return (
+    <div className="anim-fade">
+      <AlertBox level="info" compact msg="Mô hình Gauss nguồn điểm, địa hình phẳng, gió ổn định; σy, σz theo Briggs (1973); độ nâng luồng khói theo Briggs (EPA ISC3). Kết quả xấp xỉ nồng độ trung bình 1 giờ — dùng để đánh giá nhanh, không thay thế mô hình pháp lý (AERMOD) khi lập ĐTM/GPMT."/>
+
+      <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-start" }}>
+        {/* ĐẦU VÀO */}
+        <div style={{ ...card, flex:"1 1 300px", maxWidth:380 }}>
+          <InGroup title="Chất ô nhiễm & phát thải">
+            <div style={{ gridColumn:"1 / -1" }}>
+              <SelIn label="Chất ô nhiễm" value={pol} onChange={choosePol} options={POLLUTANTS.map(x=>({ v:x.id, l:`${x.name} — ${x.src}` }))}/>
+            </div>
+            <div style={{ gridColumn:"1 / -1" }}>
+              <SelIn label="Cách nhập phát thải" value={qMode} onChange={setQMode} options={[{v:"stack",l:"Nồng độ khí thải × lưu lượng"},{v:"direct",l:"Lưu lượng phát thải Q (g/s)"}]}/>
+            </div>
+            {qMode==="stack" ? <>
+              <NumIn label="Nồng độ khí thải" unit="mg/Nm³" value={p.cStack} onChange={set("cStack")} min={0}/>
+              <NumIn label="Lưu lượng khí" unit="Nm³/h" value={p.flow} onChange={set("flow")} min={0}/>
+            </> : <div style={{ gridColumn:"1 / -1" }}><NumIn label="Q" unit="g/s" value={p.qDirect} onChange={set("qDirect")} min={0}/></div>}
+            <div style={{ gridColumn:"1 / -1", fontSize:11, color:T.sub }}>Q = <b style={{ color:T.text }}>{fmtN(Q,4)} g/s</b> ({fmtN(Q*3.6,3)} kg/h)</div>
+          </InGroup>
+
+          <InGroup title="Ống khói">
+            <NumIn label="Chiều cao hₛ" unit="m" value={p.hs} onChange={set("hs")} min={0}/>
+            <NumIn label="Đường kính d" unit="m" value={p.d} onChange={set("d")} min={0}/>
+            <NumIn label="Vận tốc thoát vₛ" unit="m/s" value={p.vs} onChange={set("vs")} min={0}/>
+            <NumIn label="Nhiệt độ khí thải" unit="°C" value={p.tsC} onChange={set("tsC")}/>
+            <div style={{ gridColumn:"1 / -1" }}>
+              <SelIn label="Độ nâng luồng khói Δh" value={p.riseMode} onChange={set("riseMode")} options={[
+                {v:"final",l:"Briggs — độ nâng cuối cùng (mặc định EPA)"},
+                {v:"gradual",l:"Briggs — tăng dần theo khoảng cách"},
+                {v:"none",l:"Bỏ qua (H = hₛ)"},
+              ]}/>
+            </div>
+          </InGroup>
+
+          <InGroup title="Khí tượng">
+            <NumIn label="Gió đo ở 10 m" unit="m/s" value={p.u10} onChange={set("u10")} min={0}/>
+            <NumIn label="Nhiệt độ không khí" unit="°C" value={p.taC} onChange={set("taC")}/>
+            <SelIn label="Lớp ổn định" value={p.stability} onChange={set("stability")} options={Object.entries(STABILITY_LABELS).map(([v,l])=>({v,l}))}/>
+            <SelIn label="Địa hình" value={p.terrain} onChange={set("terrain")} options={[{v:"rural",l:"Nông thôn / trống trải"},{v:"urban",l:"Đô thị / công nghiệp"}]}/>
+            <label style={{ gridColumn:"1 / -1", display:"flex", gap:8, alignItems:"center", fontSize:11, color:T.sub, cursor:"pointer" }}>
+              <input type="checkbox" checked={p.windProfile} onChange={e=>set("windProfile")(e.target.checked)} style={{ accentColor:T.green }}/>
+              Quy đổi gió về độ cao ống khói (hàm mũ EPA)
+            </label>
+          </InGroup>
+
+          <InGroup title="Điểm nhận & so sánh">
+            <NumIn label="x xuôi gió" unit="m" value={p.rx} onChange={set("rx")} min={0}/>
+            <NumIn label="y ngang gió" unit="m" value={p.ry} onChange={set("ry")}/>
+            <NumIn label="Độ cao z" unit="m" value={p.rz} onChange={set("rz")} min={0} hint="1,5 m = vùng thở"/>
+            <NumIn label="Nồng độ nền" unit="μg/m³" value={p.bg} onChange={set("bg")} min={0}/>
+            <div style={{ gridColumn:"1 / -1" }}>
+              <NumIn label="Giới hạn 1 giờ" unit="μg/m³" value={p.limit} onChange={set("limit")} min={0} hint="Theo QCVN 05:2023/BTNMT — đối chiếu bản gốc trước khi dùng"/>
+            </div>
+          </InGroup>
+          <div style={{ fontSize:10, color:T.dim, lineHeight:1.5 }}>Số liệu mặc định là ví dụ minh họa — thay bằng kết quả quan trắc khí thải thực tế của nguồn.</div>
+        </div>
+
+        {/* KẾT QUẢ */}
+        <div style={{ flex:"999 1 480px", minWidth:0, display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+            <KPICard label={`Tại điểm nhận (${fmtDist(n(p.rx))})`} value={fmtC(totalPoint)} unit="μg/m³" color={pctPoint>=100?T.red:pctPoint>=80?T.amber:T.green} sub={limit>0?`${fmtN(pctPoint,0)}% giới hạn · nền ${fmtC(bg)}`:undefined}/>
+            <KPICard label="Cực đại trên trục gió" value={fmtC(totalMax)} unit="μg/m³" color={status==="err"?T.red:status==="warn"?T.amber:T.green} sub={`tại ${fmtDist(mx.x)} · ${fmtN(pctMax,0)}% giới hạn`}/>
+            <KPICard label="Chiều cao hiệu dụng H" value={fmtN(model.H(Math.max(mx.x,X_MIN)),1)} unit="m" color={T.blue} sub={`hₛ ${fmtN(n(p.hs),1)} + Δh ${fmtN(model.H(Math.max(mx.x,X_MIN))-n(p.hs),1)} m`}/>
+            <KPICard label="Gió tại ống khói" value={fmtN(model.u,2)} unit="m/s" color={T.cyan} sub={`F = ${fmtN(model.F,2)} m⁴/s³`}/>
+          </div>
+
+          {status==="err" && <AlertBox level="err" msg={`${P.name}: nồng độ cực đại (gồm nền) ${fmtC(totalMax)} μg/m³ vượt giới hạn 1 giờ ${fmtN(limit,0)} μg/m³ tại khoảng ${fmtDist(mx.x)} xuôi gió. Đường viền đỏ trên bản đồ là vùng vượt giới hạn.`}/>}
+          {status==="warn" && <AlertBox level="warn" msg={`${P.name}: nồng độ cực đại ${fmtC(totalMax)} μg/m³ = ${fmtN(pctMax,0)}% giới hạn — sát ngưỡng, nên theo dõi.`}/>}
+          {status==="ok" && <AlertBox level="ok" msg={`${P.name}: nồng độ cực đại (gồm nền) ${fmtC(totalMax)} μg/m³ = ${fmtN(pctMax,0)}% giới hạn 1 giờ — đạt.`}/>}
+          {warns.map((w,i)=><AlertBox key={i} level="warn" compact msg={w}/>)}
+
+          <div style={card}>
+            <SectionHeader title="Bản đồ nồng độ mặt bằng" sub={`Độ cao z = ${fmtN(z,1)} m · nguồn ở gốc tọa độ, gió thổi theo trục x · rê chuột để đọc nồng độ`}/>
+            <PlumeMap model={model} z={z} cRef={mx.c} bg={bg} limit={limit} receptor={{ x:n(p.rx), y:n(p.ry) }} xPlot={xPlot} yPlot={yPlot}/>
+            <div style={{ display:"flex", gap:18, flexWrap:"wrap", alignItems:"center", marginTop:10, fontSize:10, color:T.sub }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span>Nồng độ mô hình</span>
+                <div>
+                  <div style={{ width:160, height:8, borderRadius:4, background:`linear-gradient(90deg, ${RAMP.map(c=>`rgb(${c.join(",")})`).join(",")})` }}/>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontFamily:"'DM Mono',monospace", fontSize:9, color:T.dim, marginTop:2 }}>
+                    {[3,2,1,0].map(k=><span key={k}>{fmtC(mx.c/Math.pow(10,k))}</span>)}
+                  </div>
+                </div>
+                <span>μg/m³</span>
+              </div>
+              {limit>0 && <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:14, height:0, borderTop:`2px solid ${T.red}` }}/>Biên vùng vượt giới hạn (gồm nền)</span>}
+              <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:8, height:8, borderRadius:"50%", background:T.text }}/>Ống khói</span>
+              <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:8, height:8, borderRadius:"50%", background:T.cyan }}/>Điểm nhận</span>
+            </div>
+          </div>
+
+          <div style={{ ...card, paddingBottom:8 }}>
+            <SectionHeader title="Nồng độ trên trục gió (y = 0), gồm nền" sub={`Độ cao z = ${fmtN(z,1)} m · μg/m³ theo khoảng cách xuôi gió`}/>
+            <ResponsiveContainer width="100%" height={210}>
+              <LineChart data={profile} margin={{ top:6, right:16, left:0, bottom:0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false}/>
+                <XAxis dataKey="x" type="number" domain={[0, xPlot]} ticks={[0,1,2,3,4,5].map(k=>xPlot*k/5)} tickFormatter={v=>fmtDist(v)} tick={{ fontSize:9, fill:T.dim }} stroke={T.border2}/>
+                <YAxis tick={{ fontSize:9, fill:T.dim }} stroke={T.border2} domain={[0, dataMax=>Math.max(dataMax, limit*1.1)]} tickFormatter={v=>fmtN(v,0)}/>
+                <Tooltip content={({ active, payload })=>active&&payload?.length ? (
+                  <div style={{ background:T.card2, border:`1px solid ${T.border2}`, borderRadius:8, padding:"7px 10px", fontSize:11 }}>
+                    <div style={{ color:T.sub, fontSize:10, fontFamily:"'DM Mono',monospace" }}>x = {fmtDist(payload[0].payload.x)}</div>
+                    <div style={{ color:T.text, fontWeight:700, marginTop:3 }}>{fmtC(payload[0].value)} μg/m³</div>
+                  </div>) : null}/>
+                {limit>0 && <ReferenceLine y={limit} stroke={T.red} strokeDasharray="4 4" label={{ value:`Giới hạn ${fmtN(limit,0)}`, position:"insideTopRight", fontSize:9, fill:T.sub }}/>}
+                <ReferenceLine x={Math.round(mx.x)} stroke={T.border2} strokeDasharray="2 3"/>
+                <Line dataKey="c" type="monotone" stroke={T.amber} strokeWidth={2} dot={false} activeDot={{ r:4, fill:T.amber, stroke:T.card, strokeWidth:2 }} name="Nồng độ" isAnimationActive={false}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={card}>
+            <SectionHeader title="Thông số trung gian" sub="Đối chiếu với tính tay hoặc phần mềm khác"/>
+            <Table heads={["Thông số","Giá trị","Ghi chú"]} rows={[
+              ["Lưu lượng phát thải Q", `${fmtN(Q,4)} g/s`, qMode==="stack"?`${fmtN(n(p.cStack),1)} mg/Nm³ × ${fmtN(n(p.flow),0)} Nm³/h ÷ 3,6·10⁶`:"Nhập trực tiếp"],
+              ["Gió tính toán u", `${fmtN(model.u,2)} m/s`, p.windProfile?`u₁₀·(hₛ/10)^p, p = ${windExponent(p.stability,p.terrain)}`:"Dùng gió 10 m"],
+              ["Thông lượng nổi F", `${fmtN(model.F,3)} m⁴/s³`, "g·vₛ·d²·(Tₛ−Tₐ)/(4Tₛ)"],
+              ["Độ nâng cuối cùng Δh", `${fmtN(model.rise.final,1)} m`, p.riseMode==="none"?"Không dùng":`đạt tại x ≈ ${fmtDist(model.rise.xFinal)}`],
+              ["σy, σz tại điểm nhận", sg?`${fmtN(sg.sy,1)} m · ${fmtN(sg.sz,1)} m`:"—", `Briggs, ${p.terrain==="rural"?"nông thôn":"đô thị"}, lớp ${p.stability}`],
+              ["Nồng độ mô hình tại điểm nhận", `${fmtC(cPoint)} μg/m³`, `chưa cộng nền ${fmtC(bg)} μg/m³`],
+              ["Cực đại trên trục gió", `${fmtC(mx.c)} μg/m³`, `x = ${fmtDist(mx.x)}, chưa cộng nền`],
+            ].map(([a,b,c],i)=>(
+              <tr key={i}><TD style={{ color:T.text, fontWeight:600 }}>{a}</TD><TD><Mono c={T.text}>{b}</Mono></TD><TD style={{ color:T.sub, fontSize:11 }}>{c}</TD></tr>
+            ))}/>
+            <div style={{ marginTop:12, fontSize:10, color:T.dim, lineHeight:1.6 }}>
+              C(x,y,z) = Q/(2π·u·σy·σz) · exp(−y²/2σy²) · [exp(−(z−H)²/2σz²) + exp(−(z+H)²/2σz²)] · 10⁶ μg/g.
+              Không tính: lắng đọng, phản ứng hóa học, hiệu ứng cuốn xuống do công trình (downwash), địa hình phức tạp, lớp nghịch nhiệt giới hạn xáo trộn.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const NAV_GROUPS = [
   {
     group:"🌍 Môi Trường",
@@ -1345,6 +1695,7 @@ const NAV_GROUPS = [
       { id:"dashboard", icon:"⬛", label:"Dashboard Tổng hợp" },
       { id:"chemicals",  icon:"🧪", label:"Hóa Chất" },
       { id:"wastewater", icon:"🌊", label:"Nước Thải" },
+      { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
@@ -1465,6 +1816,7 @@ export default function App() {
       case "dashboard":   return <DashboardModule contractors={contractors} incidents={incidents} checklists={checklists} ptw={ptw} setActive={setActive}/>;
       case "chemicals":   return <ChemModuleStub/>;
       case "wastewater":  return <WastewaterModule/>;
+      case "dispersion":  return <DispersionModule/>;
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;
