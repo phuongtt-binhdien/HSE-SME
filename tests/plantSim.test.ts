@@ -87,7 +87,7 @@ test("Bỏ khóa liên động: lò đốt chạy khi thùng sấy không quay g
 
 test("Dừng khẩn cấp dừng khu sản xuất, giữ cyclone thụ động và HTXLNT chạy liên tục", () => {
   const s = createSim(); presetRunning(s); emergencyStop(s);
-  assert.ok(EQUIP.filter(e => e.id !== "XC01" && e.zone !== "wwtp").every(e => !s.eq[e.id].on));
+  assert.ok(EQUIP.filter(e => !["XC01", "CC01"].includes(e.id) && e.zone !== "wwtp").every(e => !s.eq[e.id].on));
   assert.ok(["BM01", "TK01", "DL01"].every(id => s.eq[id].on));
 });
 
@@ -107,7 +107,7 @@ test("Bài tập 2: dừng đúng thứ tự hoàn thành; dừng sai (QH01 trư
   let { sim, run: r } = beginExercise(createSim(), ex);
   for (const id of ["BT01", "MN01", "BT02", "SG01", "TR01", "TH01", "BT03", "LD01"]) { stop(sim, id); run(sim, 3); r = updateExercise(sim, ex, r); }
   run(sim, 200); r = updateExercise(sim, ex, r);
-  for (const id of ["SY01", "LN01", "SG02", "BT04", "DB01", "QH01", "LB01", "HT01"]) { stop(sim, id); run(sim, 3); r = updateExercise(sim, ex, r); }
+  for (const id of ["QT01", "SY01", "LN01", "SG02", "BT04", "DB01", "QH01", "LB01", "HT01"]) { stop(sim, id); run(sim, 3); r = updateExercise(sim, ex, r); }
   assert.equal(r.finished, true, JSON.stringify(r));
   const b = beginExercise(createSim(), ex); stop(b.sim, "QH01"); step(b.sim, 1); const rb = updateExercise(b.sim, ex, b.run);
   assert.ok(rb.failed, "dừng quạt trước phải thất bại");

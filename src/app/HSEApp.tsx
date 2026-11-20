@@ -9,7 +9,7 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
 import PlantSim from "../sim/PlantSim.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
-import { PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
+import { LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2405,6 +2405,17 @@ function FacilityModule() {
               <div style={{ fontSize:12, color:T.text, fontWeight:600, marginTop:3, lineHeight:1.4 }}>{v}</div>
             </div>))}
         </div>
+      </div>
+
+      <div style={card}>
+        <SectionHeader title="Dây chuyền tạo hạt số 2 — Nguồn số 04 (hệ thống sấy nóng, xử lý bụi khí thải)" sub="BV CN-04-01/02 (10/2026) · bản vẽ lò đốt sấy nóng, bản vẽ hoàn công cyclone/túi vải · khí: lò đốt → cyclone chùm → quạt thổi → máy sấy → cyclone đơn → túi vải → quạt hút → ống khói 22 m"/>
+        <Table heads={["Ký hiệu","Thiết bị","Đặc tính kỹ thuật","Tình trạng"]} rows={LINE2_EQUIPMENT.map(e=>(<tr key={e.id}><TD><Mono c={T.text} s={11}>{e.id}</Mono></TD><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{e.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.spec}</TD><TD style={{ color:T.dim, fontSize:11 }}>{e.status}</TD></tr>))}/>
+        <div style={{ fontSize:11, color:T.sub, marginTop:10, lineHeight:1.6 }}><b style={{ color:T.text }}>Mặt bằng thiết bị phân xưởng:</b> {LINE2_LAYOUT.join(" · ")}. Bản vẽ ghi 02 máy sấy (khô 1, khô 2); mô phỏng 3D mới đưa máy sấy khô 1 (Nguồn 04) vào vận hành.</div>
+      </div>
+      <div style={card}>
+        <SectionHeader title="Gói thầu lò hơi sinh khối 6 t/h" sub={`E-TBMT ${BOILER_TENDER.code} · mở thầu ${BOILER_TENDER.opened}`}/>
+        <Table heads={["Nhà thầu","Giá chào (gồm VAT, đồng)"]} rows={BOILER_TENDER.bids.map(([n,v])=>(<tr key={n}><TD style={{ color:T.text, fontWeight:600 }}>{n}</TD><TD><Mono c={T.text} s={11}>{Number(v).toLocaleString("vi-VN")}</Mono></TD></tr>))}/>
+        <div style={{ fontSize:11, color:T.sub, marginTop:8 }}>{BOILER_TENDER.note}</div>
       </div>
 
       <AlertBox level="warn" msg={<span><b>Số liệu chưa thống nhất giữa các tài liệu:</b>{DATA_GAPS.map((g,i)=><span key={i} style={{ display:"block", marginTop:4 }}>• {g}</span>)}</span>}/>

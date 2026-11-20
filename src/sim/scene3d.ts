@@ -11,15 +11,15 @@ const C = { steel: 0x8e969e, light: 0xd9dde1, white: 0xf1f3f5, blue: 0x2b6cb0, n
   green: 0x3a8f5c, concrete: 0xc4c6c8, dark: 0x2e3338, cyan: 0x3fb6d8, brick: 0x8b3a2f, sky: 0xdfe7ef };
 
 export const ZONE_VIEWS = {
-  all: { name: "TOÀN CẢNH NHÀ MÁY", pos: [150, 118, 158], tgt: [0, 0, -2] },
-  raw: { name: "KHU NGUYÊN LIỆU – NGHIỀN", pos: [-96, 40, 2], tgt: [-50, 4, -36] },
-  gran: { name: "KHU TRỘN – TẠO HẠT", pos: [14, 30, 8], tgt: [4, 4, -34] },
-  dry: { name: "KHU SẤY – LÀM NGUỘI", pos: [34, 34, 22], tgt: [40, 4, -18] },
-  air: { name: "XỬ LÝ BỤI, KHÍ THẢI", pos: [62, 30, 26], tgt: [66, 6, -8] },
+  all: { name: "TOÀN CẢNH NHÀ MÁY", pos: [135, 115, 130], tgt: [0, 0, -14] },
+  raw: { name: "ĐỊNH LƯỢNG – NGHIỀN – SÀNG", pos: [-46,26,6], tgt: [-30,3,-26] },
+  gran: { name: "TRỘN – TẠO HẠT", pos: [-4,26,6], tgt: [-8,3,-26] },
+  dry: { name: "LÒ ĐỐT – SẤY (NGUỒN 04)", pos: [12,30,6], tgt: [10,3,-39] },
+  air: { name: "XỬ LÝ BỤI, KHÍ THẢI", pos: [40,28,6], tgt: [40,5,-36] },
   boiler: { name: "KHU LÒ HƠI", pos: [10, 38, 72], tgt: [-23, 5, 34] },
-  bag: { name: "ĐÓNG BAO – KHO THÀNH PHẨM", pos: [122, 34, -4], tgt: [86, 3, -30] },
+  bag: { name: "LÀM NGUỘI – SÀNG – ĐÓNG BAO", pos: [56,22,6], tgt: [44,3,-30] },
   wwtp: { name: "HỆ THỐNG XỬ LÝ NƯỚC THẢI", pos: [-52, 40, 88], tgt: [-82, 2, 44] },
-  top: { name: "NHÌN TỪ TRÊN", pos: [0, 270, 1], tgt: [0, 0, 0] },
+  top: { name: "NHÌN TỪ TRÊN", pos: [0, 270, 1], tgt: [0, 0, -10] },
 };
 
 const tex = (w, h, draw, repeat) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); draw(g, w, h);
@@ -151,98 +151,115 @@ export function createPlantScene(container, hooks) {
     for (const [x, z, c, n] of piles) { const p = new THREE.Mesh(new THREE.ConeGeometry(6.5, 5.5, 20), M(c, { roughness: 1, metalness: 0 })); p.position.set(x, 3.2, z); p.castShadow = true; p.receiveShadow = true; g.add(p); void n; }
     addLabel(null, -80, 12, -40, "Kho nguyên liệu: urê · DAP · KCl · SA"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); }
 
-  // ═════ BT01 → MN01 → BT02 → SG01 → TR01 ═════
-  { const g = newEq("BT01"); hopper(-57, 3, -35, 5, 3, g).position.y = 1.7; box(5, 0.4, 5, M(C.steel), -57, 3.3, -35, g);
-    belt("BT01", [-56, 0.9, -35], [-43, 8.6, -35], 1.4, "#c9c2b0", "#f3f1ea", g); addLamp("BT01", -50, 10.5, -35); addLabel("BT01", -50, 12, -35, "BT01 · Băng tải cấp liệu"); }
-  { const g = newEq("MN01"); box(5.2, 5, 4.2, M(C.steel), -39.5, 6, -35, g); box(5.6, 1, 4.6, M(0x4a5560), -39.5, 3.9, -35, g);
-    for (const [x, z] of [[-41.5, -33.2], [-37.5, -33.2], [-41.5, -36.8], [-37.5, -36.8]]) box(0.6, 3.5, 0.6, M(C.steel), x, 1.8, z, g);
-    const fw = cyl(1.7, 1.7, 0.5, M(C.red), -39.5, 6, -32.4, g, 24); fw.rotation.x = Math.PI / 2; spinners.push({ m: fw, axis: "y", k: 8, id: "MN01" });
-    box(2.4, 1.6, 2, M(C.blue), -36, 7, -32.5, g); const hp = cyl(3.2, 1.6, 2.2, M(C.orange), -39.5, 9.7, -35, g, 4); hp.rotation.y = Math.PI / 4;
-    addLamp("MN01", -39.5, 12.6, -35); addLabel("MN01", -39.5, 14, -35, "MN01 · Máy nghiền"); }
-  { const g = newEq("BT02"); belt("BT02", [-37, 3.7, -35], [-21.5, 9.2, -35], 1.2, "#bdb7a6", "#ece9e0", g); addLamp("BT02", -29, 10.8, -35); addLabel("BT02", -29, 12.4, -35, "BT02 · Băng tải nguyên liệu"); }
-  { const g = newEq("SG01"); const body = box(7.2, 2.2, 3.6, M(C.green), -17.8, 6.4, -35, g); body.rotation.z = -0.13; box(7.6, 0.4, 4, M(0x2a6b45), -17.8, 5.2, -35, g).rotation.z = -0.13;
-    for (const [x, z] of [[-20.5, -33.4], [-15, -33.4], [-20.5, -36.6], [-15, -36.6]]) { cyl(0.35, 0.35, 3.8, M(C.steel), x, 2.4, z, g, 10); }
-    box(5, 0.8, 5, M(C.steel), -17.8, 1.0, -35, g).visible = false;
-    anims.push((dt, t, sim) => { const l = sim.eq.SG01.load; body.position.y = 6.4 + Math.sin(t * 38) * 0.05 * l; body.position.z = -35 + Math.cos(t * 31) * 0.04 * l; });
-    addLamp("SG01", -17.8, 9.4, -35); addLabel("SG01", -17.8, 10.8, -35, "SG01 · Sàng rung"); }
-  { const g = drum("TR01", -6, 3.2, -35, 9, 1.4, C.green, 1.3, { bed: 0xd8d4c8, rings: [-0.3, 0.3] }); box(7, 0.5, 3, M(C.steel), -13, 5.2, -35, g).rotation.z = -0.5; addLamp("TR01", -6, 6.6, -35); addLabel("TR01", -6, 8, -35, "TR01 · Máy trộn"); }
-  { const g = drum("TH01", 9, 3.6, -35, 12, 1.7, C.navy, 1.0, { bed: 0xcfd6dd, incl: -0.03 }); box(4.4, 0.4, 3, M(C.steel), 0.3, 3.9, -35, g).rotation.z = 0.35;
-    pipe([[3, 7.6, -33], [3, 4.6, -33]], 0.25, M(C.yellow), g); pipe([[5, 7.6, -33], [5, 4.6, -33]], 0.22, M(0xd9534f), g);
-    addLamp("TH01", 9, 7, -35); addLabel("TH01", 9, 8.6, -35, "TH01 · Thùng tạo hạt"); }
+  // ═════ PHÂN XƯỞNG DÂY CHUYỀN TẠO HẠT SỐ 2 (mặt bằng tổng thể thiết bị – lưới trục 1–19, ước 6 m/nhịp ⇒ ≈108 × 48 m) ═════
+  // Tọa độ phân xưởng (hx, hy) tính từ trục 1 và tường phía Bắc → cảnh: x = hx − 54, z = hy − 52.
+  const Hx = (hx, hy) => [hx - 54, hy - 52];
+  const ctxLabel = (x, y, z, t) => { addLabel(null, x, y, z, t); const L = labels[labels.length - 1]; L.ctx = true; L.el.classList.add("s3l-ctx"); };
+  { const g = infra; const wall = shellM(0xd7dade, { roughness: 0.8 }), roof = shellM(0x9aa7b3, { roughness: 0.6, transparent: true, opacity: 0.28 });
+    box(110, 0.3, 50, M(C.concrete), 0, 0.3, -28, g);
+    for (let i = 0; i <= 9; i++) for (const z of [-52, -4]) box(0.5, 12, 0.5, M(C.steel), -54 + i * 12, 6.3, z, g);
+    box(108, 3, 0.3, wall, 0, 1.8, -52, g); box(108, 3, 0.3, wall, 0, 1.8, -4, g); box(0.3, 3, 48, wall, -54, 1.8, -28, g); box(0.3, 3, 48, wall, 54, 1.8, -28, g);
+    box(110, 0.4, 50, roof, 0, 12.3, -28, g);
+    ctxLabel(0, 14.5, -28, "Phân xưởng dây chuyền tạo hạt số 2 (≈108 × 48 m, theo mặt bằng tổng thể thiết bị)"); }
 
-  // ═════ BT03: gầu tải + băng tải xuống thùng sấy ═════
-  { const g = newEq("BT03"); box(1.9, 15.5, 1.9, M(C.steel), 18.2, 7.8, -35, g); box(2.6, 1.6, 2.6, M(0x4a5560), 18.2, 16, -35, g);
-    const buckets = []; for (let i = 0; i < 14; i++) { const b = box(1.1, 0.7, 0.5, M(C.yellow), 18.2, 1 + i * 1.1, -33.9, g); buckets.push(b); }
-    anims.push((dt, t, sim) => { const l = sim.eq.BT03.load; for (const b of buckets) { b.position.y += dt * 1.8 * l; if (b.position.y > 15) b.position.y = 1; } });
-    belt("BT03", [18.2, 15.5, -34], [24.5, 6.4, -20.5], 1.2, "#cfc9b8", "#f3f1ea", g);
-    addLamp("BT03", 18.2, 18, -35); addLabel("BT03", 18.2, 19.5, -35, "BT03 · Gầu tải hạt ướt"); }
+  // 1) Hệ thống định lượng – băng tải cấp liệu
+  { const g = newEq("BT01"); for (const hx of [10, 12.5, 15]) { const [x, z] = Hx(hx, 29); hopper(x, 3.2, z, 2.4, 2.6, g); box(2.4, 0.3, 2.4, M(C.steel), x, 4.6, z, g); for (const d of [-1, 1]) box(0.25, 3.4, 0.25, M(C.steel), x + d * 1.0, 2, z + d * 1.0, g); }
+    const [x0, z0] = Hx(8.5, 29.6), [x1, z1] = Hx(17, 29.6); belt("BT01", [x0, 1.0, z0], [x1, 1.0, z1], 1.2, "#c9c2b0", "#f3f1ea", g);
+    const [lx, lz] = Hx(12.5, 29); addLamp("BT01", lx, 6.8, lz); addLabel("BT01", lx, 8.2, lz, "BT01 · Hệ thống định lượng"); }
+  // 2) Hệ thống máy nghiền
+  { const g = newEq("MN01"); for (const hx of [10, 12.5, 15]) { const [x, z] = Hx(hx, 33.5); box(1.9, 2.6, 2.0, M(C.steel), x, 1.9, z, g); box(1.0, 0.9, 1.0, M(C.blue), x + 1.6, 1.0, z, g); const fw = cyl(0.7, 0.7, 0.3, M(C.red), x, 2.0, z - 1.05, g, 20); fw.rotation.x = Math.PI / 2; spinners.push({ m: fw, axis: "y", k: 8, id: "MN01" }); hopper(x, 4.2, z, 1.8, 1.4, g); }
+    const [lx, lz] = Hx(12.5, 33.5); addLamp("MN01", lx, 6.2, lz); addLabel("MN01", lx, 7.6, lz, "MN01 · Hệ thống máy nghiền"); }
+  // 13) Băng tải nguyên liệu → 6) sàng quay 2 lưới
+  { const g = newEq("BT02"); const [x0, z0] = Hx(17.5, 31), [x1, z1] = Hx(26, 28); belt("BT02", [x0, 1.0, z0], [x1, 4.6, z1], 1.2, "#bdb7a6", "#ece9e0", g); const [lx, lz] = Hx(22, 29.5); addLamp("BT02", lx, 7.2, lz); addLabel("BT02", lx, 8.8, lz, "BT02 · Băng tải nguyên liệu"); }
+  { const g = newEq("SG01"); const [x, z] = Hx(29, 28); const body = box(6.4, 1.8, 3.2, M(C.green), x, 5.8, z, g); for (const [dx, dz] of [[-2.6, -1.3], [2.6, -1.3], [-2.6, 1.3], [2.6, 1.3]]) cyl(0.3, 0.3, 5, M(C.steel), x + dx, 2.8, z + dz, g, 10);
+    anims.push((dt, t, sim) => { const l = sim.eq.SG01.load; body.position.y = 5.8 + Math.sin(t * 38) * 0.05 * l; });
+    addLamp("SG01", x, 8.4, z); addLabel("SG01", x, 9.8, z, "SG01 · Sàng quay 2 lưới"); }
+  // 12) Máy đánh trộn liên tục
+  { const g = newEq("TR01"); const [x, z] = Hx(38.5, 28); box(6.2, 1.8, 2.4, shellM(C.green, { roughness: 0.5 }), x, 2.2, z, g); box(6.4, 0.3, 2.6, M(0x2a6b45), x, 3.2, z, g);
+    const sh = cyl(0.25, 0.25, 6.6, M(C.red), x, 2.4, z, g, 10); sh.rotation.z = Math.PI / 2; spinners.push({ m: sh, axis: "x", k: 3, id: "TR01" });
+    box(1.6, 1.2, 1.4, M(C.blue), x + 3.9, 2.0, z, g); addLamp("TR01", x, 5.2, z); addLabel("TR01", x, 6.6, z, "TR01 · Máy đánh trộn liên tục"); }
+  // 3) Máy tạo hạt thùng quay Ø2,2 × 9 m (+16: urê hóa lỏng)
+  { const [x, z] = Hx(47.5, 28); drum("TH01", x, 3.6, z, 9, 1.1, C.navy, 1.4, { bed: 0xcfd6dd, rings: [-0.3, 0.3] }); const g = eqRoot.TH01;
+    pipe([[x - 2, 6.6, z + 2], [x - 2, 4.4, z + 2]], 0.22, M(C.yellow), g); pipe([[x + 1, 6.6, z + 2], [x + 1, 4.4, z + 2]], 0.2, M(0xd9534f), g);
+    addLamp("TH01", x, 6.4, z); addLabel("TH01", x, 8, z, "TH01 · Máy tạo hạt thùng quay Ø2,2×9 m");
+    cyl(1.4, 1.4, 3.6, shellM(0xe7e9ec, { roughness: 0.5 }), x + 1, 2.1, z + 6, infra, 24); ctxLabel(x + 1, 5.8, z + 6, "Hệ thống urê hóa lỏng"); }
+  // 14) Gầu tải hạt ướt → cửa nạp thùng sấy
+  { const g = newEq("BT03"); const [x, z] = Hx(55.5, 27); box(1.8, 14, 1.8, M(C.steel), x, 7.3, z, g); box(2.4, 1.4, 2.4, M(0x4a5560), x, 14.6, z, g);
+    const bk = []; for (let i = 0; i < 12; i++) bk.push(box(1.0, 0.6, 0.5, M(C.yellow), x, 1 + i * 1.1, z + 0.95, g));
+    anims.push((dt, t, sim) => { const l = sim.eq.BT03.load; for (const b of bk) { b.position.y += dt * 1.8 * l; if (b.position.y > 13.5) b.position.y = 1; } });
+    const [x2, z2] = Hx(52.5, 14); belt("BT03", [x, 13.6, z - 0.5], [x2, 6.0, z2 + 0.5], 1.1, "#cfc9b8", "#f3f1ea", g);
+    addLamp("BT03", x, 17, z); addLabel("BT03", x, 18.4, z, "BT03 · Gầu tải hạt ướt"); }
 
-  // ═════ SẤY – LÒ ĐỐT – LÀM NGUỘI ═════
-  { const g = drum("SY01", 36, 3.7, -18, 22, 1.95, C.orange, 0.55, { bed: 0xe3d9c4, rings: [-0.3, 0.1, 0.34] }); addLamp("SY01", 36, 7.6, -18); addLabel("SY01", 36, 9.3, -18, "SY01 · Thùng sấy"); void g; }
-  { const g = newEq("LD01"); box(7.2, 5, 5.2, shellM(C.brick, { roughness: 0.9 }), 16.4, 2.5, -18, g); box(7.6, 0.6, 5.6, M(0x4a3b36), 16.4, 5.3, -18, g);
-    const door = box(0.1, 2.2, 2.4, new THREE.MeshBasicMaterial({ color: 0xff8a1e }), 16.4, 2.2, -15.35, g); door.castShadow = false; door.position.x = 16.4;
-    const dm = new THREE.MeshBasicMaterial({ color: 0xff8a1e }); door.material = dm;
-    const dr = cyl(1.7, 1.9, 5.4, M(C.brick), 22.2, 3.7, -18, g, 24); dr.rotation.z = Math.PI / 2;
-    const hp = cyl(2.8, 1, 2.6, M(0x8b8f94), 14, 7, -18, g, 4); hp.rotation.y = Math.PI / 4;
-    const lt = new THREE.PointLight(0xff8a30, 0, 26, 2); lt.position.set(16.4, 3, -14.5); scene.add(lt);
-    anims.push((dt, t, sim) => { const l = sim.eq.LD01.load; dm.color.setHSL(0.07, 1, 0.3 + 0.25 * l * (0.85 + 0.15 * Math.sin(t * 17))); lt.intensity = l * (30 + 6 * Math.sin(t * 13)); });
-    addLamp("LD01", 16.4, 8.8, -18); addLabel("LD01", 16.4, 10.3, -18, "LD01 · Lò đốt sinh khối"); }
-  { const g = drum("LN01", 58, 3.4, -18, 16, 1.7, 0x4aa3d6, 0.6, { bed: 0xd9d6cc }); addLamp("LN01", 58, 7.2, -18); addLabel("LN01", 58, 8.9, -18, "LN01 · Thùng làm nguội"); void g; }
-
-  // ═════ SG02 → BT04 → DB01 → kho thành phẩm ═════
-  { const g = newEq("SG02"); const body = box(6.4, 2, 3.4, M(0x3a8fb5), 71.5, 5.2, -18, g); body.rotation.z = -0.1;
-    for (const [x, z] of [[69, -16.5], [74, -16.5], [69, -19.5], [74, -19.5]]) cyl(0.3, 0.3, 3.8, M(C.steel), x, 1.9, z, g, 10);
-    anims.push((dt, t, sim) => { const l = sim.eq.SG02.load; body.position.y = 5.2 + Math.sin(t * 36) * 0.05 * l; });
-    addLamp("SG02", 71.5, 8, -18); addLabel("SG02", 71.5, 9.4, -18, "SG02 · Sàng phân loại"); }
-  { const g = newEq("BT04"); belt("BT04", [75, 3.4, -18], [83.5, 1.9, -18], 1.2, "#d6d1c3", "#f3f1ea", g); addLamp("BT04", 79, 5.5, -18); addLabel("BT04", 79, 7, -18, "BT04 · Băng tải sản phẩm"); }
-  { const g = newEq("DB01"); box(6, 6.5, 5.6, M(0x5a7aa0), 88, 3.3, -18, g); box(5, 0.6, 4.6, M(C.light), 88, 6.8, -18, g); const hp = cyl(3, 1.4, 2.8, M(C.orange), 88, 8.6, -18, g, 4); hp.rotation.y = Math.PI / 4;
-    belt("DB01", [88, 1.3, -21.5], [88, 1.3, -37], 1.5, "#4a4f55", "#6a7078", g);
-    const bags = []; for (let i = 0; i < 9; i++) { const b = box(0.9, 0.3, 0.6, M(0xf5f5f0), 88, 1.65, -22 - i * 1.7, g); box(0.92, 0.32, 0.18, M(C.blue), 88, 1.65, -22 - i * 1.7, b).position.set(0, 0, 0); bags.push(b); }
-    anims.push((dt, t, sim) => { const l = sim.eq.DB01.load; for (const b of bags) { b.position.z -= dt * 1.1 * l; if (b.position.z < -36.5) b.position.z = -22; } });
-    addLamp("DB01", 88, 11.8, -18); addLabel("DB01", 88, 13.3, -18, "DB01 · Máy đóng bao"); }
-  { const g = infra; box(36, 0.35, 22, M(C.concrete), 88, 0.3, -48, g);
-    box(36, 7.5, 0.6, shellM(0xd7dade), 88, 4, -59, g); box(0.6, 7.5, 22, shellM(0xd7dade), 70, 4, -48, g); box(0.6, 7.5, 22, shellM(0xd7dade), 106, 4, -48, g);
-    box(38, 0.5, 24, shellM(0x9aa7b3), 88, 8.2, -48, g);
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) for (let h = 0; h < 4; h++) box(2.3, 0.45, 1.6, M(0xf1f0ea), 76 + c * 5, 1 + h * 0.5, -55 + r * 4.4, g).castShadow = false;
-    addLabel(null, 88, 11.2, -48, "Kho thành phẩm NPK"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); }
-
-  // ═════ XỬ LÝ KHÍ THẢI ═════
-  { const g = newEq("XC01"); const sh = shellM(0xc9ced3, { roughness: 0.5 }); cyl(1.9, 1.9, 3.6, sh, 46, 10.6, -8, g, 24); cyl(1.9, 0.35, 5.4, sh, 46, 6.1, -8, g, 24); cyl(0.8, 0.8, 3, M(C.steel), 46, 13.9, -8, g, 16);
-    for (const [x, z] of [[44.4, -9.6], [47.6, -9.6], [44.4, -6.4], [47.6, -6.4]]) box(0.4, 6, 0.4, M(C.steel), x, 3, z, g);
-    addLamp("XC01", 46, 16.2, -8); addLabel("XC01", 46, 17.6, -8, "XC01 · Cyclone chùm"); }
-  { const g = newEq("LB01"); box(9.4, 7, 6.6, shellM(0xb9c0c7, { roughness: 0.5 }), 56, 10.2, -7, g);
-    for (let i = 0; i < 3; i++) { const hp = cyl(2.2, 0.4, 3.6, M(0x9aa3ab), 53 + i * 3, 5.4, -7, g, 4); hp.rotation.y = Math.PI / 4; }
-    for (const [x, z] of [[51.6, -9.8], [60.4, -9.8], [51.6, -4.2], [60.4, -4.2]]) box(0.5, 7, 0.5, M(C.steel), x, 3.5, z, g);
-    const man = cyl(0.45, 0.45, 8, M(C.blue), 56, 14.2, -7, g, 14); man.rotation.z = Math.PI / 2;
-    for (let i = 0; i < 5; i++) cyl(0.25, 0.25, 1.2, M(C.yellow), 52.4 + i * 1.8, 13.4, -7, g, 10);
-    const bagsG = new THREE.Group(); for (let i = 0; i < 12; i++) bagsG.add(cyl(0.22, 0.22, 4.5, M(0xe8e2c8), 52.2 + (i % 6) * 1.5, 10.2, -8.4 + Math.floor(i / 6) * 2.8, null, 10)); g.add(bagsG);
-    const pl = new THREE.MeshBasicMaterial({ color: 0x555555 }); sph(0.5, pl, 56, 15.2, -7, g).castShadow = false;
+  // ── Hệ thống sấy khô 1 – Nguồn số 04 (CN-04-01): lò đốt → cyclone chùm → quạt thổi → thùng sấy → cyclone đơn → túi vải → quạt hút → ống khói ──
+  { const g = newEq("LD01"); const [x, z] = Hx(39, 11.5); // buồng đốt 5,3 × 2,55 m, cao tổng 5,1 m (BV thế xây)
+    box(5.3, 2.4, 2.55, shellM(C.brick, { roughness: 0.9 }), x, 1.5, z, g); box(5.5, 0.4, 2.75, M(0x4a3b36), x, 2.9, z, g);
+    box(5.0, 2.0, 2.3, shellM(0x7b848c, { roughness: 0.5 }), x, 4.2, z, g); // BSKK (bộ trao đổi nhiệt)
+    for (let k = 0; k < 3; k++) box(1.6, 0.15, 2.35, M(0x5c646b), x - 1.7 + k * 1.7, 5.25, z, g);
+    const door = new THREE.MeshBasicMaterial({ color: 0xff8a1e }); box(1.0, 0.9, 0.1, door, x - 0.6, 1.6, z + 1.3, g).castShadow = false;
+    box(0.7, 1.0, 0.7, M(0x2c3136), x + 1.6, 1.4, z + 1.3, g); // cửa cào tro
+    const lt = new THREE.PointLight(0xff8a30, 0, 18, 2); lt.position.set(x - 0.6, 1.8, z + 2.5); scene.add(lt);
+    anims.push((dt, t, sim) => { const l = sim.eq.LD01.load; door.color.setHSL(0.07, 1, 0.3 + 0.25 * l * (0.85 + 0.15 * Math.sin(t * 17))); lt.intensity = l * (24 + 5 * Math.sin(t * 13)); });
+    // phễu liệu, vít cấp liệu, băng tải 8,5 m nghiêng 32°, hố cấp liệu 3×1,6×2 m
+    hopper(x - 3.4, 3.2, z, 1.6, 1.6, g); box(1.8, 0.6, 0.6, M(C.steel), x - 2.9, 1.9, z, g);
+    belt("LD01", [x - 10.5, 0.5, z], [x - 3.6, 4.3, z], 0.9, "#4a4f55", "#6a7078", g);
+    box(3, 0.1, 1.6, M(0x3a3f45), x - 11.7, 0.36, z, g); const pile = new THREE.Mesh(new THREE.ConeGeometry(2.6, 2.2, 14), M(0x9c7a4d, { roughness: 1, metalness: 0 })); pile.position.set(x - 12.8, 1.4, z + 0.3); pile.castShadow = true; g.add(pile);
+    const blw = cyl(0.55, 0.55, 0.5, M(C.red), x - 3.2, 1.0, z + 1.8, g, 14); blw.rotation.x = Math.PI / 2; spinners.push({ m: blw, axis: "y", k: 10, id: "LD01" });
+    addLamp("LD01", x, 7.2, z); addLabel("LD01", x, 8.8, z, "LD01 · Lò đốt sinh khối 2,5 Mkcal/h"); }
+  { const g = newEq("CC01"); const [x, z] = Hx(45.5, 11.5); box(2.4, 2.2, 2.4, shellM(0xc9ced3, { roughness: 0.5 }), x, 5.5, z, g); const h = cyl(1.3, 0.25, 2.4, shellM(0xc9ced3, { roughness: 0.5 }), x, 3.2, z, g, 4); h.rotation.y = Math.PI / 4;
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) cyl(0.18, 0.18, 0.7, M(0x707a84), x - 0.85 + i * 0.57, 6.9, z - 0.85 + j * 0.57, g, 8);
+    cyl(0.4, 0.4, 0.6, M(C.blue), x, 1.7, z, g, 12); for (const dx of [-1, 1]) for (const dz of [-1, 1]) box(0.25, 3.8, 0.25, M(C.steel), x + dx * 1.0, 1.9, z + dz * 1.0, g);
+    addLamp("CC01", x, 8.4, z); addLabel("CC01", x, 9.8, z, "CC01 · Cyclone chùm (không có ống thải)"); }
+  { const g = newEq("QT01"); const [x, z] = Hx(49, 8.5); cyl(1.4, 1.4, 1.0, M(0x6f7a85), x, 2.2, z, g, 28).rotation.x = Math.PI / 2; box(1.6, 1.3, 1.6, M(C.blue), x, 2.0, z - 1.9, g);
+    const wh = new THREE.Group(); wh.position.set(x, 2.2, z + 0.55); g.add(wh); for (let i = 0; i < 8; i++) { const b = box(0.15, 1.2, 0.15, M(0x2a2f34), 0, 0, 0, wh); b.rotation.z = (i / 8) * Math.PI * 2; } spinners.push({ m: wh, axis: "z", k: 12, id: "QT01" });
+    box(3.2, 0.4, 2.4, M(C.steel), x, 0.5, z, g); addLamp("QT01", x, 4.4, z); addLabel("QT01", x, 5.8, z, "QT01 · Quạt thổi khí nóng"); }
+  { const [x, z] = Hx(63, 14); drum("SY01", x, 3.4, z, 22, 1.1, C.orange, 0.5, { bed: 0xe3d9c4, rings: [-0.32, 0.05, 0.3] }); addLamp("SY01", x, 6.4, z); addLabel("SY01", x, 8, z, "SY01 · Thùng sấy Ø2,2×22 m"); }
+  { const g = infra; const duct = M(0x9aa3ab, { roughness: 0.5 }); const a = Hx(39, 11.5), b = Hx(45.5, 11.5), c = Hx(49, 8.5), d = Hx(52, 14);
+    pipe([[a[0] + 2.6, 4.2, a[1]], [a[0] + 3.2, 4.2, a[1]], [b[0] - 1.3, 5.5, b[1]]], 0.55, duct, g); pipe([[b[0], 3.0, b[1]], [b[0], 1.6, b[1] + 0], [c[0], 2.2, c[1] + 2.4]], 0.5, duct, g);
+    pipe([[c[0] + 1.4, 2.2, c[1]], [d[0] - 1.6, 2.6, d[1] - 1.5], [d[0] - 1.6, 3.4, d[1]]], 0.6, duct, g); }
+  { const g = newEq("XC01"); const [x, z] = Hx(78.5, 14); const sh = shellM(0xc9ced3, { roughness: 0.5 }); cyl(1.0, 1.0, 4.2, sh, x, 6.1, z, g, 28); cyl(1.0, 0.25, 1.6, sh, x, 3.2, z, g, 28); box(1.4, 0.8, 1.4, M(C.steel), x, 7.2, z + 1.4, g);
+    for (const dx of [-1.1, 1.1]) for (const dz of [-1.1, 1.1]) box(0.25, 3.0, 0.25, M(C.steel), x + dx, 1.6, z + dz, g); cyl(0.3, 0.3, 0.5, M(C.blue), x, 2.0, z, g, 10);
+    addLamp("XC01", x, 9.2, z); addLabel("XC01", x, 10.6, z, "XC01 · Cyclone đơn Ø2×6 m"); pipe([[x - 55.5 + 55.5 - 2.0, 3.4, z], [x - 1.0, 7.2, z]], 0.5, M(0x9aa3ab), infra); }
+  { const g = newEq("LB01"); const [x, z] = Hx(86.5, 14); sph(0.01, M(0xffffff), x, 0, z, g);
+    box(8.7, 3.9, 2.8, shellM(0xb9c0c7, { roughness: 0.5 }), x, 8.2, z, g); box(8.9, 0.4, 3.0, M(0x8a939b), x, 10.4, z, g);
+    for (let i = 0; i < 3; i++) { const hp = cyl(1.8, 0.3, 3.2, M(0x9aa3ab), x - 3 + i * 3, 4.6, z, g, 4); hp.rotation.y = Math.PI / 4; cyl(0.3, 0.3, 0.5, M(C.blue), x - 3 + i * 3, 2.7, z, g, 10); }
+    for (const dx of [-4.2, 4.2]) for (const dz of [-1.3, 1.3]) box(0.4, 6.4, 0.4, M(C.steel), x + dx, 3.4, z + dz, g);
+    const man = cyl(0.3, 0.3, 8.4, M(C.blue), x, 10.9, z - 1.0, g, 12); man.rotation.z = Math.PI / 2; for (let i = 0; i < 8; i++) cyl(0.12, 0.12, 0.9, M(C.yellow), x - 3.6 + i * 1.03, 10.9, z - 0.5, g, 8);
+    const pl = new THREE.MeshBasicMaterial({ color: 0x555555 }); sph(0.4, pl, x + 4.6, 10.6, z, g).castShadow = false;
     anims.push((dt, t, sim) => { pl.color.set(sim.eq.LB01.load > 0.5 && (t % 1.6) < 0.25 ? 0x35e08a : 0x555555); });
-    addLamp("LB01", 56, 17.2, -4); addLabel("LB01", 56, 18.6, -7, "LB01 · Lọc bụi túi vải", false); }
-  { const g = newEq("QH01"); cyl(2.3, 2.3, 1.7, M(0x6f7a85), 66, 3, -6, g, 32).rotation.x = Math.PI / 2; box(2.8, 2.4, 3, M(C.blue), 66, 3.4, -9.2, g);
-    box(2.2, 3.6, 2.2, M(0x6f7a85), 66, 6, -6.2, g);
-    const wheel = new THREE.Group(); wheel.position.set(66, 3, -5.1); g.add(wheel);
-    for (let i = 0; i < 10; i++) { const b = box(0.25, 1.9, 0.2, M(0x2a2f34), 0, 0, 0, wheel); b.rotation.z = (i / 10) * Math.PI; b.position.z = 0; }
-    cyl(0.3, 0.3, 0.5, M(C.red), 0, 0, 0.1, wheel, 12).rotation.x = Math.PI / 2; spinners.push({ m: wheel, axis: "z", k: 14, id: "QH01" });
-    box(5, 0.5, 3.4, M(C.steel), 66, 0.5, -7.6, g);
-    addLamp("QH01", 66, 9, -6); addLabel("QH01", 66, 10.4, -6, "QH01 · Quạt hút"); }
-  { const g = newEq("HT01"); const sh = shellM(0x7fb6d6, { roughness: 0.35, metalness: 0.1 }); cyl(1.9, 1.9, 13, sh, 76, 8.3, -6, g, 28); cyl(2.5, 2.5, 1.9, M(0x4d86a8), 76, 1.0, -6, g, 28);
-    for (const y of [4, 8, 12]) cyl(2.0, 2.0, 0.35, M(0x3d6f8f), 76, y, -6, g, 28);
-    const mist = cyl(1.2, 1.9, 1.8, M(C.steel), 76, 15.6, -6, g, 24);
-    const pump = box(1.8, 1.2, 1.2, M(C.blue), 79, 0.9, -7.5, g); pump.position.y = 0.9; pipe([[78.5, 1.1, -7.2], [79.6, 1.1, -7.2], [79.6, 10, -7.2], [76.4, 10, -6.4]], 0.18, M(C.cyan), g);
-    const drops = []; for (let i = 0; i < 70; i++) { const d = sph(0.09, M(0x9fd6ee), 76 + (Math.random() - 0.5) * 2.4, 3 + Math.random() * 10, -6 + (Math.random() - 0.5) * 2.4, g); d.castShadow = false; d.userData.sp = 2 + Math.random() * 2; drops.push(d); }
-    anims.push((dt, t, sim) => { const l = sim.eq.HT01.load; for (const d of drops) { d.visible = l > 0.2; d.position.y -= dt * d.userData.sp * l; if (d.position.y < 2.5) d.position.y = 11.5; } });
-    addLamp("HT01", 76, 18, -6); addLabel("HT01", 76, 19.5, -6, "HT01 · Tháp hấp thụ NH₃"); }
-  // Ống khói S02
-  { const g = infra; cyl(0.65, 0.8, 15, M(0xe9ebed), 86, 7.5, -6, g, 20); for (const y of [12, 14]) cyl(0.67, 0.67, 0.9, M(C.red), 86, y, -6, g, 20); sph(0.22, new THREE.MeshBasicMaterial({ color: 0xff3030 }), 86, 15.4, -6, g);
-    addLabel(null, 86, 17.6, -6, "S02 · Ống khói 15 m"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
-    const duct = M(0x9aa3ab, { roughness: 0.5 });
-    pipe([[36, 6, -18], [36, 9, -13], [46, 9, -13], [46, 9, -9]], 0.7, duct, g); pipe([[56, 5.4, -18], [56, 9, -13]], 0.6, duct, g);
-    pipe([[46, 14.8, -8], [46, 16, -8], [56, 16, -8], [56, 13.6, -8]], 0.55, duct, g); pipe([[56, 6.8, -5], [56, 3.2, -4.4], [64.2, 3.2, -4.4]], 0.6, duct, g);
-    pipe([[66, 7.8, -6], [66, 9.6, -6], [76, 9.6, -6], [76, 14.7, -6]], 0.6, duct, g); pipe([[76, 16.4, -6], [76, 17.6, -6], [86, 17.6, -6], [86, 14.8, -6]], 0.55, duct, g);
-    // ống hơi từ lò hơi tới tạo hạt
-    const steamM = M(C.yellow, { roughness: 0.4 });
-    pipe([[-23, 7, 24], [-23, 7, 2], [10, 7, 2], [10, 7, -30]], 0.35, steamM, g); for (const [x, z] of [[-23, 14], [-23, 6], [-12, 2], [0, 2], [10, -10], [10, -24]]) box(0.4, 7, 0.4, M(C.steel), x, 3.5, z, g); }
+    box(2.6, 2.4, 1.6, M(C.light), x + 5.8, 5.0, z, g);
+    addLamp("LB01", x, 12.4, z); addLabel("LB01", x, 13.8, z, "LB01 · Lọc bụi túi vải 432 túi"); }
+  { const g = newEq("QH01"); const [x, z] = Hx(94, 14); cyl(1.7, 1.7, 1.4, M(0x6f7a85), x, 2.4, z, g, 32).rotation.x = Math.PI / 2; box(2.4, 2.0, 2.4, M(C.blue), x, 2.6, z - 2.6, g);
+    const wh = new THREE.Group(); wh.position.set(x, 2.4, z + 0.8); g.add(wh); for (let i = 0; i < 10; i++) { const b = box(0.2, 1.6, 0.16, M(0x2a2f34), 0, 0, 0, wh); b.rotation.z = (i / 10) * Math.PI; } spinners.push({ m: wh, axis: "z", k: 14, id: "QH01" });
+    box(4, 0.4, 3, M(C.steel), x, 0.5, z, g); addLamp("QH01", x, 5.4, z); addLabel("QH01", x, 6.8, z, "QH01 · Quạt hút 55.000 m³/h"); }
+  { const g = newEq("HT01"); const [x, z] = Hx(99, 14); const sh = shellM(0x7fb6d6, { roughness: 0.35, metalness: 0.1 }); cyl(1.4, 1.4, 9, sh, x, 5, z, g, 28); cyl(1.9, 1.9, 1.2, M(0x4d86a8), x, 0.9, z, g, 28); for (const y of [3, 6, 9]) cyl(1.5, 1.5, 0.3, M(0x3d6f8f), x, y, z, g, 28);
+    pipe([[x + 1.7, 1.0, z + 1.5], [x + 2.4, 1.0, z + 1.5], [x + 2.4, 7.5, z + 1.5], [x + 1.2, 7.5, z + 0.8]], 0.15, M(C.cyan), g);
+    const drops = []; for (let i = 0; i < 50; i++) { const d = sph(0.08, M(0x9fd6ee), x + (Math.random() - 0.5) * 1.8, 2 + Math.random() * 7, z + (Math.random() - 0.5) * 1.8, g); d.castShadow = false; d.userData.sp = 2 + Math.random() * 2; drops.push(d); }
+    anims.push((dt, t, sim) => { const l = sim.eq.HT01.load; for (const d of drops) { d.visible = l > 0.2; d.position.y -= dt * d.userData.sp * l; if (d.position.y < 1.8) d.position.y = 8.5; } });
+    addLamp("HT01", x, 10.8, z); addLabel("HT01", x, 12.2, z, "HT01 · Tháp hấp thụ NH₃ (theo MT-HD05)"); }
+  { const g = infra; const [x, z] = Hx(104, 14); const st = cyl(0.3, 0.4, 22, M(0xe9ebed), x, 11.3, z, g, 20); st.castShadow = true; for (const y of [15, 18, 21]) cyl(0.34, 0.34, 1.0, M(C.red), x, y, z, g, 20); sph(0.2, new THREE.MeshBasicMaterial({ color: 0xff3030 }), x, 22.4, z, g);
+    box(0.9, 0.5, 0.9, M(C.steel), x + 0.5, 12.5, z, g); ctxLabel(x, 24.6, z, "S02 · Ống khói dòng thải 04 — cao 22 m, D1 800 / D2 600 mm");
+    const duct = M(0x9aa3ab, { roughness: 0.5 }); const xc = Hx(78.5, 14), lb = Hx(86.5, 14), qh = Hx(94, 14), ht = Hx(99, 14), sy = Hx(63, 14);
+    pipe([[sy[0] + 11.5, 3.4, sy[1]], [xc[0] - 1.0, 3.4, xc[1]]], 0.5, duct, g); pipe([[xc[0] + 1.0, 7.2, xc[1] + 1.4], [lb[0] - 4.3, 7.2, lb[1]]], 0.5, duct, g);
+    pipe([[lb[0] + 6.9, 5.0, lb[1]], [qh[0] - 1.7, 2.4, qh[1]]], 0.55, duct, g); pipe([[qh[0] + 1.7, 2.4, qh[1] - 1.0], [ht[0] - 1.4, 3.0, ht[1] - 1.0]], 0.55, duct, g);
+    pipe([[ht[0], 9.6, ht[1]], [ht[0], 10.6, ht[1]], [x, 10.6, z], [x, 11.0, z]], 0.4, duct, g);
+    const steamM = M(C.yellow, { roughness: 0.4 }); const gx = Hx(47.5, 28);
+    pipe([[-23, 7, 24], [-23, 7, 2], [gx[0] - 1.5, 7, 2], [gx[0] - 1.5, 7, gx[1] + 2]], 0.3, steamM, g); for (const [px, pz] of [[-23, 14], [-23, 6], [-12, 2], [-4, 2], [gx[0] - 1.5, -10], [gx[0] - 1.5, -20]]) box(0.4, 7, 0.4, M(C.steel), px, 3.5, pz, g); }
+
+  // ── Làm nguội → sàng → băng tải → đóng bao (hướng Đông) ──
+  { const [x, z] = Hx(84, 22); drum("LN01", x, 3.0, z, 16, 1.5, 0x4aa3d6, 0.6, { bed: 0xd9d6cc }); addLamp("LN01", x, 6, z); addLabel("LN01", x, 7.6, z, "LN01 · Thùng làm nguội"); const a = Hx(75, 14), s = Hx(75, 21); pipe([[a[0], 3.0, a[1] + 1.5], [s[0], 3.0, s[1] - 0.5]], 0.5, M(C.steel), infra); }
+  { const g = newEq("SG02"); const [x, z] = Hx(95.5, 22); const body = box(5.6, 1.8, 3.0, M(0x3a8fb5), x, 4.6, z, g); for (const [dx, dz] of [[-2.2, -1.2], [2.2, -1.2], [-2.2, 1.2], [2.2, 1.2]]) cyl(0.28, 0.28, 4.4, M(C.steel), x + dx, 2.2, z + dz, g, 10);
+    anims.push((dt, t, sim) => { const l = sim.eq.SG02.load; body.position.y = 4.6 + Math.sin(t * 36) * 0.05 * l; }); addLamp("SG02", x, 7.2, z); addLabel("SG02", x, 8.6, z, "SG02 · Sàng phân loại"); }
+  { const g = newEq("BT04"); const a = Hx(98.6, 22), b = Hx(102, 22); belt("BT04", [a[0], 3.4, a[1]], [b[0], 2.2, b[1]], 1.2, "#d6d1c3", "#f3f1ea", g); addLamp("BT04", (a[0] + b[0]) / 2, 5.4, a[1]); addLabel("BT04", (a[0] + b[0]) / 2, 6.8, a[1], "BT04 · Băng tải sản phẩm"); }
+  { const g = newEq("DB01"); const [x, z] = Hx(105, 22); box(4.6, 5.6, 4.4, M(0x5a7aa0), x, 3.1, z, g); box(3.6, 0.5, 3.4, M(C.light), x, 6.1, z, g); hopper(x, 7.6, z, 3, 2.6, g);
+    belt("DB01", [x + 2.3, 1.3, z], [x + 19, 1.3, z], 1.4, "#4a4f55", "#6a7078", g);
+    const bags = []; for (let i = 0; i < 9; i++) { const b = box(0.9, 0.3, 0.6, M(0xf5f5f0), x + 3 + i * 1.7, 1.65, z, g); bags.push(b); }
+    anims.push((dt, t, sim) => { const l = sim.eq.DB01.load; for (const b of bags) { b.position.x += dt * 1.1 * l; if (b.position.x > x + 18) b.position.x = x + 3; } });
+    addLamp("DB01", x, 10.4, z); addLabel("DB01", x, 11.8, z, "DB01 · Máy đóng bao"); }
+  { const g = infra; box(36, 0.35, 28, M(C.concrete), 90, 0.3, -30, g);
+    box(36, 7.5, 0.6, shellM(0xd7dade), 90, 4, -44, g); box(0.6, 7.5, 28, shellM(0xd7dade), 72, 4, -30, g); box(0.6, 7.5, 28, shellM(0xd7dade), 108, 4, -30, g);
+    box(38, 0.5, 30, shellM(0x9aa7b3), 90, 8.2, -30, g);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) for (let h = 0; h < 4; h++) box(2.3, 0.45, 1.6, M(0xf1f0ea), 78 + c * 5, 1 + h * 0.5, -40 + r * 4.4, g).castShadow = false;
+    ctxLabel(90, 11.2, -30, "Kho thành phẩm NPK"); }
 
   // ═════ LÒ HƠI ═════
   const boiler = (id, cx, cz, col, coal) => { const g = newEq(id);
@@ -309,7 +326,7 @@ export function createPlantScene(container, hooks) {
         Age[i] = a + dt / 14; vel[i].y = Math.max(0.35, vel[i].y - dt * 0.35);
         P[i * 3] += (w.wx * u * 2.6 + (Math.random() - 0.5) * 0.5) * dt * (0.3 + a * 1.2) + vel[i].x * dt; P[i * 3 + 1] += vel[i].y * dt; P[i * 3 + 2] += (w.wz * u * 2.6 + (Math.random() - 0.5) * 0.5) * dt * (0.3 + a * 1.2) + vel[i].z * dt; }
       geo.attributes.position.needsUpdate = true; geo.attributes.aAge.needsUpdate = true; } }; };
-  const smokeS01 = makeSmoke(V(-23, 18.4, 28), 0x8f949a, 6), smokeS02 = makeSmoke(V(86, 15.3, -6), 0xffffff, 7);
+  const smokeS01 = makeSmoke(V(-23, 18.4, 28), 0x8f949a, 6), smokeS02 = makeSmoke(V(50, 22.4, -38), 0xffffff, 7);
 
   // ── Lớp phủ nồng độ Gauss ──
   let plumeMesh = null, plumeTex = null;
@@ -326,8 +343,8 @@ export function createPlantScene(container, hooks) {
   const flags = { labels: true, xray: false, hints: true, plume: false, shadows: true, windFrom: 270, u10: 3, hintId: null };
   const select = id => { selectedId = id; if (id && eqRoot[id]) { selBox.setFromObject(eqRoot[id]); selBox.visible = true; } else selBox.visible = false; };
   const setFlags = f => { Object.assign(flags, f); renderer.shadowMap.enabled = flags.shadows; sun.castShadow = flags.shadows;
-    for (const m of shells) { if (flags.xray) { m.transparent = true; m.opacity = 0.16; m.depthWrite = false; } else { m.transparent = m.userData.t0 || false; m.opacity = 1; m.depthWrite = true; } m.needsUpdate = true; } };
-  for (const m of shells) m.userData.t0 = m.transparent;
+    for (const m of shells) { if (flags.xray) { m.transparent = true; m.opacity = 0.16; m.depthWrite = false; } else { m.transparent = m.userData.t0 || false; m.opacity = m.userData.o0 ?? 1; m.depthWrite = !m.transparent; } m.needsUpdate = true; } };
+  for (const m of shells) { m.userData.t0 = m.transparent; m.userData.o0 = m.opacity; }
 
   // Chọn bằng nhấp chuột
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;

@@ -24,18 +24,20 @@ export const EQUIP: EqDef[] = [
   { id: "BT02", name: "Băng tải nguyên liệu", zone: "raw", kw: 5.5, desc: "Chuyển nguyên liệu đã nghiền lên sàng", requires: ["SG01"] },
   { id: "SG01", name: "Sàng rung nguyên liệu", zone: "raw", kw: 11, desc: "Loại cục lớn, tạp chất", requires: ["TR01"] },
   { id: "TR01", name: "Máy trộn", zone: "raw", kw: 30, desc: "Phối trộn N–P–K theo công thức", requires: ["TH01"] },
-  { id: "TH01", name: "Thùng tạo hạt", zone: "granulation", kw: 75, desc: "Tạo hạt NPK bằng hơi và NH₃; phát sinh NH₃ cần hấp thụ", requires: ["BT03"] },
-  { id: "BT03", name: "Gầu tải hạt ướt", zone: "granulation", kw: 15, desc: "Đưa hạt ướt lên thùng sấy", requires: ["SY01"] },
-  { id: "LD01", name: "Lò đốt sinh khối (cấp nhiệt sấy)", zone: "drying", kw: 22, desc: "Cấp khí nóng cho thùng sấy; đốt viên nén/mùn sinh khối", requires: ["SY01", "QH01"] },
-  { id: "SY01", name: "Thùng sấy", zone: "drying", kw: 110, desc: "Sấy hạt đến độ ẩm yêu cầu; nhiệt độ ra 70–100 °C", requires: ["LN01", "QH01"] },
+  { id: "TH01", name: "Thùng tạo hạt", zone: "granulation", kw: 33, desc: "Thùng quay Ø2,2 × 9 m, 9 v/ph, nghiêng 1,5°, 45 HP; Tạo hạt NPK bằng hơi và NH₃; phát sinh NH₃ cần hấp thụ", requires: ["BT03"] },
+  { id: "BT03", name: "Gầu tải hạt ướt", zone: "granulation", kw: 15, desc: "Đưa hạt ướt từ thùng tạo hạt lên thùng sấy", requires: ["SY01"] },
+  { id: "LD01", name: "Lò đốt sinh khối (cấp nhiệt sấy)", zone: "drying", kw: 22, desc: "Lò đốt sinh khối 2.500.000 kcal/h, buồng đốt 1,0×1,4 m, BSKK hiệu suất 85 %, khí nóng 160–250 °C; củi băm, viên nén, vỏ mắc ca… ≈ 2.400 t/năm (CN-04-02)", requires: ["QT01", "QH01"] },
+  { id: "QT01", name: "Quạt thổi khí nóng", zone: "drying", kw: 45, desc: "Quạt thổi đưa toàn bộ khí nóng sau cyclone chùm vào máy sấy (ống Ø1.200 → côn Ø1.000). Lưu lượng, cột áp, công suất: chưa có số liệu (đo bổ sung) — kW là ước tính", requires: ["SY01", "QH01"] },
+  { id: "SY01", name: "Thùng sấy (máy sấy khô 1)", zone: "drying", kw: 110, desc: "Thùng quay Ø2,2 × 22 m, 4 v/ph, nghiêng 1,5°; nhiệt độ sấy < 180 °C để hạn chế phân hủy urê; khí ra 70–100 °C", requires: ["LN01", "QH01"] },
   { id: "LN01", name: "Thùng làm nguội", zone: "drying", kw: 75, desc: "Làm nguội hạt trước khi sàng", requires: ["SG02", "QH01"] },
   { id: "SG02", name: "Sàng phân loại hạt", zone: "bagging", kw: 15, desc: "Phân loại hạt đạt cỡ; hạt quá cỡ, mịn hồi lưu", requires: ["BT04"] },
   { id: "BT04", name: "Băng tải sản phẩm", zone: "bagging", kw: 7.5, desc: "Chuyển sản phẩm tới máy đóng bao", requires: ["DB01"] },
   { id: "DB01", name: "Máy đóng bao", zone: "bagging", kw: 18, desc: "Cân, đóng bao 50 kg", requires: [] },
-  { id: "XC01", name: "Cyclone chùm", zone: "air", kw: 0, desc: "Tách bụi thô, hiệu suất ≥ 90 % (thụ động)", requires: [] },
-  { id: "LB01", name: "Lọc bụi túi vải", zone: "air", kw: 7.5, desc: "Hiệu suất ≥ 99 %; ΔP làm việc 150–260 mmH₂O (MT-QP.01)", requires: [],
+  { id: "CC01", name: "Cyclone chùm (16 ống)", zone: "drying", kw: 0, desc: "Nối tiếp giữa lò đốt và máy sấy: toàn bộ khí nóng đi qua, hiệu suất > 95 %; KHÔNG có ống thải ra môi trường; tro xả qua van xoay về khu chứa than – xỉ (thụ động)", requires: [] },
+  { id: "XC01", name: "Cyclone đơn", zone: "air", kw: 0, desc: "Cyclone đơn khô Ø2 × 6 m sau máy sấy, hiệu suất > 95 %; bụi thu hồi hồi lưu về tạo hạt (thụ động)", requires: [] },
+  { id: "LB01", name: "Lọc bụi túi vải", zone: "air", kw: 7.5, desc: "432 túi Ø130 × 3.360 mm, 556 m², 48 van solenoid; hiệu suất ≥ 99 %; ΔP làm việc 150–260 mmH₂O (MT-QP.01)", requires: [],
     actions: [{ id: "pulse", label: "Rũ bụi (xung khí nén)", hint: "Giảm ΔP khi vượt 260 mmH₂O" }, { id: "replace", label: "Thay túi lọc thủng", hint: "Khắc phục bụi vượt chuẩn do thủng túi" }] },
-  { id: "QH01", name: "Quạt hút", zone: "air", kw: 160, desc: "Tạo áp âm cho hệ lò sấy – cyclone – lọc bụi – tháp hấp thụ", requires: ["LB01", "HT01"] },
+  { id: "QH01", name: "Quạt hút", zone: "air", kw: 116, desc: "Q = 55.000 m³/h, P = 350 mmH₂O, 155 HP; tạo áp âm cho hệ lò sấy – cyclone – lọc bụi – tháp hấp thụ", requires: ["LB01", "HT01"] },
   { id: "HT01", name: "Tháp hấp thụ NH₃", zone: "air", kw: 22, desc: "Hấp thụ NH₃ bằng dung dịch H₂SO₄; bơm tuần hoàn phải chạy trước quạt hút", requires: [],
     actions: [{ id: "recharge", label: "Thay dung dịch hấp thụ", hint: "Khôi phục hiệu suất khi dung dịch cạn" }] },
   { id: "LH01", name: "Lò hơi sinh khối 6 t/h", zone: "boiler", kw: 45, desc: "Lò tầng sôi 14 bar; chạy ngày thường (T2–T6)", requires: [], excludes: ["LH02"] },
@@ -48,11 +50,13 @@ export const EQUIP: EqDef[] = [
 ];
 export const EQ: Record<string, EqDef> = Object.fromEntries(EQUIP.map(e => [e.id, e]));
 /** Dây chuyền chính từ đầu đến cuối (thứ tự dòng vật liệu). */
+/** Thiết bị thụ động (không có động cơ, luôn ở trạng thái sẵn sàng). */
+export const PASSIVE = ["CC01", "XC01"];
 export const CHAIN = ["BT01", "MN01", "BT02", "SG01", "TR01", "TH01", "BT03", "SY01", "LN01", "SG02", "BT04", "DB01"];
 /** Thứ tự khởi động chuẩn: tháp hấp thụ → lọc bụi → quạt hút → từ cuối dây chuyền ngược lên đầu. */
-export const START_ORDER = ["HT01", "LB01", "QH01", "DB01", "BT04", "SG02", "LN01", "SY01", "LD01", "BT03", "TH01", "TR01", "SG01", "BT02", "MN01", "BT01"];
+export const START_ORDER = ["HT01", "LB01", "QH01", "DB01", "BT04", "SG02", "LN01", "SY01", "QT01", "LD01", "BT03", "TH01", "TR01", "SG01", "BT02", "MN01", "BT01"];
 /** Thứ tự dừng chuẩn: từ đầu dây chuyền; tắt lò đốt rồi chờ thùng sấy nguội dưới 60 °C. */
-export const STOP_ORDER = ["BT01", "MN01", "BT02", "SG01", "TR01", "TH01", "BT03", "LD01", "SY01", "LN01", "SG02", "BT04", "DB01", "QH01", "LB01", "HT01"];
+export const STOP_ORDER = ["BT01", "MN01", "BT02", "SG01", "TR01", "TH01", "BT03", "LD01", "QT01", "SY01", "LN01", "SG02", "BT04", "DB01", "QH01", "LB01", "HT01"];
 
 export const LIMITS = { dp: 260, dpTrip: 300, tsp: 160, nh3: 40, dryerOut: 110, dryerOutTrip: 150, dryerIn: 350, DOmin: 2, pHmin: 6, pHmax: 9, cod: 99, nh4: 6.6 };
 
@@ -77,7 +81,7 @@ const nowMs = () => Date.now();
 export function createSim(): SimState {
   const eq: Record<string, EqState> = {};
   for (const e of EQUIP) eq[e.id] = { on: false, load: 0, tripped: false, reason: "" };
-  eq.XC01.on = true; eq.XC01.load = 1;
+  for (const id of PASSIVE) { eq[id].on = true; eq[id].load = 1; }
   // HTXLNT chạy liên tục 24/7, không dừng theo dây chuyền sản xuất
   for (const id of ["BM01", "TK01", "DL01"]) { eq[id].on = true; eq[id].load = 1; }
   return {
@@ -131,7 +135,7 @@ export function stop(s: SimState, id: string, cause: "operator" | "interlock" | 
 
 export function emergencyStop(s: SimState) {
   s.seq = null;
-  for (const e of EQUIP) if (s.eq[e.id].on && e.id !== "XC01" && e.zone !== "wwtp") { s.eq[e.id].on = false; s.eq[e.id].tripped = true; s.eq[e.id].reason = "Dừng khẩn cấp"; }
+  for (const e of EQUIP) if (s.eq[e.id].on && !PASSIVE.includes(e.id) && e.zone !== "wwtp") { s.eq[e.id].on = false; s.eq[e.id].tripped = true; s.eq[e.id].reason = "Dừng khẩn cấp"; }
   addLog(s, "DỪNG KHẨN CẤP khu sản xuất (HTXLNT vẫn chạy)", "trip"); addEv(s, { kind: "stop", id: "ESTOP" });
 }
 
@@ -208,7 +212,7 @@ export function step(s: SimState, dt: number): void {
   }
 
   // Tải thiết bị (khởi động/dừng êm)
-  for (const d of EQUIP) { if (d.id === "XC01") continue; const x = e[d.id]; x.load = lag(x.load, x.on ? 1 : 0, 0.5, dt); if (x.load < 0.002) x.load = 0; }
+  for (const d of EQUIP) { if (PASSIVE.includes(d.id)) continue; const x = e[d.id]; x.load = lag(x.load, x.on ? 1 : 0, 0.5, dt); if (x.load < 0.002) x.load = 0; }
 
   // Nhiệt độ sấy
   const burner = e.LD01.load, dryer = e.SY01.load, hot = burner > 0.2;

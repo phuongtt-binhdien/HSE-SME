@@ -21,11 +21,15 @@ const clock = t => { const m = Math.floor(t / 60), s = Math.floor(t % 60); retur
 // Sơ đồ công nghệ: vị trí [cột, hàng]
 const NODES = {
   BT01: [0, 0], MN01: [1, 0], BT02: [2, 0], SG01: [3, 0], TR01: [4, 0], TH01: [5, 0],
-  BT03: [5, 1], SY01: [4, 1], LD01: [3, 1], LN01: [2, 1], SG02: [1, 1], BT04: [0, 1], DB01: [0, 2],
-  XC01: [1, 2], LB01: [2, 2], QH01: [3, 2], HT01: [4, 2],
-  LH01: [0, 3], LH02: [1, 3], BM01: [3, 3], TK01: [4, 3], DL01: [5, 3],
+  LD01: [1, 1], CC01: [2, 1], QT01: [3, 1], SY01: [4, 1], BT03: [5, 1],
+  HT01: [1, 2], QH01: [2, 2], LB01: [3, 2], XC01: [4, 2], LN01: [5, 2],
+  DB01: [3, 3], BT04: [4, 3], SG02: [5, 3],
+  LH01: [0, 4], LH02: [1, 4], BM01: [3, 4], TK01: [4, 4], DL01: [5, 4],
 };
-const FLOW = [["BT01", "MN01"], ["MN01", "BT02"], ["BT02", "SG01"], ["SG01", "TR01"], ["TR01", "TH01"], ["TH01", "BT03"], ["BT03", "SY01"], ["SY01", "LN01"], ["LN01", "SG02"], ["SG02", "BT04"], ["BT04", "DB01"], ["SY01", "XC01"], ["XC01", "LB01"], ["LB01", "QH01"], ["QH01", "HT01"], ["BM01", "TK01"], ["TK01", "DL01"]];
+const FLOW = [["BT01", "MN01"], ["MN01", "BT02"], ["BT02", "SG01"], ["SG01", "TR01"], ["TR01", "TH01"], ["TH01", "BT03"], ["BT03", "SY01"],
+  ["LD01", "CC01"], ["CC01", "QT01"], ["QT01", "SY01"], ["SY01", "XC01"], ["XC01", "LB01"], ["LB01", "QH01"], ["QH01", "HT01"],
+  ["SY01", "LN01"], ["LN01", "SG02"], ["SG02", "BT04"], ["BT04", "DB01"], ["BM01", "TK01"], ["TK01", "DL01"]];
+const PASSIVE_IDS = ["CC01", "XC01"];
 
 function Panel({ title, x = 0, y = 0, w, narrow, children, onClose, right }) {
   const [pos, setPos] = useState({ x, y }); const drag = useRef(null);
@@ -82,7 +86,8 @@ export default function PlantSim() {
   useEffect(() => { patch({}); }, [webgl]);
 
   // Gợi ý: khi có bài tập khởi động hoặc bật gợi ý, trỏ tới thiết bị cần thao tác kế tiếp
-  const hint = ui.hints && !S.seq ? (S.eq.BT01.on && S.eq.DB01.on ? null : (Object.values(S.eq).some(e => e.on && e !== S.eq.XC01) ? null : nextHint(S))) : null;
+  const prodOn = EQUIP.some(d => d.zone !== "wwtp" && !PASSIVE_IDS.includes(d.id) && S.eq[d.id].on);
+  const hint = ui.hints && !S.seq && !prodOn ? nextHint(S) : null;
   const exHint = exRef.current && !exRef.current.run.finished ? nextHint(S) : null;
   const hintId = (exHint || hint)?.id || null;
   useEffect(() => { sceneRef.current?.setFlags({ hintId }); });
@@ -128,16 +133,16 @@ export default function PlantSim() {
   const diagram = (narrow2) => <>
     {show.diag && <Panel title="Sơ đồ công nghệ (bấm để đóng/cắt)" x={12} y={92} w={380} narrow={narrow2} onClose={() => setShow({ ...show, diag: false })}
       right={<label style={{ fontSize: 11, color: S.bypass ? K.amber : K.dim, cursor: "pointer" }}><input type="checkbox" checked={S.bypass} onChange={e => { S.bypass = e.target.checked; setTick(t => t + 1); }} /> Bỏ khóa liên động</label>}>
-      <svg viewBox="0 0 420 262" width="100%" style={{ display: "block", background: "#0f1a2c", borderRadius: 6 }}>
+      <svg viewBox="0 0 420 322" width="100%" style={{ display: "block", background: "#0f1a2c", borderRadius: 6 }}>
         {FLOW.map(([a, b], i) => { const A = NODES[a], B = NODES[b]; const on = S.eq[a].on && S.eq[b].on;
           return <line key={i} x1={A[0] * 68 + 40} y1={A[1] * 62 + 30} x2={B[0] * 68 + 40} y2={B[1] * 62 + 30} stroke={on ? K.green : "#3b4a63"} strokeWidth={on ? 3 : 2} strokeDasharray={on ? "6 4" : ""}>{on && <animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.8s" repeatCount="indefinite" />}</line>; })}
-        {Object.entries(NODES).map(([id, [c, r]]) => { const e = S.eq[id], sw = EQ[id].kw > 0 || id === "XC01"; const col = e.tripped ? K.red : e.on ? (e.load > 0.5 ? K.green : K.amber) : "#4b5a73";
-          return <g key={id} transform={`translate(${c * 68 + 10},${r * 62 + 12})`} style={{ cursor: id === "XC01" ? "default" : "pointer" }} onClick={() => { id !== "XC01" && act("tog", id); sel.current = id; setSelected(id); sceneRef.current?.select(id); }}>
+        {Object.entries(NODES).map(([id, [c, r]]) => { const e = S.eq[id], sw = EQ[id].kw > 0 || PASSIVE_IDS.includes(id); const col = e.tripped ? K.red : e.on ? (e.load > 0.5 ? K.green : K.amber) : "#4b5a73";
+          return <g key={id} transform={`translate(${c * 68 + 10},${r * 62 + 12})`} style={{ cursor: PASSIVE_IDS.includes(id) ? "default" : "pointer" }} onClick={() => { !PASSIVE_IDS.includes(id) && act("tog", id); sel.current = id; setSelected(id); sceneRef.current?.select(id); }}>
             <rect width="60" height="36" rx="5" fill="#16233a" stroke={selected === id ? "#ffc400" : col} strokeWidth={selected === id ? 3 : 1.6} />
             <text x="30" y="15" textAnchor="middle" fill={K.txt} fontSize="11" fontWeight="700">{id}</text>
             <text x="30" y="29" textAnchor="middle" fill={col} fontSize="9" fontWeight="700">{e.tripped ? "SỰ CỐ" : e.on ? (e.load > 0.5 ? "CHẠY" : "KHỞI ĐỘNG") : sw ? "DỪNG" : "—"}</text>
             <circle cx="54" cy="6" r="3.5" fill={col} /></g>; })}
-        <text x="10" y="257" fill={K.dim} fontSize="9">Đường sấy: TH01→BT03→SY01→LN01→SG02→BT04→DB01 · Khí: SY01→XC01→LB01→QH01→HT01 · Lò hơi: chỉ một lò chạy</text>
+        <text x="10" y="316" fill={K.dim} fontSize="9">Khí nóng: LD01→CC01→QT01→SY01 · Khí thải: SY01→XC01→LB01→QH01→HT01→ống khói 22 m · Lò hơi: chỉ một lò chạy</text>
       </svg>
       <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
         <button className="sb go" onClick={() => { runSequence(S, "start"); setTick(t => t + 1); }}>▶ Khởi động tự động</button>
@@ -155,7 +160,7 @@ export default function PlantSim() {
         {selDef.requires.length > 0 && <div style={{ color: K.dim }}>Liên động: cần chạy {selDef.requires.join(", ")} trước</div>}
         {selDef.excludes && <div style={{ color: K.dim }}>Không chạy cùng {selDef.excludes.join(", ")}</div>}
         <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-          {selDef.id !== "XC01" && <button className={`sb ${selSt.on ? "stp" : "go"}`} onClick={() => act("tog", selDef.id)}>{selSt.on ? "Dừng" : "Khởi động"}</button>}
+          {!PASSIVE_IDS.includes(selDef.id) && <button className={`sb ${selSt.on ? "stp" : "go"}`} onClick={() => act("tog", selDef.id)}>{selSt.on ? "Dừng" : "Khởi động"}</button>}
           {(selDef.actions || []).map(a => <button key={a.id} className="sb" title={a.hint} onClick={() => { action(S, selDef.id, a.id); setTick(t => t + 1); }}>{a.label}</button>)}</div></div>
         : <div style={{ fontSize: 12, color: K.dim }}>Bấm vào thiết bị trên cảnh 3D hoặc sơ đồ để xem thông tin và điều khiển.</div>}
     </Panel>}
