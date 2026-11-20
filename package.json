@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "build:standalone": "node scripts/build-standalone.mjs",
-    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts"
+    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts",
+    "model:plant": "node --experimental-strip-types --no-warnings scripts/plant-dispersion.ts"
   },
   "dependencies": {
     "next": "14.2.35",

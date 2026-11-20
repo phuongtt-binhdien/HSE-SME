@@ -246,10 +246,10 @@ export function screenAtDistance(src: SourceInput, x: number, z = 1.5): ScreenCa
 
 // ─── Quy đổi thông số ống khói ─────────────────────────────────────────────
 
-/** Lưu lượng ở điều kiện tiêu chuẩn (Nm³/h, 0 °C) → lưu lượng thực ở nhiệt độ khí thải (m³/h). Bỏ qua chênh áp suất. */
-export const actualFlow = (flowNm3h: number, tC: number) => (flowNm3h * (273.15 + tC)) / 273.15;
-/** Lưu lượng thực (m³/h) → điều kiện tiêu chuẩn (Nm³/h). */
-export const normalFlow = (flowM3h: number, tC: number) => (flowM3h * 273.15) / (273.15 + tC);
+/** Lưu lượng chuẩn (Nm³/h ở tRefC, mặc định 0 °C; QCVN 19:2009 dùng 25 °C) → lưu lượng thực ở nhiệt độ khí thải (m³/h). Bỏ qua chênh áp suất. */
+export const actualFlow = (flowNm3h: number, tC: number, tRefC = 0) => (flowNm3h * (273.15 + tC)) / (273.15 + tRefC);
+/** Lưu lượng thực (m³/h) → lưu lượng chuẩn (Nm³/h ở tRefC). */
+export const normalFlow = (flowM3h: number, tC: number, tRefC = 0) => (flowM3h * (273.15 + tRefC)) / (273.15 + tC);
 /** Vận tốc khí thoát miệng ống khói (m/s) từ lưu lượng thực (m³/h) và đường kính (m). */
 export const exitVelocity = (flowM3h: number, d: number) => flowM3h / 3600 / ((Math.PI * d * d) / 4);
 

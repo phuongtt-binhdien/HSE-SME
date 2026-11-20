@@ -132,6 +132,8 @@ test("Quy đổi lưu lượng và vận tốc: khớp tính tay trong báo cáo
   close(qa, 11357, 1e-3);
   close(normalFlow(qa, 170), 7000, 1e-12);
   close(exitVelocity(11400, 0.7), 8.23, 2e-3);
+  close(normalFlow(18544, 86, 25), 15394, 1e-3); // phiếu 1461/2026: 18.544 m³/h ở 86 °C → Nm³ ở 25 °C
+  close(actualFlow(normalFlow(20000, 60, 25), 60, 25), 20000, 1e-12);
   assert.equal(gepHeight(12, 30), 30);
   assert.equal(gepHeight(12, 6), 21);
 });

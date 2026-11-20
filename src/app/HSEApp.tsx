@@ -1703,21 +1703,21 @@ const GP_POLL = [
 ];
 const GP_LIMITS = { tsp:160, so2:400, nox:680, co:800 };
 const GP_SCEN_DEFAULT = [
-  { id:"s1", name:"Lò sinh khối — số liệu thiết kế", sched:"Thứ Hai – Thứ Sáu", flowMode:"N", flow:7000, tC:170,
+  { id:"s1", name:"Lò sinh khối — số liệu thiết kế", sched:"Thứ Hai – Thứ Sáu", flowMode:"N", tRef:0, flow:7000, tC:170,
     c:{ tsp:3.8, so2:59.5, nox:330, co:"" },
-    src:"Bảng 2.2 báo cáo: 1.050 kg/h × 6,72 Nm³/kg ≈ 7.000 Nm³/h, 170 °C. CO chưa có số liệu nhà thầu (mục B1 ghi chú nội bộ)." },
-  { id:"s2", name:"Lò sinh khối — xả bằng giới hạn GPMT", sched:"Thứ Hai – Thứ Sáu", flowMode:"A", flow:25000, tC:170,
+    src:"Bảng 2.2 báo cáo: 1.050 kg/h × 6,72 Nm³/kg ≈ 7.000 Nm³/h (Nm³ ở 0 °C theo tính toán cháy), 170 °C. CO chưa có số liệu nhà thầu (mục B1 ghi chú nội bộ)." },
+  { id:"s2", name:"Lò sinh khối — xả bằng giới hạn GPMT", sched:"Thứ Hai – Thứ Sáu", flowMode:"A", tRef:25, flow:25000, tC:170,
     c:{ ...GP_LIMITS },
     src:"Kịch bản bảo thủ: lưu lượng xả lớn nhất cấp phép 25.000 m³/h (quạt 40.000 m³/h khống chế bằng biến tần), nồng độ bằng giới hạn QCVN 19:2009 cột B." },
-  { id:"s3", name:"Lò than luân phiên — xả bằng giới hạn GPMT", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", flow:25000, tC:60,
+  { id:"s3", name:"Lò than luân phiên — xả bằng giới hạn GPMT", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", tRef:25, flow:25000, tC:86,
     c:{ ...GP_LIMITS },
-    src:"Quạt hút hiện hữu 25.000 m³/h, nồng độ bằng giới hạn GPMT. Nhiệt độ 60 °C sau tháp hấp thụ ướt là GIẢ ĐỊNH — thay bằng số đo." },
-  { id:"s4", name:"Lò than luân phiên — kết quả quan trắc", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", flow:"", tC:"",
-    c:{ tsp:"", so2:"", nox:"", co:"" },
-    src:"Nhập từ kết quả quan trắc định kỳ dòng thải số 01 (04 quý gần nhất — tài liệu số 10 trong Phụ lục hồ sơ). Lấy giá trị lớn nhất." },
+    src:"Quạt hút hiện hữu 25.000 m³/h, nồng độ bằng giới hạn GPMT. Nhiệt độ khí thải 86 °C theo phiếu 1461/2026/DV (30/6/2026)." },
+  { id:"s4", name:"Lò than luân phiên — kết quả quan trắc", sched:"Thứ Bảy – Chủ Nhật", flowMode:"A", tRef:25, flow:19636, tC:86,
+    c:{ tsp:19, so2:55, nox:34, co:79 },
+    src:"Giá trị lớn nhất của 2 đợt quan trắc 2026 (TT Kỹ thuật TN&MT Tây Ninh, VILAS 269): phiếu 0731/2026/DV lấy mẫu 28/4 — bụi 16, NOₓ 34, SO₂ 55, CO 68 mg/Nm³, 19.636 m³/h; phiếu 1461/2026/DV lấy mẫu 30/6 — bụi 19, NOₓ 28, SO₂ 49, CO 79 mg/Nm³, 18.544 m³/h, 86 °C. Bổ sung các quý tiếp theo khi có." },
 ];
 const GP_SHARED_DEFAULT = { taC:30, terrain:"rural", z:1.5, bg:{ tsp:"", so2:"", nox:"", co:"" }, q05:{ tsp:300, so2:350, nox:200, co:30000 }, recDist:"", bH:"", bW:"" };
-const GP_STORE = "hse-gpmt01-v1";
+const GP_STORE = "hse-gpmt01-v2";
 const GPMT_STACK = { hs:18, d:0.7, x:"1172156", y:"580206", flowMax:25000 };
 
 const num = v => (v===""||v===null||v===undefined||!Number.isFinite(Number(v))) ? null : Number(v);
@@ -1726,8 +1726,9 @@ const gpColor = pct => pct==null ? T.dim : pct>=100 ? T.red : pct>=80 ? T.amber 
 function gpDerive(s, shared) {
   const flow = num(s.flow), tC = num(s.tC);
   if (flow==null || flow<=0 || tC==null) return null;
-  const flowN = s.flowMode==="N" ? flow : normalFlow(flow, tC);
-  const flowA = s.flowMode==="N" ? actualFlow(flow, tC) : flow;
+  const tRef = num(s.tRef) ?? 0;
+  const flowN = s.flowMode==="N" ? flow : normalFlow(flow, tC, tRef);
+  const flowA = s.flowMode==="N" ? actualFlow(flow, tC, tRef) : flow;
   const vs = exitVelocity(flowA, GPMT_STACK.d);
   const src = { terrain:shared.terrain, hs:GPMT_STACK.hs, d:GPMT_STACK.d, vs, Ts:celsiusToK(tC), Ta:celsiusToK(num(shared.taC) ?? 30), riseMode:"final", windProfile:true };
   const Q = {};
@@ -1821,7 +1822,7 @@ function GpmtModule() {
     lines.push(`Đánh giá khả năng phát tán bụi, khí thải từ nguồn số 01 (ống khói cao ${fmtN(GPMT_STACK.hs,0)} m, đường kính ${fmtN(GPMT_STACK.d*1000,0)} mm, tọa độ X = ${GPMT_STACK.x}; Y = ${GPMT_STACK.y}, VN2000) được thực hiện bằng mô hình vệt khói Gauss: hệ số phân tán σy, σz theo Briggs (1973) cho điều kiện ${shared.terrain==="rural"?"nông thôn":"đô thị"}, độ nâng luồng khói theo Briggs (dạng EPA ISC3), tốc độ gió quy đổi về độ cao miệng ống khói theo hàm mũ. Điều kiện khí tượng bất lợi nhất được xác định bằng phương pháp sàng lọc ${nCases} tổ hợp lớp ổn định khí quyển (A–F) – tốc độ gió (1–20 m/s) theo hướng dẫn SCREEN3 của US EPA; nhiệt độ không khí ${fmtN(num(shared.taC)??30,0)} °C; điểm tiếp nhận ở độ cao ${fmtN(z,1)} m. Kết quả được so sánh với giá trị giới hạn trung bình 1 giờ của QCVN 05:2023/BTNMT${bgMissing?" (chưa cộng nồng độ nền)":", đã cộng nồng độ nền khu vực"}.`);
     for (const r of ok) {
       const parts = GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].total)} μg/m³ (${fmtN(r.per[p.id].pct,0)}% giới hạn)`);
-      lines.push(`- ${r.s.name} (${r.s.sched}; ${fmtN(r.d.flowN,0)} Nm³/h, ${fmtN(num(r.s.tC),0)} °C, vận tốc thoát ${fmtN(r.d.vs,1)} m/s): nồng độ 1 giờ lớn nhất tại mặt đất ${parts.join("; ")}; xuất hiện ở khoảng cách ${fmtDist(r.scr.worst.x)} xuôi gió, điều kiện ổn định lớp ${r.scr.worst.stability}, gió 10 m ${fmtN(r.scr.worst.u10,1)} m/s.`);
+      lines.push(`- ${r.s.name} (${r.s.sched}; ${fmtN(r.d.flowN,0)} Nm³/h ở ${num(r.s.tRef)??0} °C, ${fmtN(num(r.s.tC),0)} °C, vận tốc thoát ${fmtN(r.d.vs,1)} m/s): nồng độ 1 giờ lớn nhất tại mặt đất ${parts.join("; ")}; xuất hiện ở khoảng cách ${fmtDist(r.scr.worst.x)} xuôi gió, điều kiện ổn định lớp ${r.scr.worst.stability}, gió 10 m ${fmtN(r.scr.worst.u10,1)} m/s.`);
       if (r.rec) lines.push(`  Tại khu dân cư gần nhất (${fmtDist(recDist)}): ${GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].rec.total)} μg/m³`).join("; ")}.`);
     }
     if (exceed.length) lines.push(`Kết luận: kịch bản ${[...new Set(exceed.map(e=>e.r.s.name))].join(", ")} cho nồng độ ${[...new Set(exceed.map(e=>e.p.name))].join(", ")} vượt giới hạn 1 giờ QCVN 05:2023/BTNMT trong điều kiện khí tượng bất lợi nhất; cần sử dụng số liệu quan trắc thực tế hoặc bổ sung biện pháp giảm thiểu trước khi kết luận.`);
@@ -1924,6 +1925,7 @@ function GpmtModule() {
           <div style={{ fontSize:10, color:T.sub, marginTop:4, lineHeight:1.6, marginBottom:14 }}>{sc.src}</div>
           <InGroup title="Lưu lượng & nhiệt độ khí thải">
             <SelIn label="Đơn vị lưu lượng" value={sc.flowMode} onChange={v=>setScen(sc.id,{ flowMode:v })} options={[{v:"N",l:"Nm³/h (tiêu chuẩn)"},{v:"A",l:"m³/h (thực tế)"}]}/>
+            <SelIn label="Điều kiện chuẩn Nm³" value={String(sc.tRef ?? 0)} onChange={v=>setScen(sc.id,{ tRef:Number(v) })} options={[{v:"25",l:"25 °C (QCVN 19:2009)"},{v:"0",l:"0 °C (tính toán cháy)"}]}/>
             <NumIn label="Lưu lượng" unit={sc.flowMode==="N"?"Nm³/h":"m³/h"} value={sc.flow} onChange={v=>setScen(sc.id,{ flow:v })} min={0}/>
             <NumIn label="Nhiệt độ khí thải" unit="°C" value={sc.tC} onChange={v=>setScen(sc.id,{ tC:v })}/>
             <div style={{ fontSize:11, color:T.sub, alignSelf:"end", paddingBottom:8 }}>
