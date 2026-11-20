@@ -38,6 +38,10 @@ Tab **Nguồn Thấp · Đường · Mặt** (`src/lib/lowSources.ts`) theo Giá
 - Tab **Hồ Sơ Nhà Máy** (`src/data/facility.ts`): thông tin, tiếp giáp, quy mô, hóa chất cần kiểm soát, văn bản nội bộ (QĐ 385/2026, 759, 199…), nội quy an toàn, căn cứ pháp lý và các điểm số liệu chưa thống nhất giữa tài liệu. Nguồn: `docs/tong-hop-tai-lieu-nha-may.md`.
 - Tab **Huấn Luyện ATVSLĐ** (`src/data/training2026.ts`): 328 lượt học viên nhóm 4, 5, 6 năm 2026 — lọc, tìm kiếm, hạn huấn luyện lại, đánh dấu đã ký (lưu trên trình duyệt), chép danh sách sang Excel. Chỉ lưu họ tên, năm sinh, bộ phận; không lưu số CCCD.
 
+## Biểu mẫu ISO 14001
+
+Tab **Biểu Mẫu ISO 14001** (`src/data/isoForms.ts`): biểu mẫu điện tử MT-HD04-BM02 (nhật ký nước thải), MT-HD04-BM06 (biên bản dừng xả), MT-HD05-BM03/04 (nhật ký nồi hơi, lò đốt), MT-HD07-06/05 (sổ nhà thầu, cam kết), MT-HD07-02 (phiếu giám sát nhà thầu), MT-QT04-BM01 (phiếu MOC, có sẵn 5 thay đổi đang mở); tự cảnh báo giá trị vượt giới hạn; danh mục tài liệu cấp 2, biểu mẫu, bộ Fxxx; 10 tồn tại có chế tài (Sổ tay Phụ lục 4). Bản ghi lưu trên trình duyệt, chép sang Excel.
+
 ## Deploy
 
 App xuất ra web tĩnh (`output: "export"`), không cần Next.js server khi chạy.

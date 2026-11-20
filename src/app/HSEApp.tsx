@@ -7,6 +7,7 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
 import { SESSIONS, TRAINEES } from "../data/training2026";
+import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
@@ -2444,6 +2445,143 @@ function FacilityModule() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODULE: BIỂU MẪU & HỒ SƠ ISO 14001
+// ═══════════════════════════════════════════════════════════════
+const FORM_STORE = "hse-isoforms-v1";
+const fmtCell = (f, v) => f?.type==="check" ? (v ? "✓" : "—") : f?.type==="date" && v ? fmtDateVi(v) : (v ?? "");
+
+function DigitalForm({ def, records, setRecords }) {
+  const blank = () => Object.fromEntries(def.fields.map(f=>[f.k, f.type==="check" ? false : f.k==="date" ? new Date().toISOString().slice(0,10) : ""]));
+  const [rec, setRec] = useState(blank);
+  const [editIdx, setEditIdx] = useState(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(()=>{ setRec(blank()); setEditIdx(null); }, [def.code]);
+  const warns = def.fields.map(f=>f.warn?.(rec[f.k], rec)).filter(Boolean);
+  const missing = def.fields.filter(f=>f.required && (rec[f.k]===""||rec[f.k]==null)).map(f=>f.label);
+  const save = () => {
+    if (missing.length) return;
+    const r = { ...rec, _ts: Date.now() };
+    setRecords(list => editIdx==null ? [r, ...list] : list.map((x,i)=>i===editIdx ? r : x));
+    setRec(blank()); setEditIdx(null);
+  };
+  const tsv = () => [def.fields.map(f=>f.label), ...records.map(r=>def.fields.map(f=>String(fmtCell(f, r[f.k])).replace(/\s+/g," ")))].map(r=>r.join("\t")).join("\n");
+  const copy = async () => { try { await navigator.clipboard.writeText(tsv()); setCopied(true); setTimeout(()=>setCopied(false), 2000); } catch(e) {} };
+  const recWarn = r => def.fields.some(f=>f.warn?.(r[f.k], r));
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+
+  return (
+    <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-start" }}>
+      <div style={{ ...card, flex:"1 1 340px", maxWidth:520 }}>
+        <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}><Mono c={T.green} s={12}>{def.code}</Mono><span style={{ fontSize:10, color:T.dim }}>{def.source}</span></div>
+        <Syne s={14} style={{ display:"block", marginTop:4 }}>{def.title}</Syne>
+        <div style={{ fontSize:11, color:T.sub, lineHeight:1.6, margin:"6px 0 14px" }}>{def.purpose}</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          {def.fields.map(f=>{
+            const w = f.warn?.(rec[f.k], rec);
+            const lab = <div style={{ fontSize:10, fontWeight:700, color:T.sub, marginBottom:5, textTransform:"uppercase", letterSpacing:".5px" }}>{f.label}{f.required && <span style={{ color:T.red }}> *</span>}{f.unit && <span style={{ color:T.dim, textTransform:"none" }}> ({f.unit})</span>}</div>;
+            const st = { ...inputStyle(false), padding:"8px 11px", borderColor:w?T.amber:T.border };
+            const span = f.wide || f.type==="textarea" || f.type==="check" ? { gridColumn:"1 / -1" } : {};
+            if (f.type==="check") return (
+              <label key={f.k} style={{ ...span, display:"flex", gap:8, alignItems:"center", fontSize:12, color:T.text, cursor:"pointer" }}>
+                <input type="checkbox" checked={!!rec[f.k]} onChange={e=>setRec(r=>({ ...r, [f.k]:e.target.checked }))} style={{ accentColor:T.green, width:16, height:16 }}/>{f.label}
+              </label>);
+            return (
+              <label key={f.k} style={{ display:"block", minWidth:0, ...span }}>{lab}
+                {f.type==="select" ? <select value={rec[f.k]} onChange={e=>setRec(r=>({ ...r, [f.k]:e.target.value }))} style={{ ...st, cursor:"pointer" }}><option value="">— chọn —</option>{f.options.map(o=><option key={o} value={o}>{o}</option>)}</select>
+                  : f.type==="textarea" ? <textarea rows={2} value={rec[f.k]} onChange={e=>setRec(r=>({ ...r, [f.k]:e.target.value }))} style={{ ...st, resize:"vertical" }}/>
+                  : <input type={f.type} step="any" value={rec[f.k]} onChange={e=>setRec(r=>({ ...r, [f.k]:e.target.value }))} style={st}/>}
+                {w && <div style={{ fontSize:10, color:T.amber, marginTop:3 }}>⚠ {w}</div>}
+              </label>);
+          })}
+        </div>
+        {warns.length>0 && <div style={{ marginTop:12 }}><AlertBox level="warn" compact msg={`${warns.length} giá trị bất thường — ghi rõ biện pháp xử lý ở ô sự cố; báo Cán bộ phụ trách Môi trường.`}/></div>}
+        <div style={{ display:"flex", gap:8, marginTop:12, alignItems:"center", flexWrap:"wrap" }}>
+          <Btn small color={T.green} onClick={save} disabled={missing.length>0}>{editIdx==null ? "Lưu bản ghi" : "Cập nhật bản ghi"}</Btn>
+          {editIdx!=null && <Btn small outline color={T.sub} onClick={()=>{ setRec(blank()); setEditIdx(null); }}>Hủy sửa</Btn>}
+          {missing.length>0 && <span style={{ fontSize:10, color:T.dim }}>Còn thiếu: {missing.join(", ")}</span>}
+        </div>
+      </div>
+
+      <div style={{ ...card, flex:"999 1 480px" }}>
+        <SectionHeader title={`Sổ ghi — ${records.length} bản ghi`} sub="Lưu trên trình duyệt này · bấm một dòng để sửa · ⚠ = có giá trị bất thường"
+          action={records.length>0 && <Btn small outline color={T.cyan} onClick={copy}>{copied?"✓ Đã chép":"Chép sổ (Excel)"}</Btn>}/>
+        {records.length===0 ? <div style={{ padding:"30px 0", textAlign:"center", fontSize:12, color:T.dim }}>Chưa có bản ghi. Điền phiếu bên trái và bấm "Lưu bản ghi".</div> : (
+          <div style={{ overflowX:"auto", maxHeight:520, overflowY:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11.5, minWidth:560 }}>
+              <thead><tr>{["", ...def.listCols.map(k=>def.fields.find(f=>f.k===k)?.label), ""].map((h,i)=>(
+                <th key={i} style={{ position:"sticky", top:0, background:T.card, textAlign:"left", padding:"6px 8px", color:T.dim, fontSize:9.5, textTransform:"uppercase", letterSpacing:".4px", borderBottom:`1px solid ${T.border}` }}>{h}</th>))}</tr></thead>
+              <tbody>{records.map((r,i)=>(
+                <tr key={r._ts||i} onClick={()=>{ setRec({ ...blank(), ...r }); setEditIdx(i); }} style={{ cursor:"pointer", background:editIdx===i?`${T.green}10`:"transparent" }}>
+                  <td style={{ padding:"6px 8px", color:T.amber }}>{recWarn(r)?"⚠":""}</td>
+                  {def.listCols.map(k=>{ const f = def.fields.find(x=>x.k===k); const v = String(fmtCell(f, r[k])); return <td key={k} style={{ padding:"6px 8px", color:T.text, maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }} title={v}>{v}</td>; })}
+                  <td style={{ padding:"6px 8px" }}><button onClick={e=>{ e.stopPropagation(); setRecords(list=>list.filter((_,j)=>j!==i)); if (editIdx===i) { setEditIdx(null); setRec(blank()); } }} style={{ background:"none", border:"none", color:T.dim, cursor:"pointer", fontSize:13 }} aria-label="Xóa bản ghi">×</button></td>
+                </tr>))}</tbody>
+            </table>
+          </div>)}
+      </div>
+    </div>
+  );
+}
+
+function IsoFormsModule() {
+  const [view, setView] = useState(FORMS[0].code);
+  const [store, setStore] = useState(()=>{
+    let s = {}; try { s = JSON.parse(localStorage.getItem(FORM_STORE)||"{}"); } catch(e) {}
+    for (const f of FORMS) if (!s[f.code] && f.seed) s[f.code] = f.seed.map((r,i)=>({ ...r, _ts:i+1 }));
+    return s;
+  });
+  useEffect(()=>{ try { localStorage.setItem(FORM_STORE, JSON.stringify(store)); } catch(e) {} }, [store]);
+  const def = FORMS.find(f=>f.code===view);
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+  const tabs = [...FORMS.map(f=>({ id:f.code, label:f.code, n:(store[f.code]||[]).length })), { id:"catalog", label:"Danh mục tài liệu & biểu mẫu" }, { id:"gaps", label:"Tồn tại có chế tài" }];
+  const STAT_C = s => s.startsWith("Cần") ? T.red : s.startsWith("Xác nhận") ? T.amber : T.green;
+
+  return (
+    <div className="anim-fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setView(t.id)} style={{ padding:"7px 12px", borderRadius:9, cursor:"pointer", fontFamily:"inherit", fontSize:11, fontWeight:700,
+            background:view===t.id?`${T.green}18`:T.card, color:view===t.id?T.green:T.sub, border:`1px solid ${view===t.id?T.green+"55":T.border}` }}>
+            {t.label}{t.n!=null && <span style={{ marginLeft:6, color:T.dim, fontWeight:500 }}>{t.n}</span>}
+          </button>))}
+      </div>
+
+      {def && <DigitalForm def={def} records={store[def.code]||[]} setRecords={fn=>setStore(s=>({ ...s, [def.code]: typeof fn==="function" ? fn(s[def.code]||[]) : fn }))}/>}
+
+      {view==="catalog" && <>
+        <div style={card}>
+          <SectionHeader title="Tài liệu cấp 2 — quy trình, hướng dẫn" sub="Sổ tay MT–AT–PCCC lần 02, Phụ lục 1"/>
+          <Table heads={["Mã","Tên","Điều ISO 14001","Tình trạng"]} rows={PROCEDURES.map(([c,n,iso,s],i)=>(
+            <tr key={i}><TD><Mono c={T.text}>{c}</Mono></TD><TD style={{ color:T.text }}>{n}</TD><TD style={{ color:T.sub }}>{iso}</TD><TD><Pill label={s} color={STAT_C(s)} size={9}/></TD></tr>))}/>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(380px, 1fr))", gap:14 }}>
+          <div style={card}>
+            <SectionHeader title="Biểu mẫu theo tài liệu" sub="● = đã có biểu mẫu điện tử trong tab này"/>
+            <Table heads={["Tài liệu","Mã","Tên biểu mẫu"]} rows={FORM_CATALOG.map(([d,c,n,dig])=>(
+              <tr key={c}><TD style={{ color:T.sub }}>{d}</TD><TD><Mono c={dig?T.green:T.text}>{dig?"● ":""}{c}</Mono></TD><TD style={{ color:T.text, fontSize:11 }}>{n}</TD></tr>))}/>
+          </div>
+          <div style={card}>
+            <SectionHeader title="Bộ biểu mẫu HSE mã Fxxx" sub="Sổ tay Phụ lục 6 — rà soát 25/10/2026 (80 file)"/>
+            <Table heads={["Mục","Nhóm","Mã","Tình trạng"]} rows={F_CATALOG.map(([m,g,c,s])=>(
+              <tr key={c}><TD style={{ color:T.sub, fontSize:11 }}>{m}</TD><TD style={{ color:T.text, fontSize:11 }}>{g}</TD><TD><Mono c={T.text}>{c}</Mono></TD><TD style={{ color:T.sub, fontSize:11 }}>{s}</TD></tr>))}/>
+          </div>
+        </div>
+        <div style={card}>
+          <SectionHeader title="Việc cần xác minh trước khi trình ký" sub="Từ trang ghi chú nội bộ của từng tài liệu"/>
+          {OPEN_ITEMS.map(([d,t],i)=><div key={i} style={{ display:"flex", gap:10, padding:"5px 0", fontSize:11.5, borderBottom:`1px solid ${T.border}55` }}><Mono c={T.sub}>{d}</Mono><span style={{ color:T.text }}>{t}</span></div>)}
+        </div>
+      </>}
+
+      {view==="gaps" && <div style={card}>
+        <SectionHeader title="10 tồn tại có chế tài cần xác minh" sub="Sổ tay Phụ lục 4 — mức phạt là trần đối với tổ chức nếu bị kết luận vi phạm · tự kiểm tra 207 nghĩa vụ 6 tháng/lần"/>
+        <Table heads={["Tồn tại","Căn cứ xử phạt","Mức phạt tổ chức","Việc cần làm"]} rows={PENALTY_GAPS.map(([g,b,p,a],i)=>(
+          <tr key={i}><TD style={{ color:T.text, fontWeight:600 }}>{g}</TD><TD style={{ color:T.sub, fontSize:11 }}>{b}</TD><TD><Pill label={p} color={T.red} size={9}/></TD><TD style={{ color:T.sub, fontSize:11 }}>{a}</TD></tr>))}/>
+      </div>}
+    </div>
+  );
+}
+
 const NAV_GROUPS = [
   {
     group:"🌍 Môi Trường",
@@ -2457,6 +2595,7 @@ const NAV_GROUPS = [
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
+      { id:"isoforms",   icon:"📋", label:"Biểu Mẫu ISO 14001" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
     ]
   },
@@ -2581,6 +2720,7 @@ export default function App() {
       case "lowsrc":      return <LowSourceModule/>;
       case "training":    return <TrainingModule/>;
       case "facility":    return <FacilityModule/>;
+      case "isoforms":    return <IsoFormsModule/>;
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;
