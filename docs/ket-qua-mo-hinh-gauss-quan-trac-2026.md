@@ -49,7 +49,20 @@ Theo từng đợt (ống sấy 15 m): NO₂ đợt 1 = 35,1 μg/m³ (18 %), đ�
 
 So với lần chạy trước (σ Briggs 1973, chưa có cuốn xuống đỉnh ống, độ nâng động lượng và lớp xáo trộn), kết quả ISC3 thấp hơn khoảng 20–35 %: σz Pasquill–Gifford lớp A gần nguồn nhỏ hơn Briggs nên điều kiện bất lợi nhất chuyển sang lớp C.
 
-## 3. Giả định và hạn chế
+## 3. So sánh các sơ đồ tính (Giáo trình Kiểm soát ô nhiễm không khí, mục 1.2.2)
+
+Nguồn 01, NO₂ 1 giờ lớn nhất (sàng lọc 54 tổ hợp khí tượng), μg/m³ và % QCVN 05:2023:
+
+| Sơ đồ | Lò than @ giới hạn GPMT (NOₓ 680 mg/Nm³) | Lò than thực đo (NOₓ 34 mg/Nm³) |
+|---|---|---|
+| σ Pasquill–Gifford (ISC3) + độ nâng ISC3 — **mặc định** | 141 (71 %) | 6,7 (3 %) |
+| σ Briggs 1973 + độ nâng ISC3 | 219 (109 %) | 10,3 (5 %) |
+| σ Hà Lan (Bảng 1.2), z₀ = 0,1–0,3 m + độ nâng ISC3 | 63–64 (31–32 %) | 3,0 (1–2 %) |
+| σ Pasquill–Gifford + độ nâng theo Q_H (PT 1.9–1.13) | 137 (69 %) | 6,5 (3 %) |
+
+Công thức độ nâng (ISC3 hay theo hàm nhiệt Q_H) lệch nhau < 3 %; sơ đồ hệ số phân tán quyết định kết quả. σ Hà Lan ứng với thời gian trung bình 1 giờ và có độ nhám nên rộng hơn, cho nồng độ khoảng một nửa so với Pasquill–Gifford. Hồ sơ pháp lý nên dùng Pasquill–Gifford (ISC3) — bảo thủ hơn và là sơ đồ của mô hình pháp quy US EPA; các sơ đồ khác dùng để đánh giá độ nhạy.
+
+## 4. Giả định và hạn chế
 
 - Chiều cao ống khói lò sấy chưa có trong bản vẽ hoàn công → giả định 15 m, có bảng độ nhạy 10–20 m. Đường kính: Ø1,2 m (DC1, DC2) theo ống dẫn của lọc bụi 55.000 m³/h; Ø1,8 m (DC3) theo bản vẽ trạm quan trắc tự động.
 - Đợt 1 không đo nhiệt độ → lấy theo đợt 2 cùng ống khói. "<10" lấy bằng 10; "KPH" lấy bằng LOD.

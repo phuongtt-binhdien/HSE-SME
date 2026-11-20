@@ -206,3 +206,40 @@ test("Hệ số phát thải (NPI Eq. 8) và phương trình Deutsch", () => {
   assert.equal(AP42_FACTORS.find(f => f.id === "urea-drum")!.pmC, 0.115);
   close(deutschEfficiency(0.1, 300, 30), 1 - Math.exp(-1));
 });
+
+import { sigmasNL, averagingTimeFactor, pasquillClass, heatEmissionMW, plumeRiseTextbook } from "../src/lib/gaussPlume.ts";
+
+test("Giáo trình: σ Mô hình quốc gia Hà Lan (Bảng 1.2) tính tay, z₀ = 0,1 m thì C_z0 = 1", () => {
+  const r = sigmasNL(1000, "D", 0.1);
+  close(r.sy, 0.47 * Math.pow(1000, 0.907) * Math.pow(0.1, 0.2));
+  close(r.sz, 0.2 * Math.pow(1000, 0.76));
+  // z₀ lớn hơn → phân tán mạnh hơn
+  assert.ok(sigmasNL(1000, "D", 1).sz > r.sz && sigmasNL(1000, "D", 1).sy > r.sy);
+  // Ổn định → hẹp hơn không ổn định
+  assert.ok(sigmasNL(500, "F", 0.1).sz < sigmasNL(500, "A", 0.1).sz);
+});
+
+test("Giáo trình: hệ số thời gian trung bình (PT 1.6) và phân loại Pasquill (Bảng 1.1)", () => {
+  assert.equal(averagingTimeFactor(60, 60), 1);
+  close(averagingTimeFactor(3, 60, 0.3), Math.pow(0.05, 0.3));
+  assert.equal(pasquillClass(1.5, "strong"), "A");
+  assert.equal(pasquillClass(2.5, "moderate"), "B");
+  assert.equal(pasquillClass(4, "slight"), "C");
+  assert.equal(pasquillClass(2.5, "clear"), "F");
+  assert.equal(pasquillClass(4, "overcast"), "D");
+  assert.equal(pasquillClass(7, "strong"), "C");
+});
+
+test("Giáo trình: độ nâng theo hàm nhiệt Q_H — liên tục tại 6 MW, khớp Briggs ISC3, nguồn lạnh dùng Stumke", () => {
+  // Hai nhánh PT (1.9)/(1.10) gặp nhau tại 6 MW (lệch < 1 %)
+  close(109 * Math.pow(6, 0.75), 143 * Math.pow(6, 0.6), 0.01);
+  // Q_H = 1,36·10⁻³ × Q_V0 × ΔT
+  close(heatEmissionMW(10, 1, 400, 300), 1.36e-3 * (10 * Math.PI / 4) * (273.15 / 400) * 100);
+  // Nguồn nóng: cùng bậc độ lớn với Briggs ISC3 (lệch < 25 %)
+  const tb = plumeRiseTextbook(12, 1.2, 343.15, 303.15, 3, "D").final;
+  const isc = plumeRiseISC3(12, 1.2, 343.15, 303.15, 3, "D").final;
+  assert.ok(Math.abs(tb - isc) / isc < 0.25, `${tb} vs ${isc}`);
+  // Nguồn lạnh: ΔH = 1,5·vₛ·d/U
+  const cold = plumeRiseTextbook(15, 1.2, 304, 303.15, 4, "D");
+  assert.equal(cold.type, "momentum"); close(cold.final, 1.5 * 15 * 1.2 / 4);
+});

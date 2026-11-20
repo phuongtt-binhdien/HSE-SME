@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from "recharts";
 import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN,
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
-  AP42_FACTORS, emissionRateFromFactor } from "../lib/gaussPlume";
+  AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN SYSTEM — Industrial Precision
@@ -1496,7 +1496,7 @@ function DispersionModule() {
     cStack:50, flow:60000, qDirect:0.833, limit:200, bg:20,
     hs:25, d:1.2, vs:12, tsC:70,
     u10:2.5, taC:30, stability:"D", terrain:"rural", windProfile:true, riseMode:"final",
-    sigmaScheme:"pg", downwash:true, mixMode:"none", mixH:800, halfLife:"",
+    sigmaScheme:"pg", z0:0.1, riseScheme:"isc3", avgTime:"", downwash:true, mixMode:"none", mixH:800, halfLife:"", sun:"moderate",
     efId:"urea-drum", efBasis:"unc", prod:20, ce:99,
     rx:500, ry:0, rz:1.5,
   });
@@ -1519,8 +1519,8 @@ function DispersionModule() {
     hs:n(p.hs), d:n(p.d), vs:n(p.vs), Ts:celsiusToK(n(p.tsC)), Ta:celsiusToK(n(p.taC)),
     riseMode:p.riseMode, windProfile:p.windProfile, sigmaScheme:p.sigmaScheme, stackTipDownwash:p.downwash,
     mixingHeight: p.mixMode==="screen3" ? "screen3" : p.mixMode==="set" ? n(p.mixH) : null,
-    halfLifeH: n(p.halfLife) || null,
-  }), [Q, p.u10, p.stability, p.terrain, p.hs, p.d, p.vs, p.tsC, p.taC, p.riseMode, p.windProfile, p.sigmaScheme, p.downwash, p.mixMode, p.mixH, p.halfLife]);
+    halfLifeH: n(p.halfLife) || null, z0: n(p.z0) || 0.1, riseScheme:p.riseScheme, avgTimeMin: n(p.avgTime) || null,
+  }), [Q, p.u10, p.stability, p.terrain, p.hs, p.d, p.vs, p.tsC, p.taC, p.riseMode, p.windProfile, p.sigmaScheme, p.downwash, p.mixMode, p.mixH, p.halfLife, p.z0, p.riseScheme, p.avgTime]);
 
   const z = n(p.rz), bg = n(p.bg), limit = n(p.limit);
   const mx = useMemo(()=>maxOnCenterline(model, z), [model, z]);
@@ -1528,7 +1528,7 @@ function DispersionModule() {
   const totalPoint = cPoint + bg, totalMax = mx.c + bg;
   const pctPoint = limit>0 ? totalPoint/limit*100 : 0;
   const pctMax = limit>0 ? totalMax/limit*100 : 0;
-  const sg = n(p.rx)>=X_MIN ? sigmas(n(p.rx), p.stability, p.terrain, p.sigmaScheme) : null;
+  const sg = n(p.rx)>=X_MIN ? sigmas(n(p.rx), p.stability, p.terrain, p.sigmaScheme, n(p.z0)||0.1) : null;
 
   // Miền vẽ: tới ~3 lần khoảng cách cực đại, làm tròn đẹp
   const xPlot = useMemo(()=>{
@@ -1537,10 +1537,10 @@ function DispersionModule() {
     return Math.ceil(raw/(mag/2))*(mag/2);
   }, [mx.x, p.rx]);
   const yPlot = useMemo(()=>{
-    const raw = Math.max(sigmas(xPlot, p.stability, p.terrain, p.sigmaScheme).sy*2.5, 100);
+    const raw = Math.max(sigmas(xPlot, p.stability, p.terrain, p.sigmaScheme, n(p.z0)||0.1).sy*2.5, 100);
     const mag = Math.pow(10, Math.floor(Math.log10(raw)));
     return Math.ceil(raw/(mag/2))*(mag/2);
-  }, [xPlot, p.stability, p.terrain, p.sigmaScheme]);
+  }, [xPlot, p.stability, p.terrain, p.sigmaScheme, p.z0]);
 
   const profile = useMemo(()=>{
     const pts = [];
@@ -1615,16 +1615,32 @@ function DispersionModule() {
             <NumIn label="Nhiệt độ không khí" unit="°C" value={p.taC} onChange={set("taC")}/>
             <SelIn label="Lớp ổn định" value={p.stability} onChange={set("stability")} options={Object.entries(STABILITY_LABELS).map(([v,l])=>({v,l}))}/>
             <SelIn label="Địa hình" value={p.terrain} onChange={set("terrain")} options={[{v:"rural",l:"Nông thôn / trống trải"},{v:"urban",l:"Đô thị / công nghiệp"}]}/>
+            <div style={{ gridColumn:"1 / -1", background:T.ghost, borderRadius:10, padding:"9px 10px", display:"grid", gridTemplateColumns:"1fr auto", gap:8, alignItems:"end" }}>
+              <SelIn label="Gợi ý lớp (Bảng 1.1 Pasquill)" value={p.sun} onChange={set("sun")} options={[
+                {v:"strong",l:"Ngày — nắng mạnh"},{v:"moderate",l:"Ngày — nắng vừa"},{v:"slight",l:"Ngày — nắng yếu"},
+                {v:"overcast",l:"Đêm — mây ≥ 50 %"},{v:"clear",l:"Đêm — ít mây ≤ 3/8"}]}/>
+              {(()=>{ const k = pasquillClass(n(p.u10), p.sun); const first = k[0]; return (
+                <Btn small outline color={T.green} onClick={()=>set("stability")(first)}>Lớp {k}{k.length>1?` → dùng ${first}`:""}</Btn>); })()}
+            </div>
             <label style={{ gridColumn:"1 / -1", display:"flex", gap:8, alignItems:"center", fontSize:11, color:T.sub, cursor:"pointer" }}>
               <input type="checkbox" checked={p.windProfile} onChange={e=>set("windProfile")(e.target.checked)} style={{ accentColor:T.green }}/>
               Quy đổi gió về độ cao ống khói (hàm mũ EPA)
             </label>
           </InGroup>
 
-          <InGroup title="Tùy chọn ISC3">
+          <InGroup title="Tùy chọn mô hình (ISC3 · Giáo trình)">
             <div style={{ gridColumn:"1 / -1" }}>
-              <SelIn label="Hệ số phân tán (nông thôn)" value={p.sigmaScheme} onChange={set("sigmaScheme")} options={[{v:"pg",l:"Pasquill–Gifford (ISC3, mặc định)"},{v:"briggs",l:"Briggs (1973) vùng trống trải"}]}/>
+              <SelIn label="Hệ số phân tán σy, σz" value={p.sigmaScheme} onChange={set("sigmaScheme")} options={[{v:"pg",l:"Pasquill–Gifford (ISC3, mặc định)"},{v:"briggs",l:"Briggs (1973) vùng trống trải"},{v:"nl",l:"Hà Lan có độ nhám z₀ (Giáo trình, Bảng 1.2)"}]}/>
             </div>
+            {p.sigmaScheme==="nl" && <>
+              <NumIn label="Độ nhám z₀" unit="m" value={p.z0} onChange={set("z0")} min={0} hint="0,03 trống trải · 0,1 nông nghiệp · 0,5–1 KCN/đô thị"/>
+              <div style={{ fontSize:10, color:T.dim, alignSelf:"center" }}>σy = a·x^b·z₀^0,2; σz = c·x^d·(10z₀)^(0,53x^−0,22)</div>
+            </>}
+            <div style={{ gridColumn:"1 / -1" }}>
+              <SelIn label="Công thức độ nâng" value={p.riseScheme} onChange={set("riseScheme")} options={[{v:"isc3",l:"ISC3 — Briggs lực nổi/động lượng (ΔTc)"},{v:"textbook",l:"Giáo trình — theo hàm nhiệt Q_H (PT 1.9–1.13)"}]}/>
+            </div>
+            <NumIn label="Thời gian trung bình" unit="phút" value={p.avgTime} onChange={set("avgTime")} min={0} hint="Hiệu chỉnh σy (t/60)^0,3 — để trống = 60 phút"/>
+            <div/>
             <SelIn label="Lớp xáo trộn" value={p.mixMode} onChange={set("mixMode")} options={[{v:"none",l:"Không giới hạn"},{v:"screen3",l:"SCREEN3 (320·u₁₀)"},{v:"set",l:"Nhập chiều cao"}]}/>
             {p.mixMode==="set" ? <NumIn label="Chiều cao xáo trộn" unit="m" value={p.mixH} onChange={set("mixH")} min={0}/> : <div/>}
             <NumIn label="Chu kỳ bán hủy" unit="giờ" value={p.halfLife} onChange={set("halfLife")} min={0} hint="Để trống = không phân hủy"/>
@@ -1706,9 +1722,9 @@ function DispersionModule() {
               ["Gió tính toán u", `${fmtN(model.u,2)} m/s`, p.windProfile?`u₁₀·(hₛ/10)^p, p = ${windExponent(p.stability,p.terrain)}`:"Dùng gió 10 m"],
               ["Thông lượng nổi Fb · động lượng Fm", `${fmtN(model.F,3)} m⁴/s³ · ${fmtN(model.Fm,2)} m⁴/s²`, "Fb = g·vₛ·d²·ΔT/(4Tₛ); Fm = vₛ²·d²·Tₐ/(4Tₛ)"],
               ["Chiều cao ống sau cuốn xuống h'", `${fmtN(model.hsAdj,1)} m`, p.downwash?(model.hsAdj<n(p.hs)-0.05?"hₛ + 2d·(vₛ/u − 1,5)":"vₛ ≥ 1,5·u — không cuốn xuống"):"Tắt"],
-              ["Độ nâng cuối cùng Δh", `${fmtN(model.rise.final,1)} m`, p.riseMode==="none"?"Không dùng":model.rise.type==="momentum"?`Động lượng chi phối (ΔT = ${fmtN(n(p.tsC)-n(p.taC),1)} K < ΔTc = ${fmtN(model.rise.dTc,1)} K)`:model.rise.type==="buoyancy"?`Lực nổi chi phối (ΔTc = ${fmtN(model.rise.dTc,1)} K), đạt tại x ≈ ${fmtDist(model.rise.xFinal)}`:"—"],
+              ["Độ nâng cuối cùng Δh", `${fmtN(model.rise.final,1)} m`, p.riseMode==="none"?"Không dùng":p.riseScheme==="textbook"?`Giáo trình: Q_H = ${fmtN(heatEmissionMW(n(p.vs),n(p.d),celsiusToK(n(p.tsC)),celsiusToK(n(p.taC))),3)} MW — ${model.rise.type==="momentum"?"nguồn lạnh, Stumke 1,5·vₛ·d/U":["E","F"].includes(p.stability)?"65·(Q_H/U)^⅓":"Briggs đơn giản hóa 109·Q_H^¾/U hoặc 143·Q_H^⅗/U"}`:model.rise.type==="momentum"?`Động lượng chi phối (ΔT = ${fmtN(n(p.tsC)-n(p.taC),1)} K < ΔTc = ${fmtN(model.rise.dTc,1)} K)`:model.rise.type==="buoyancy"?`Lực nổi chi phối (ΔTc = ${fmtN(model.rise.dTc,1)} K), đạt tại x ≈ ${fmtDist(model.rise.xFinal)}`:"—"],
               ["Lớp xáo trộn L", Number.isFinite(model.L)?`${fmtN(model.L,0)} m`:"Không giới hạn", p.mixMode==="screen3"?"SCREEN3: max(320·u₁₀, Hₑ + 1); E–F không giới hạn":p.mixMode==="set"?"Nhập":"Chỉ phản xạ mặt đất"],
-              ["σy, σz tại điểm nhận", sg?`${fmtN(sg.sy,1)} m · ${fmtN(sg.sz,1)} m`:"—", `${p.terrain==="urban"?"Briggs/McElroy–Pooler, đô thị":p.sigmaScheme==="pg"?"Pasquill–Gifford (ISC3), nông thôn":"Briggs (1973), nông thôn"}, lớp ${p.stability}`],
+              ["σy, σz tại điểm nhận", sg?`${fmtN(sg.sy*(n(p.avgTime)?Math.pow(n(p.avgTime)/60,0.3):1),1)} m · ${fmtN(sg.sz,1)} m`:"—", `${p.sigmaScheme==="nl"?`Hà Lan, z₀ = ${fmtN(n(p.z0)||0.1,2)} m`:p.terrain==="urban"?"Briggs/McElroy–Pooler, đô thị":p.sigmaScheme==="pg"?"Pasquill–Gifford (ISC3), nông thôn":"Briggs (1973), nông thôn"}, lớp ${p.stability}${n(p.avgTime)?`, σy × (${fmtN(n(p.avgTime),0)}/60)^0,3`:""}`],
               ["Nồng độ mô hình tại điểm nhận", `${fmtC(cPoint)} μg/m³`, `chưa cộng nền ${fmtC(bg)} μg/m³`],
               ["Cực đại trên trục gió", `${fmtC(mx.c)} μg/m³`, `x = ${fmtDist(mx.x)}, chưa cộng nền`],
             ].map(([a,b,c],i)=>(
@@ -1767,7 +1783,8 @@ function gpDerive(s, shared) {
   const flowA = s.flowMode==="N" ? actualFlow(flow, tC, tRef) : flow;
   const vs = exitVelocity(flowA, GPMT_STACK.d);
   const src = { terrain:shared.terrain, hs:GPMT_STACK.hs, d:GPMT_STACK.d, vs, Ts:celsiusToK(tC), Ta:celsiusToK(num(shared.taC) ?? 30), riseMode:"final", windProfile:true,
-    sigmaScheme:shared.sigmaScheme ?? "pg", stackTipDownwash:shared.downwash ?? true, mixingHeight:(shared.mixMode ?? "screen3")==="screen3" ? "screen3" : null };
+    sigmaScheme:shared.sigmaScheme ?? "pg", stackTipDownwash:shared.downwash ?? true, mixingHeight:(shared.mixMode ?? "screen3")==="screen3" ? "screen3" : null,
+    z0: num(shared.z0) ?? 0.3, riseScheme: shared.riseScheme ?? "isc3" };
   const Q = {};
   for (const p of GP_POLL) { const c = num(s.c[p.id]); Q[p.id] = c==null ? null : emissionRateFromStack(c, flowN); }
   return { flowN, flowA, vs, src, Q };
@@ -1838,7 +1855,7 @@ function GpmtModule() {
   }, [mapMax, recDist]);
   const yPlot = useMemo(()=>{
     if (!cur?.d) return 100;
-    const raw = Math.max(sigmas(xPlot, cur.scr.worst.stability, shared.terrain, shared.sigmaScheme ?? "pg").sy*2.5, 60);
+    const raw = Math.max(sigmas(xPlot, cur.scr.worst.stability, shared.terrain, shared.sigmaScheme ?? "pg", num(shared.z0) ?? 0.3).sy*2.5, 60);
     const mag = Math.pow(10, Math.floor(Math.log10(raw)));
     return Math.ceil(raw/(mag/2))*(mag/2);
   }, [xPlot, cur, shared.terrain]);
@@ -1856,7 +1873,7 @@ function GpmtModule() {
   const reportText = useMemo(()=>{
     const ok = results.filter(r=>r.d);
     const lines = [];
-    lines.push(`Đánh giá khả năng phát tán bụi, khí thải từ nguồn số 01 (ống khói cao ${fmtN(GPMT_STACK.hs,0)} m, đường kính ${fmtN(GPMT_STACK.d*1000,0)} mm, tọa độ X = ${GPMT_STACK.x}; Y = ${GPMT_STACK.y}, VN2000) được thực hiện bằng mô hình vệt khói Gauss: thuật toán EPA ISC3: hệ số phân tán σy, σz ${shared.terrain==="urban"?"Briggs/McElroy–Pooler (đô thị)":(shared.sigmaScheme ?? "pg")==="pg"?"Pasquill–Gifford (nông thôn)":"Briggs 1973 (nông thôn)"}, tốc độ gió quy đổi về độ cao miệng ống khói theo hàm mũ, ${(shared.downwash ?? true)?"hiệu chỉnh cuốn xuống đỉnh ống khói, ":""}độ nâng luồng khói Briggs do lực nổi hoặc động lượng (xác định theo chênh nhiệt điểm giao ΔTc), ${(shared.mixMode ?? "screen3")==="screen3"?"phản xạ mặt đất và lớp xáo trộn theo SCREEN3 (320·u₁₀)":"phản xạ mặt đất"}. Điều kiện khí tượng bất lợi nhất được xác định bằng phương pháp sàng lọc ${nCases} tổ hợp lớp ổn định khí quyển (A–F) – tốc độ gió (1–20 m/s) theo hướng dẫn SCREEN3 của US EPA; nhiệt độ không khí ${fmtN(num(shared.taC)??30,0)} °C; điểm tiếp nhận ở độ cao ${fmtN(z,1)} m. Kết quả được so sánh với giá trị giới hạn trung bình 1 giờ của QCVN 05:2023/BTNMT${bgMissing?" (chưa cộng nồng độ nền)":", đã cộng nồng độ nền khu vực"}.`);
+    lines.push(`Đánh giá khả năng phát tán bụi, khí thải từ nguồn số 01 (ống khói cao ${fmtN(GPMT_STACK.hs,0)} m, đường kính ${fmtN(GPMT_STACK.d*1000,0)} mm, tọa độ X = ${GPMT_STACK.x}; Y = ${GPMT_STACK.y}, VN2000) được thực hiện bằng mô hình vệt khói Gauss: thuật toán EPA ISC3: hệ số phân tán σy, σz ${(shared.sigmaScheme ?? "pg")==="nl"?`theo Mô hình quốc gia Hà Lan với độ nhám z₀ = ${fmtN(num(shared.z0) ?? 0.3,2)} m`:shared.terrain==="urban"?"Briggs/McElroy–Pooler (đô thị)":(shared.sigmaScheme ?? "pg")==="pg"?"Pasquill–Gifford (nông thôn)":"Briggs 1973 (nông thôn)"}, tốc độ gió quy đổi về độ cao miệng ống khói theo hàm mũ, ${(shared.downwash ?? true)?"hiệu chỉnh cuốn xuống đỉnh ống khói, ":""}${(shared.riseScheme ?? "isc3")==="textbook"?"độ nâng luồng khói theo hàm nhiệt Q_H (Briggs đơn giản hóa, Stumke cho nguồn lạnh), ":"độ nâng luồng khói Briggs do lực nổi hoặc động lượng (xác định theo chênh nhiệt điểm giao ΔTc), "}${(shared.mixMode ?? "screen3")==="screen3"?"phản xạ mặt đất và lớp xáo trộn theo SCREEN3 (320·u₁₀)":"phản xạ mặt đất"}. Điều kiện khí tượng bất lợi nhất được xác định bằng phương pháp sàng lọc ${nCases} tổ hợp lớp ổn định khí quyển (A–F) – tốc độ gió (1–20 m/s) theo hướng dẫn SCREEN3 của US EPA; nhiệt độ không khí ${fmtN(num(shared.taC)??30,0)} °C; điểm tiếp nhận ở độ cao ${fmtN(z,1)} m. Kết quả được so sánh với giá trị giới hạn trung bình 1 giờ của QCVN 05:2023/BTNMT${bgMissing?" (chưa cộng nồng độ nền)":", đã cộng nồng độ nền khu vực"}.`);
     for (const r of ok) {
       const parts = GP_POLL.filter(p=>r.per[p.id]).map(p=>`${p.name} ${fmtC(r.per[p.id].total)} μg/m³ (${fmtN(r.per[p.id].pct,0)}% giới hạn)`);
       lines.push(`- ${r.s.name} (${r.s.sched}; ${fmtN(r.d.flowN,0)} Nm³/h ở ${num(r.s.tRef)??0} °C, ${fmtN(num(r.s.tC),0)} °C, vận tốc thoát ${fmtN(r.d.vs,1)} m/s): nồng độ 1 giờ lớn nhất tại mặt đất ${parts.join("; ")}; xuất hiện ở khoảng cách ${fmtDist(r.scr.worst.x)} xuôi gió, điều kiện ổn định lớp ${r.scr.worst.stability}, gió 10 m ${fmtN(r.scr.worst.u10,1)} m/s.`);
@@ -2030,7 +2047,9 @@ function GpmtModule() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:12 }}>
           <NumIn label="Nhiệt độ không khí" unit="°C" value={shared.taC} onChange={v=>setShared({ taC:v })}/>
           <SelIn label="Địa hình" value={shared.terrain} onChange={v=>setShared({ terrain:v })} options={[{v:"rural",l:"Nông thôn"},{v:"urban",l:"Đô thị / công nghiệp"}]}/>
-          <SelIn label="σ nông thôn" value={shared.sigmaScheme ?? "pg"} onChange={v=>setShared({ sigmaScheme:v })} options={[{v:"pg",l:"Pasquill–Gifford (ISC3)"},{v:"briggs",l:"Briggs (1973)"}]}/>
+          <SelIn label="Hệ số phân tán σ" value={shared.sigmaScheme ?? "pg"} onChange={v=>setShared({ sigmaScheme:v })} options={[{v:"pg",l:"Pasquill–Gifford (ISC3)"},{v:"briggs",l:"Briggs (1973)"},{v:"nl",l:"Hà Lan, độ nhám z₀"}]}/>
+          {(shared.sigmaScheme ?? "pg")==="nl" && <NumIn label="Độ nhám z₀" unit="m" value={shared.z0 ?? 0.3} onChange={v=>setShared({ z0:v })} min={0}/>}
+          <SelIn label="Công thức độ nâng" value={shared.riseScheme ?? "isc3"} onChange={v=>setShared({ riseScheme:v })} options={[{v:"isc3",l:"ISC3 (ΔTc)"},{v:"textbook",l:"Giáo trình (Q_H)"}]}/>
           <SelIn label="Lớp xáo trộn" value={shared.mixMode ?? "screen3"} onChange={v=>setShared({ mixMode:v })} options={[{v:"screen3",l:"SCREEN3 (320·u₁₀)"},{v:"none",l:"Không giới hạn"}]}/>
           <label style={{ display:"flex", gap:8, alignItems:"center", fontSize:11, color:T.sub, cursor:"pointer", alignSelf:"end", paddingBottom:10 }}>
             <input type="checkbox" checked={shared.downwash ?? true} onChange={e=>setShared({ downwash:e.target.checked })} style={{ accentColor:T.green }}/>

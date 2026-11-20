@@ -6,8 +6,10 @@
 
 export type Stability = "A" | "B" | "C" | "D" | "E" | "F";
 export type Terrain = "rural" | "urban";
-/** "pg": Pasquill–Gifford theo bảng ISC3 (mặc định cho nông thôn); "briggs": công thức Briggs (1973) vùng trống trải. Đô thị luôn dùng Briggs/McElroy–Pooler. */
-export type SigmaScheme = "pg" | "briggs";
+/** "pg": Pasquill–Gifford theo bảng ISC3 (mặc định cho nông thôn); "briggs": công thức Briggs (1973) vùng trống trải;
+ *  "nl": Mô hình quốc gia Hà Lan có độ nhám z₀ (Giáo trình Kiểm soát ô nhiễm không khí, Bảng 1.2) — áp dụng cho mọi địa hình.
+ *  Với "pg"/"briggs", đô thị luôn dùng Briggs/McElroy–Pooler. */
+export type SigmaScheme = "pg" | "briggs" | "nl";
 
 export const G = 9.81;
 /** Khoảng cách tối thiểu tính toán (m) — tránh chia cho 0 sát nguồn. */
@@ -76,9 +78,40 @@ export function sigmasBriggs(x: number, cls: Stability, terrain: Terrain): { sy:
   return { sy, sz };
 }
 
-/** σy, σz (m): nông thôn theo sơ đồ chọn (mặc định Pasquill–Gifford ISC3), đô thị theo Briggs/McElroy–Pooler. */
-export function sigmas(x: number, cls: Stability, terrain: Terrain, scheme: SigmaScheme = "pg"): { sy: number; sz: number } {
+// Giáo trình Kiểm soát ô nhiễm không khí, Bảng 1.2 (Mô hình quốc gia Hà Lan, thời gian trung bình 1 giờ): [a, b, c, d]
+const NL_ABCD: Record<Stability, [number, number, number, number]> = {
+  A: [1.96, 0.865, 0.28, 0.9], B: [1.36, 0.855, 0.23, 0.85], C: [0.768, 0.897, 0.22, 0.8],
+  D: [0.47, 0.907, 0.2, 0.76], E: [0.359, 0.902, 0.15, 0.73], F: [0.238, 0.902, 0.12, 0.67],
+};
+
+/** σy = a·x^b·z₀^0,2; σz = c·x^d·C_z0, C_z0 = (10·z₀)^(0,53·x^−0,22) — x (m), z₀ độ nhám (m). PT (1.3)–(1.5). */
+export function sigmasNL(x: number, cls: Stability, z0: number): { sy: number; sz: number } {
+  const [a, b, c, d] = NL_ABCD[cls];
+  const cz0 = Math.pow(10 * z0, 0.53 * Math.pow(x, -0.22));
+  return { sy: a * Math.pow(x, b) * Math.pow(z0, 0.2), sz: c * Math.pow(x, d) * cz0 };
+}
+
+/** σy, σz (m): nông thôn theo sơ đồ chọn (mặc định Pasquill–Gifford ISC3), đô thị theo Briggs/McElroy–Pooler; "nl" theo độ nhám z₀. */
+export function sigmas(x: number, cls: Stability, terrain: Terrain, scheme: SigmaScheme = "pg", z0 = 0.1): { sy: number; sz: number } {
+  if (scheme === "nl") return sigmasNL(x, cls, z0);
   return terrain === "rural" && scheme === "pg" ? sigmasPG(x, cls) : sigmasBriggs(x, cls, terrain);
+}
+
+/** Hệ số hiệu chỉnh σy theo thời gian trung bình (PT 1.6): (t₁/t₂)^p, p = 0,15–0,5 (Hà Lan khuyến cáo 0,3). */
+export const averagingTimeFactor = (t1: number, t2: number, p = 0.3) => Math.pow(t1 / t2, p);
+
+/** Phân loại độ ổn định Pasquill (Giáo trình, Bảng 1.1). Ngày: "strong" | "moderate" | "slight" bức xạ mặt trời;
+ *  đêm: "overcast" (mây mỏng hoặc ≥ 50 % mây) | "clear" (≤ 3/8 mây). Trả về chuỗi lớp, ví dụ "A–B". */
+export function pasquillClass(u10: number, cond: "strong" | "moderate" | "slight" | "overcast" | "clear"): string {
+  const row = u10 < 2 ? 0 : u10 < 3 ? 1 : u10 < 5 ? 2 : u10 <= 6 ? 3 : 4;
+  const T: Record<typeof cond, string[]> = {
+    strong:   ["A", "A–B", "B", "C", "C"],
+    moderate: ["A–B", "B", "B–C", "C–D", "D"],
+    slight:   ["B", "C", "C", "D", "D"],
+    overcast: ["F", "E", "D", "D", "D"], // gió < 2 m/s ban đêm: bảng để trống, lấy F (bảo thủ)
+    clear:    ["F", "F", "E", "D", "D"],
+  };
+  return T[cond][row];
 }
 
 /** Số mũ hàm mũ profile gió p (EPA ISC3), dùng cho u(h) = u10·(h/10)^p. */
@@ -167,6 +200,29 @@ export function plumeRiseISC3(vs: number, d: number, Ts: number, Ta: number, us:
   return { final, xFinal: 0, at: () => final, type: "momentum", dTc };
 }
 
+/** Hàm nhiệt của khói Q_H (MW) = 1,36·10⁻³·Q_V0·(T − Tₐ), Q_V0 lưu lượng ở 0 °C (m³/s) — PT (1.12). */
+export function heatEmissionMW(vs: number, d: number, Ts: number, Ta: number): number {
+  const qv0 = ((vs * Math.PI * d * d) / 4) * (273.15 / Ts);
+  return Math.max(1.36e-3 * qv0 * (Ts - Ta), 0);
+}
+
+/**
+ * Độ nâng luồng khói theo Giáo trình Kiểm soát ô nhiễm không khí (Briggs đơn giản hóa, Mô hình quốc gia Hà Lan; Stumke):
+ * A–D: ΔH = 109·Q_H^¾/U (Q_H < 6 MW) hoặc 143·Q_H^⅗/U (Q_H ≥ 6 MW) — PT (1.9), (1.10); nguồn lạnh ΔH = 1,5·vₛ·d/U — PT (1.13),
+ * lấy giá trị lớn hơn. E–F: ΔH = 65·(Q_H/U)^⅓ — PT (1.11); độ nâng do tốc độ thải không đáng kể.
+ */
+export function plumeRiseTextbook(vs: number, d: number, Ts: number, Ta: number, u: number, cls: Stability): PlumeRise {
+  const QH = heatEmissionMW(vs, d, Ts, Ta);
+  if (cls === "E" || cls === "F") {
+    const final = 65 * Math.cbrt(QH / u);
+    return { final, xFinal: 0, at: () => final, type: QH > 0 ? "buoyancy" : "none" };
+  }
+  const thermal = QH <= 0 ? 0 : QH < 6 ? (109 * Math.pow(QH, 0.75)) / u : (143 * Math.pow(QH, 0.6)) / u;
+  const cold = (1.5 * vs * d) / u;
+  const final = Math.max(thermal, cold);
+  return { final, xFinal: 0, at: () => final, type: thermal >= cold ? "buoyancy" : "momentum" };
+}
+
 /** Chiều cao lớp xáo trộn dùng trong SCREEN3: A–D lấy max(320·u10, He + 1) m; E–F không giới hạn. */
 export const screen3MixingHeight = (cls: Stability, u10: number, He: number) =>
   cls === "E" || cls === "F" ? Infinity : Math.max(320 * u10, He + 1);
@@ -201,6 +257,14 @@ export interface PlumeInput {
   mixingHeight?: number | "screen3" | null;
   /** Chu kỳ bán hủy chất ô nhiễm (giờ); bỏ trống = không phân hủy (D = 1). */
   halfLifeH?: number | null;
+  /** Độ nhám bề mặt z₀ (m), dùng với sơ đồ σ "nl" (mặc định 0,1 m). */
+  z0?: number;
+  /** "isc3" (mặc định): Briggs lực nổi/động lượng theo ΔTc; "textbook": theo hàm nhiệt Q_H (Giáo trình, PT 1.9–1.13). */
+  riseScheme?: "isc3" | "textbook";
+  /** Hiệu chỉnh σy theo thời gian trung bình (PT 1.6): t₁ (phút) so với t₂ = avgRefMin (mặc định 60), số mũ avgExp (0,3). */
+  avgTimeMin?: number | null;
+  avgRefMin?: number;
+  avgExp?: number;
 }
 
 export interface PlumeModel {
@@ -246,7 +310,10 @@ export function buildModel(input: PlumeInput): PlumeModel {
   const F = buoyancyFlux(vs, d, Ts, Ta);
   const Fm = momentumFlux(vs, d, Ts, Ta);
   const hsAdj = input.stackTipDownwash === false ? hs : Math.max(stackTipDownwash(hs, d, vs, u), 0);
-  const rise: PlumeRise = riseMode === "none" ? { final: 0, xFinal: 0, at: () => 0, type: "none" } : plumeRiseISC3(vs, d, Ts, Ta, u, stability);
+  const rise: PlumeRise = riseMode === "none" ? { final: 0, xFinal: 0, at: () => 0, type: "none" }
+    : input.riseScheme === "textbook" ? plumeRiseTextbook(vs, d, Ts, Ta, u, stability) : plumeRiseISC3(vs, d, Ts, Ta, u, stability);
+  const z0 = input.z0 && input.z0 > 0 ? input.z0 : 0.1;
+  const fy = input.avgTimeMin && input.avgTimeMin > 0 ? averagingTimeFactor(input.avgTimeMin, input.avgRefMin ?? 60, input.avgExp ?? 0.3) : 1;
   const H = (x: number) => hsAdj + (riseMode === "gradual" ? rise.at(x) : rise.final);
   const mh = input.mixingHeight;
   const L = mh === "screen3" ? screen3MixingHeight(stability, u10, hsAdj + rise.final) : typeof mh === "number" && mh > 0 ? mh : Infinity;
@@ -254,7 +321,8 @@ export function buildModel(input: PlumeInput): PlumeModel {
 
   const conc = (x: number, y: number, z: number) => {
     if (x < X_MIN || Q <= 0) return 0;
-    const { sy, sz } = sigmas(x, stability, terrain, scheme);
+    const sg = sigmas(x, stability, terrain, scheme, z0);
+    const sy = sg.sy * fy, sz = sg.sz;
     const lateral = Math.exp(-(y * y) / (2 * sy * sy));
     const decay = psi ? Math.exp((-psi * x) / u) : 1;
     return ((Q / (2 * Math.PI * u * sy * sz)) * lateral * verticalTerm(z, H(x), sz, L) * decay) * 1e6;
