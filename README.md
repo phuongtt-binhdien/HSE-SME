@@ -29,6 +29,10 @@ Tab **Lan Truyền Khí Thải** tính nồng độ chất ô nhiễm trong khô
 
 Tab **GPMT Nguồn 01 — Lò Hơi**: 4 kịch bản vận hành của ống khói chung (lò sinh khối T2–T6 / lò than luân phiên T7–CN; số liệu thiết kế, xả bằng giới hạn GPMT, kết quả quan trắc), sàng lọc 54 tổ hợp lớp ổn định × tốc độ gió theo SCREEN3 để tìm điều kiện khí tượng bất lợi nhất, so sánh QCVN 05:2023 (1 giờ, cộng nền) và QCVN 19:2009 cột B (Kp 0,8; Kv 1,0), kiểm tra chiều cao GEP, nồng độ tại khu dân cư, xuất bảng và đoạn văn cho mục 2.2.2.c của hồ sơ. Số liệu nhập được lưu trên trình duyệt.
 
+## Nguồn thấp, nguồn đường, nguồn mặt
+
+Tab **Nguồn Thấp · Đường · Mặt** (`src/lib/lowSources.ts`) theo Giáo trình Kiểm soát ô nhiễm không khí, mục 1.2.3: nguồn thấp cạnh nhà rộng đứng độc lập (Bảng 1.3, PT 1.21–1.27, hệ số S PT 1.40–1.44, k số hóa từ Hình 1.6), nguồn đường (PT 1.48–1.50, σ Pasquill–Gifford), đường phố hẻm (PT 1.52–1.53), nguồn mặt Gifford–Hanna (PT 1.55, Bảng 1.5) và mô hình hộp cố định (PT 1.57).
+
 ## Deploy
 
 App xuất ra web tĩnh (`output: "export"`), không cần Next.js server khi chạy.

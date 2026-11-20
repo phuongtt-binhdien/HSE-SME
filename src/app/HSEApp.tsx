@@ -6,6 +6,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, Pol
 import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN,
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
+import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
 // DESIGN SYSTEM — Industrial Precision
@@ -2088,6 +2089,181 @@ function GpmtModule() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MODULE: NGUỒN THẤP · NGUỒN ĐƯỜNG · NGUỒN MẶT (Giáo trình, mục 1.2.3)
+// ═══════════════════════════════════════════════════════════════
+function ResultRow({ label, value, unit, sub, pct }) {
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:10, padding:"7px 0", borderBottom:`1px solid ${T.border}66` }}>
+      <div style={{ fontSize:11, color:T.sub, minWidth:0 }}>{label}{sub && <div style={{ fontSize:10, color:T.dim }}>{sub}</div>}</div>
+      <div style={{ textAlign:"right", whiteSpace:"nowrap" }}>
+        <span style={{ fontWeight:700, color:T.text, fontVariantNumeric:"tabular-nums" }}>{value}</span> <span style={{ fontSize:10, color:T.sub }}>{unit}</span>
+        {pct!=null && <div style={{ marginTop:2 }}><Pill label={`${pct>=100?"✕":"✓"} ${fmtN(pct,0)}% QCVN 05`} color={pct>=100?T.red:pct>=80?T.amber:T.green} size={9}/></div>}
+      </div>
+    </div>
+  );
+}
+
+function LowSourceModule() {
+  const card = { background:T.card, border:`1px solid ${T.border}`, borderRadius:14, padding:16, minWidth:0 };
+  const n = v => (v===""||v===null||!Number.isFinite(Number(v))) ? 0 : Number(v);
+  const [lim, setLim] = useState(200);
+
+  // 1. Nguồn thấp cạnh nhà rộng
+  const [b, setB] = useState({ case:"downwind", Mgs:0.6, L:15, h:12, Hnh:10, Hgh:30, l:60, m:0.3, x:20, y:0, xs:"" });
+  const sb = k => v => setB(s=>({ ...s, [k]:v }));
+  const bIn = { M:n(b.Mgs)*1000, L:n(b.L), h:n(b.h), Hnh:n(b.Hnh), Hgh:n(b.Hgh), l:n(b.l), m:n(b.m), x:n(b.x), y:n(b.y) };
+  const bOk = bIn.Hnh>0 && bIn.Hgh>bIn.Hnh && bIn.l>0;
+  const bRes = bOk ? (b.case==="downwind" ? wideBuildingDownwind(bIn) : wideBuildingWake(bIn)) : null;
+  const bProfile = useMemo(()=>{
+    if (!bOk) return [];
+    const pts = [];
+    for (let i=1;i<=60;i++) {
+      const x = i * Math.max(12*bIn.Hnh, 200) / 60;
+      const r = b.case==="downwind" ? wideBuildingDownwind({ ...bIn, x, y:0 }) : wideBuildingWake({ ...bIn, x, y:0 });
+      pts.push({ x:Math.round(x), c:+(r.Cx*1000).toPrecision(4) });
+    }
+    return pts;
+  }, [b, bOk]);
+
+  // 2. Nguồn đường
+  const [r, setR] = useState({ M:0.002, u:2, H:0.5, x:100, l:500, y:0, cls:"D" });
+  const sr = k => v => setR(s=>({ ...s, [k]:v }));
+  const rRes = n(r.x)>=X_MIN && n(r.u)>0 ? lineSource(n(r.M), n(r.u), n(r.H), n(r.x), r.cls, n(r.l)>0?n(r.l):Infinity, n(r.y)) : null;
+
+  // 3. Đường phố hẻm
+  const [c, setC] = useState({ N:1200, u:1.5, x:5, z:1.5, W:20, bg:0.5, MW:28 });
+  const sc = k => v => setC(s=>({ ...s, [k]:v }));
+  const lee = canyonLeeward(n(c.N), n(c.u), n(c.x), n(c.z)) + n(c.bg);
+  const wind = n(c.W)>0 ? canyonWindward(n(c.N), n(c.u), n(c.W)) + n(c.bg) : null;
+
+  // 4. Nguồn mặt
+  const [a, setA] = useState({ Mug:0.5, u:2, cls:"trung bình", halfL:1, bg:30, l:1500, H:600 });
+  const sa = k => v => setA(s=>({ ...s, [k]:v }));
+  const gh = n(a.u)>0 ? giffordHanna(n(a.Mug), n(a.u), a.cls, Math.max(n(a.halfL),1), n(a.bg)) : null;
+  const box = n(a.u)>0 && n(a.H)>0 ? boxModel(n(a.Mug)*1e-6, n(a.l), n(a.u), n(a.H), n(a.bg)/1000)*1000 : null;
+
+  const grid2 = { display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))", gap:10 };
+
+  return (
+    <div className="anim-fade" style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <AlertBox level="info" compact msg="Công thức theo Giáo trình Kiểm soát ô nhiễm không khí, mục 1.2.3: nguồn thấp cạnh nhà (Bảng 1.3, phương pháp Viện NCKH Nhà công nghiệp – Bảo hộ lao động Liên Xô cũ), nguồn đường (PT 1.48–1.50), đường phố hẻm (1.52–1.53), nguồn mặt (1.55, 1.57). Dùng để ước tính nhanh; hệ số k số hóa từ đồ thị Hình 1.6, hệ số m (Hình 1.8) nhập tay."/>
+      <div style={{ display:"flex", gap:10, alignItems:"center", fontSize:11, color:T.sub }}>
+        Giới hạn so sánh (QCVN 05:2023, 1 giờ) <div style={{ width:140 }}><NumIn value={lim} onChange={setLim} unit="μg/m³" min={0}/></div>
+      </div>
+
+      {/* 1. Nguồn thấp */}
+      <div style={card}>
+        <SectionHeader title="1. Nguồn thấp cạnh nhà rộng đứng độc lập (Bảng 1.3)" sub="Ống thải trên mái nhà xưởng; điểm tính sau tường khuất gió · u = 1 m/s theo giáo trình"/>
+        <div style={{ display:"flex", gap:16, flexWrap:"wrap", alignItems:"flex-start" }}>
+          <div style={{ flex:"1 1 320px", minWidth:0 }}>
+            <SelIn label="Vị trí ống thải" value={b.case} onChange={sb("case")} options={[
+              {v:"downwind",l:"Ngoài vùng gió quẩn trên mái phía đón gió — PT 1.21–1.25 (cần hệ số m)"},
+              {v:"wake",l:"Trong hoặc trên vùng gió quẩn sau nhà — PT 1.26–1.27"}]}/>
+            <div style={{ ...grid2, marginTop:10 }}>
+              <NumIn label="Tải lượng M" unit="g/s" value={b.Mgs} onChange={sb("Mgs")} min={0}/>
+              <NumIn label="Lưu lượng L" unit="m³/s" value={b.L} onChange={sb("L")} min={0}/>
+              <NumIn label="Cao miệng ống h" unit="m" value={b.h} onChange={sb("h")} min={0}/>
+              <NumIn label="Cao nhà Hₙₕ" unit="m" value={b.Hnh} onChange={sb("Hnh")} min={0}/>
+              <NumIn label="Cao giới hạn H_gh" unit="m" value={b.Hgh} onChange={sb("Hgh")} min={0} hint="Chiều cao giới hạn của nguồn thấp"/>
+              <NumIn label="Dài nhà l (⊥ gió)" unit="m" value={b.l} onChange={sb("l")} min={0}/>
+              {b.case==="downwind" && <NumIn label="Hệ số m (Hình 1.8)" value={b.m} onChange={sb("m")} min={0} hint="0,05–0,9 theo b̄ = b₃/Hₙₕ và x₁"/>}
+              <NumIn label="x sau tường khuất gió" unit="m" value={b.x} onChange={sb("x")} min={0}/>
+              <NumIn label="y ngang trục" unit="m" value={b.y} onChange={sb("y")}/>
+            </div>
+          </div>
+          <div style={{ flex:"1 1 300px", minWidth:0 }}>
+            {bRes ? <>
+              <ResultRow label={`Trên trục gió Cx ${bRes.eq}`} value={fmtC(bRes.Cx*1000)} unit="μg/m³" pct={lim?bRes.Cx*1000/lim*100:null}
+                sub={bRes.zone==="cavity"?`Trong vùng gió quẩn sau nhà (x ≤ 4Hₙₕ = ${fmtN(4*bIn.Hnh,0)} m)`:`Ngoài vùng gió quẩn (x > ${fmtN(4*bIn.Hnh,0)} m)`}/>
+              <ResultRow label={`Tại y = ${fmtN(bIn.y,0)} m: Cy`} value={fmtC(bRes.Cy*1000)} unit="μg/m³"/>
+              <ResultRow label="Độ cao tương đối H̄" value={fmtN(bRes.hBar,2)} unit="" sub="(h − Hₙₕ)/(H_gh − Hₙₕ)"/>
+              <ResultRow label="Hệ số k (Hình 1.6)" value={fmtN(bRes.k,2)} unit="" sub={b.case==="wake"&&bIn.h<=bIn.Hnh?"Miệng ống trong vùng gió quẩn → k = 1":"Số hóa đồ thị, ±0,03"}/>
+              <div style={{ marginTop:10 }}>
+                <ResponsiveContainer width="100%" height={150}>
+                  <LineChart data={bProfile} margin={{ top:6, right:12, left:0, bottom:0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false}/>
+                    <XAxis dataKey="x" type="number" tick={{ fontSize:9, fill:T.dim }} stroke={T.border2} tickFormatter={v=>`${v} m`}/>
+                    <YAxis tick={{ fontSize:9, fill:T.dim }} stroke={T.border2} tickFormatter={v=>fmtN(v,0)}/>
+                    <Tooltip content={({ active, payload })=>active&&payload?.length ? (
+                      <div style={{ background:T.card2, border:`1px solid ${T.border2}`, borderRadius:8, padding:"6px 9px", fontSize:11 }}>
+                        <div style={{ color:T.sub, fontSize:10 }}>x = {payload[0].payload.x} m</div>
+                        <div style={{ color:T.text, fontWeight:700 }}>{fmtC(payload[0].value)} μg/m³</div></div>) : null}/>
+                    {lim>0 && <ReferenceLine y={lim} stroke={T.red} strokeDasharray="4 4"/>}
+                    <ReferenceLine x={4*bIn.Hnh} stroke={T.border2} strokeDasharray="2 3" label={{ value:"4Hₙₕ", position:"insideTopRight", fontSize:9, fill:T.sub }}/>
+                    <Line dataKey="c" stroke={T.amber} strokeWidth={2} dot={false} isAnimationActive={false}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </> : <div style={{ fontSize:12, color:T.dim, padding:"20px 0" }}>Cần Hₙₕ &gt; 0, H_gh &gt; Hₙₕ và l &gt; 0.</div>}
+          </div>
+        </div>
+        <div style={{ fontSize:10, color:T.dim, marginTop:10, lineHeight:1.6 }}>
+          Ghi chú phiên dịch: mẫu số PT (1.22), (1.25) in "u.l.(1,4l+x)²" — dùng u·(1,4l+x)² cho đúng thứ nguyên; S₃₁ chưa được định nghĩa trong các trang đã có, lấy bằng S₃; Chú thích 2 (l &gt; 10Hₙₕ, y &gt; 5Hₙₕ) đã áp dụng. Các trường hợp nhà hẹp, cụm nhà chưa lập trình.
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(340px, 1fr))", gap:14 }}>
+        {/* 2. Nguồn đường */}
+        <div style={card}>
+          <SectionHeader title="2. Nguồn đường (PT 1.48–1.50)" sub="Gió vuông góc nguồn; σy, σz Pasquill–Gifford"/>
+          <div style={grid2}>
+            <NumIn label="Tải lượng M" unit="g/s·m" value={r.M} onChange={sr("M")} min={0}/>
+            <NumIn label="Gió u" unit="m/s" value={r.u} onChange={sr("u")} min={0}/>
+            <NumIn label="Cao nguồn H" unit="m" value={r.H} onChange={sr("H")} min={0}/>
+            <SelIn label="Lớp ổn định" value={r.cls} onChange={sr("cls")} options={Object.entries(STABILITY_LABELS).map(([v,l])=>({v,l}))}/>
+            <NumIn label="Khoảng cách x" unit="m" value={r.x} onChange={sr("x")} min={0}/>
+            <NumIn label="Dài nguồn l" unit="m" value={r.l} onChange={sr("l")} min={0} hint="0 hoặc trống = vô hạn"/>
+          </div>
+          <div style={{ marginTop:10 }}>
+            {rRes ? <>
+              <ResultRow label="Nồng độ mặt đất" value={fmtC(rRes.C*1000)} unit="μg/m³" pct={lim?rRes.C*1000/lim*100:null}/>
+              <ResultRow label="Hệ số B′ (PT 1.49)" value={fmtN(rRes.Bp,4)} unit="" sub="B′ ≈ 1 khi l ≥ 2x → coi là dài vô hạn (Bảng 1.4)"/>
+            </> : <div style={{ fontSize:12, color:T.dim }}>x ≥ {X_MIN} m, u &gt; 0.</div>}
+          </div>
+        </div>
+
+        {/* 3. Đường phố hẻm */}
+        <div style={card}>
+          <SectionHeader title="3. Đường phố hẻm — CO (PT 1.51–1.53)" sub="Johnson và cs. (1971), gió thổi ngang qua đường"/>
+          <div style={grid2}>
+            <NumIn label="Số xe / 12 giờ N" value={c.N} onChange={sc("N")} min={0}/>
+            <NumIn label="Gió u" unit="m/s" value={c.u} onChange={sc("u")} min={0}/>
+            <NumIn label="x đến điểm tính" unit="m" value={c.x} onChange={sc("x")} min={0}/>
+            <NumIn label="z độ cao" unit="m" value={c.z} onChange={sc("z")} min={0}/>
+            <NumIn label="Rộng đường W" unit="m" value={c.W} onChange={sc("W")} min={0}/>
+            <NumIn label="Nền C_nền" unit="ppm" value={c.bg} onChange={sc("bg")} min={0}/>
+          </div>
+          <div style={{ marginTop:10 }}>
+            <ResultRow label="Phía khuất gió (1.52)" value={`${fmtN(lee,2)} ppm`} unit={`= ${fmtN(ppmToMgM3(lee,n(c.MW)),2)} mg/m³`}/>
+            {wind!=null && <ResultRow label="Phía đón gió (1.53)" value={`${fmtN(wind,2)} ppm`} unit={`= ${fmtN(ppmToMgM3(wind,n(c.MW)),2)} mg/m³`}/>}
+            <div style={{ fontSize:10, color:T.dim, marginTop:6, lineHeight:1.5 }}>Quy đổi ở 25 °C, CO: M = 28 g/mol. Hệ số 0,07 và đơn vị N (xe/12 giờ) chép nguyên giáo trình — với lưu lượng xe lớn kết quả cao bất thường, nên đối chiếu tài liệu gốc (Johnson và cs., 1971) trước khi dùng.</div>
+          </div>
+        </div>
+
+        {/* 4. Nguồn mặt */}
+        <div style={card}>
+          <SectionHeader title="4. Nguồn mặt (PT 1.55, 1.57)" sub="Khu vực có nhiều nguồn nhỏ phân bố đều: bãi chứa, khu sản xuất"/>
+          <div style={grid2}>
+            <NumIn label="Cường độ phát thải M" unit="μg/m²·s" value={a.Mug} onChange={sa("Mug")} min={0}/>
+            <NumIn label="Gió u" unit="m/s" value={a.u} onChange={sa("u")} min={0}/>
+            <SelIn label="Cấp ổn định (Bảng 1.5)" value={a.cls} onChange={sa("cls")} options={Object.keys(PSI_TABLE).map(k=>({ v:k, l:k }))}/>
+            <NumIn label="½ chiều dài khu vực" unit="km" value={a.halfL} onChange={sa("halfL")} min={0} hint="Bảng 1.5 có 1–100 km"/>
+            <NumIn label="Dài dọc gió l (hộp)" unit="m" value={a.l} onChange={sa("l")} min={0}/>
+            <NumIn label="Cao xáo trộn H (hộp)" unit="m" value={a.H} onChange={sa("H")} min={0}/>
+            <NumIn label="Nồng độ nền" unit="μg/m³" value={a.bg} onChange={sa("bg")} min={0}/>
+          </div>
+          <div style={{ marginTop:10 }}>
+            {gh!=null && <ResultRow label="Gifford–Hanna C = ψ·M/u + C_nền" value={fmtC(gh)} unit="μg/m³" pct={lim?gh/lim*100:null} sub={`ψ = ${fmtN(psi(a.cls, Math.max(n(a.halfL),1)),0)}`}/>}
+            {box!=null && <ResultRow label="Hộp cố định C = C₀ + 10³·M·l/(u·H)" value={fmtC(box)} unit="μg/m³" pct={lim?box/lim*100:null}/>}
+            <div style={{ fontSize:10, color:T.dim, marginTop:6 }}>Kết quả là nồng độ trung bình dài hạn trong khu vực; ψ nội suy theo log(½l), dưới 1 km lấy giá trị 1 km.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const NAV_GROUPS = [
   {
     group:"🌍 Môi Trường",
@@ -2097,6 +2273,7 @@ const NAV_GROUPS = [
       { id:"wastewater", icon:"🌊", label:"Nước Thải" },
       { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
       { id:"gpmt01",     icon:"📑", label:"GPMT Nguồn 01 — Lò Hơi" },
+      { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
@@ -2219,6 +2396,7 @@ export default function App() {
       case "wastewater":  return <WastewaterModule/>;
       case "dispersion":  return <DispersionModule/>;
       case "gpmt01":      return <GpmtModule/>;
+      case "lowsrc":      return <LowSourceModule/>;
       case "energy":      return <EnergyModuleStub/>;
       case "waste":       return <WasteModuleStub/>;
       case "gri":         return <GRIModule/>;
