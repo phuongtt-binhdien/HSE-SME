@@ -19,9 +19,9 @@ Yêu cầu Node.js ≥ 18.17.
 
 ## Mô hình lan truyền khí thải (Gauss)
 
-Tab **Lan Truyền Khí Thải** tính nồng độ chất ô nhiễm trong không khí xung quanh từ một ống khói theo mô hình Gauss: σy, σz theo Briggs (1973) nông thôn/đô thị, độ nâng luồng khói Briggs (dạng EPA ISC3), quy đổi gió theo độ cao, nồng độ cực đại mặt đất, bản đồ mặt bằng và so sánh với giới hạn 1 giờ QCVN 05:2023/BTNMT (có cộng nồng độ nền).
+Tab **Lan Truyền Khí Thải** tính nồng độ chất ô nhiễm trong không khí xung quanh từ một ống khói theo thuật toán EPA ISC3: σy, σz Pasquill–Gifford (nông thôn) hoặc Briggs/McElroy–Pooler (đô thị), quy đổi gió theo độ cao, cuốn xuống đỉnh ống khói, độ nâng Briggs do lực nổi hoặc động lượng, lớp xáo trộn, phân hủy, ước tính phát thải theo hệ số AP-42, nồng độ cực đại mặt đất, bản đồ mặt bằng và so sánh với giới hạn 1 giờ QCVN 05:2023/BTNMT (có cộng nồng độ nền).
 
-- Công thức: `src/lib/gaussPlume.ts` · tài liệu cơ sở: `docs/mo-hinh-gauss-lan-truyen-o-nhiem.md`
+- Công thức: `src/lib/gaussPlume.ts` · tài liệu cơ sở: `docs/mo-hinh-gauss-lan-truyen-o-nhiem.md`, `docs/tong-hop-NH3-va-mo-hinh-gauss-ISC3.md`
 - Kiểm thử (bảo toàn khối lượng, công thức mặt đất, độ nâng Briggs…): `npm test`
 - Phạm vi: nguồn điểm liên tục, địa hình phẳng, 100 m – 10 km; dùng để đánh giá nhanh, không thay thế AERMOD/CALPUFF trong hồ sơ ĐTM/GPMT.
 

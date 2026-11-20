@@ -3,7 +3,8 @@
 //   npm run model:plant -- <chiều cao ống sấy, m> <boiler|all> <r1|r2|max>
 // Giả định: chiều cao ống khói lò sấy chưa có trong bản vẽ hoàn công (mặc định 15 m); đường kính Ø1,2 m (DC1, DC2 — theo
 // ống dẫn Ø1200 của lọc bụi 55.000 m³/h) và Ø1,8 m (DC3 — theo bản vẽ trạm quan trắc tự động); nhiệt độ đợt 1 lấy theo đợt 2;
-// "<10" lấy bằng 10, "KPH" lấy bằng LOD; Nm³ ở 25 °C theo QCVN 19:2009. Sàng lọc 54 tổ hợp khí tượng SCREEN3 × 36 hướng gió,
+// "<10" lấy bằng 10, "KPH" lấy bằng LOD; Nm³ ở 25 °C theo QCVN 19:2009. Thuật toán ISC3 (σ Pasquill–Gifford, cuốn xuống
+// đỉnh ống, độ nâng lực nổi/động lượng, lớp xáo trộn SCREEN3). Sàng lọc 54 tổ hợp khí tượng SCREEN3 × 36 hướng gió,
 // lưới 2 × 2 km bước 25 m, điểm tiếp nhận cao 1,5 m. Kết quả là phần đóng góp của nhà máy, chưa cộng nồng độ nền.
 import { buildModel, screenWorstCase, SCREEN_WINDS, exitVelocity, emissionRateFromStack, celsiusToK, type Stability } from "../src/lib/gaussPlume.ts";
 // Nm³ theo QCVN 19:2009: 25 °C, 760 mmHg
@@ -39,7 +40,7 @@ const round = (k: "r1"|"r2"|"max") => S.map(s => {
   const r = k==="max" ? { q:Math.max(s.r1.q,s.r2.q), t:s.r2.t, c:Object.fromEntries(P.map(p=>[p, Math.max((s.r1.c as any)[p],(s.r2.c as any)[p])])) } : (s as any)[k];
   const vs = exitVelocity(r.q, s.d), QN = toN(r.q, r.t);
   const Q = Object.fromEntries(P.map(p=>[p, emissionRateFromStack(r.c[p], QN)]));
-  return { ...s, vs, QN, Q, src:{ terrain:"rural", hs:s.h, d:s.d, vs, Ts:celsiusToK(r.t), Ta, riseMode:"final", windProfile:true } as any };
+  return { ...s, vs, QN, Q, src:{ terrain:"rural", hs:s.h, d:s.d, vs, Ts:celsiusToK(r.t), Ta, riseMode:"final", windProfile:true, mixingHeight:"screen3" } as any };
 });
 
 const mode = process.argv[3] ?? "all";
