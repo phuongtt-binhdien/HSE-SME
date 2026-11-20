@@ -33,6 +33,8 @@ Tab **GPMT Nguồn 01 — Lò Hơi**: 4 kịch bản vận hành của ống kh�
 
 Tab **Nguồn Thấp · Đường · Mặt** (`src/lib/lowSources.ts`) theo Giáo trình Kiểm soát ô nhiễm không khí, mục 1.2.3: nguồn thấp cạnh nhà rộng đứng độc lập (Bảng 1.3, PT 1.21–1.27, hệ số S PT 1.40–1.44, k số hóa từ Hình 1.6), nguồn đường (PT 1.48–1.50, σ Pasquill–Gifford), đường phố hẻm (PT 1.52–1.53), nguồn mặt Gifford–Hanna (PT 1.55, Bảng 1.5) và mô hình hộp cố định (PT 1.57).
 
+Tab **Mô Phỏng 3D Nhà Máy** (`src/sim/`) — trình mô phỏng vận hành dây chuyền NPK 20 t/h theo kiểu phòng điều khiển: cảnh 3D three.js (22 thiết bị, ống khói có khói, nhãn, camera theo khu vực, chế độ xuyên thấu, gợi ý), sơ đồ công nghệ bấm đóng/cắt có khóa liên động (có thể bỏ khóa), khởi động/dừng tự động theo trình tự chuẩn, dừng khẩn cấp, báo động + nhật ký, gây sự cố (bết/thủng túi lọc, cạn dung dịch hấp thụ NH₃, hỏng máy thổi khí, mất mồi bơm định lượng), 5 bài tập có chấm bước, và lớp nồng độ mặt đất từ mô hình Gauss ISC3 theo thiết bị đang chạy. Logic thuần ở `plantSim.ts`/`plume.ts` (có kiểm thử `tests/plantSim.test.ts`), đồ họa ở `scene3d.ts`, giao diện ở `PlantSim.tsx`. Bố trí mặt bằng là sơ đồ minh họa, chưa phải bản vẽ đo đạc; ngưỡng trong mô phỏng lấy từ MT-QP.01, QCVN 21:2009, QCVN 40:2011 (K_q=1,2; K_f=1,1) và cần đối chiếu bản gốc.
+
 ## Hồ sơ nhà máy và huấn luyện ATVSLĐ
 
 - Tab **Hồ Sơ Nhà Máy** (`src/data/facility.ts`): thông tin, tiếp giáp, quy mô, hóa chất cần kiểm soát, văn bản nội bộ (QĐ 385/2026, 759, 199…), nội quy an toàn, căn cứ pháp lý và các điểm số liệu chưa thống nhất giữa tài liệu. Nguồn: `docs/tong-hop-tai-lieu-nha-may.md`.

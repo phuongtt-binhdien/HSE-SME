@@ -6,6 +6,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, RadarChart, Radar, Pol
 import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStack, celsiusToK, STABILITY_LABELS, X_MIN, U_MIN,
   screenWorstCase, screenAtDistance, SCREEN_WINDS, actualFlow, normalFlow, exitVelocity, gepHeight,
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
+import PlantSim from "../sim/PlantSim.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
@@ -2592,6 +2593,7 @@ const NAV_GROUPS = [
       { id:"wastewater", icon:"🌊", label:"Nước Thải" },
       { id:"dispersion", icon:"💨", label:"Lan Truyền Khí Thải" },
       { id:"gpmt01",     icon:"📑", label:"GPMT Nguồn 01 — Lò Hơi" },
+      { id:"sim3d",       icon:"🎮", label:"Mô Phỏng 3D Nhà Máy" },
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
@@ -2717,6 +2719,7 @@ export default function App() {
       case "wastewater":  return <WastewaterModule/>;
       case "dispersion":  return <DispersionModule/>;
       case "gpmt01":      return <GpmtModule/>;
+      case "sim3d":       return <PlantSim/>;
       case "lowsrc":      return <LowSourceModule/>;
       case "training":    return <TrainingModule/>;
       case "facility":    return <FacilityModule/>;
