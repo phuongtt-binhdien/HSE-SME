@@ -64,3 +64,22 @@ src/app/
 ├── icon.svg     ← favicon
 └── HSEApp.tsx   ← toàn bộ ứng dụng
 ```
+
+
+## Tài khoản người dùng, ví credit và huấn luyện vào nhà máy
+
+App yêu cầu đăng nhập (Supabase Auth: email + mật khẩu). Sau đăng nhập, các tab dữ liệu nội bộ (hồ sơ nhà máy, hóa chất, nước thải, năng lượng, chất thải, nhà thầu, an toàn, huấn luyện ATVSLĐ) miễn phí; **mô phỏng 3D, mô phỏng nước thải, các mô hình Gauss (lan truyền, GPMT 01, nguồn thấp), biểu mẫu ISO 14001 và báo cáo GRI** mở khóa theo phiên (mặc định 24 giờ) bằng credit. 1 credit = 1.000đ; gói nạp 100k→100, 200k→220 (+10 %), 300k→345 (+15 %), 400k→480 (+20 %), 500k→625 (+25 %). Giá từng dịch vụ chỉnh trong tab **Quản Trị**.
+
+- **Nạp credit**: người dùng chọn gói → app tạo nội dung chuyển khoản duy nhất (HSE + 6 ký tự) và mã VietQR vẽ ngay trên trình duyệt (`src/auth/vietqr.ts`, không gọi dịch vụ ngoài) → quản trị đối chiếu sao kê rồi **Duyệt** (credit cộng ngay) hoặc cấp **mã kích hoạt** dùng một lần (nhập sai 5 lần bị khóa 1 giờ).
+- **Huấn luyện an ninh – an toàn trước khi vào nhà máy (15 phút)**: 6 phần nội dung + 10 câu hỏi, đạt ≥ 80 %. Thời gian tối thiểu do **máy chủ** đo (không tin đồng hồ trình duyệt), đáp án nằm trong bảng không ai đọc được qua API. Bắt buộc trước khi mở Mô phỏng 3D; có giấy xác nhận để in; hiệu lực 365 ngày. Nội dung là bản mẫu — cán bộ ATVSLĐ/PCCC cần rà soát, bổ sung điểm tập kết, số khẩn cấp trước khi áp dụng chính thức.
+- **Quản trị**: duyệt nạp tiền, danh sách người dùng + điều chỉnh credit (bắt buộc lý do, có sổ cái), tạo mã nạp, giá dịch vụ, tài khoản nhận tiền, tham số huấn luyện.
+
+### Cài đặt backend (một lần)
+1. Trong Supabase (SQL Editor) chạy `supabase/migrations/20261121000000_hse_accounts_credits.sql` — mọi đối tượng mang tiền tố `hse_`, không đụng bảng của ứng dụng khác dùng chung dự án; không tạo trigger trên `auth.users`.
+2. Cấp quyền quản trị: `insert into public.hse_admins(user_id) select id from auth.users where email = 'email-quan-tri@...';`
+3. Đăng nhập bằng tài khoản quản trị → tab **Quản Trị → Cấu hình**: nhập BIN, số tài khoản, tên chủ tài khoản nhận tiền (và Zalo liên hệ nếu có).
+4. Supabase → Authentication: quyết định có bắt xác nhận email hay không; URL/khóa lấy từ `src/auth/config.ts` hoặc biến `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_KEY` (khóa publishable là khóa công khai).
+
+Kiểm thử: `tests/hseCredits.test.ts` chạy migration trên PGlite (Postgres WASM) và kiểm tra gói nạp, duyệt nạp, mã kích hoạt, mở khóa dịch vụ, huấn luyện 15 phút, phân quyền; `tests/vietqr.test.ts` kiểm tra CRC và chuỗi VietQR. `?backend=local` (thêm `&fast=1` để rút thời gian huấn luyện còn 5 giây) chạy bản thử lưu trong trình duyệt để demo giao diện — **không an toàn, không dùng thu tiền thật**.
+
+**Giới hạn cần biết:** app là web tĩnh, toàn bộ mã tính toán nằm trong gói JavaScript gửi cho trình duyệt; khóa credit hiện chặn giao diện chứ chưa ngăn người rành kỹ thuật đọc mã. Muốn bảo vệ thật sự cần chuyển phần tính toán trả phí sang hàm máy chủ (Edge Function).

@@ -8,6 +8,11 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
   AP42_FACTORS, emissionRateFromFactor, pasquillClass, heatEmissionMW } from "../lib/gaussPlume";
 import PlantSim from "../sim/PlantSim.tsx";
 import WwtpSim from "../sim/WwtpSim.tsx";
+import { AuthProvider, AuthGate, useAuth } from "../auth/AuthContext.tsx";
+import { PaidGate } from "../auth/PaidGate.tsx";
+import { WalletModule } from "../auth/WalletModule.tsx";
+import { InductionModule } from "../auth/InductionModule.tsx";
+import { AdminModule } from "../auth/AdminModule.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
@@ -2732,6 +2737,11 @@ function WasteModuleStub() {
 }
 
 export default function App() {
+  return <AuthProvider><AuthGate><AppInner/></AuthGate></AuthProvider>;
+}
+
+function AppInner() {
+  const auth = useAuth();
   const [active, setActive] = useState("dashboard");
   const [contractors, setContractors] = useState(initContractors);
   const [incidents, setIncidents] = useState(initIncidents);
@@ -2746,7 +2756,7 @@ export default function App() {
     incopen: incidents.filter(i=>i.status==="open").length,
   };
 
-  const render = () => {
+  const renderRaw = () => {
     switch(active) {
       case "dashboard":   return <DashboardModule contractors={contractors} incidents={incidents} checklists={checklists} ptw={ptw} setActive={setActive}/>;
       case "chemicals":   return <ChemModuleStub/>;
@@ -2755,6 +2765,9 @@ export default function App() {
       case "gpmt01":      return <GpmtModule/>;
       case "sim3d":       return <PlantSim/>;
       case "wwsim":       return <WwtpSim/>;
+      case "wallet":      return <WalletModule setActive={setActive}/>;
+      case "induction":   return <InductionModule setActive={setActive}/>;
+      case "admin":       return auth.me?.is_admin ? <AdminModule/> : null;
       case "lowsrc":      return <LowSourceModule/>;
       case "training":    return <TrainingModule/>;
       case "facility":    return <FacilityModule/>;
@@ -2769,7 +2782,14 @@ export default function App() {
     }
   };
 
-  const curNav = NAV_GROUPS.flatMap(g=>g.items).find(n=>n.id===active);
+  const render = () => <PaidGate id={active} setActive={setActive}>{renderRaw()}</PaidGate>;
+
+  const navGroups = [...NAV_GROUPS, { group:"👤 Tài Khoản", items:[
+    { id:"wallet", icon:"💳", label:"Ví Credit & Nạp Tiền" },
+    { id:"induction", icon:"🦺", label:"Huấn Luyện Vào Nhà Máy (15 phút)" },
+    ...(auth.me?.is_admin ? [{ id:"admin", icon:"🛠", label:"Quản Trị" }] : []),
+  ] }];
+  const curNav = navGroups.flatMap(g=>g.items).find(n=>n.id===active);
   const time = new Date().toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
 
   return (
@@ -2799,7 +2819,7 @@ export default function App() {
 
         {/* Nav */}
         <nav style={{ flex:1, overflowY:"auto", padding:"10px 8px" }}>
-          {NAV_GROUPS.map(grp=>(
+          {navGroups.map(grp=>(
             <div key={grp.group} style={{ marginBottom:12 }}>
               {!sidebarCollapsed && (
                 <div style={{ fontSize:9, fontWeight:700, color:T.dim, textTransform:"uppercase", letterSpacing:".8px", padding:"4px 8px 6px" }}>{grp.group}</div>
@@ -2823,6 +2843,7 @@ export default function App() {
                   }}>
                     <span style={{ fontSize:15, flexShrink:0 }}>{item.icon}</span>
                     {!sidebarCollapsed && <span style={{ flex:1, overflow:"hidden", whiteSpace:"nowrap" }}>{item.label}</span>}
+                    {!sidebarCollapsed && auth.service(item.id) && !auth.hasPass(item.id) && <span title="Dùng credit" style={{ fontSize:10 }}>💎</span>}
                     {!sidebarCollapsed && badgeCount>0 && (
                       <span style={{ background:T.red, color:"#fff", fontSize:9, fontWeight:800, padding:"1px 6px", borderRadius:10, flexShrink:0 }}>{badgeCount}</span>
                     )}
@@ -2868,7 +2889,9 @@ export default function App() {
             ))}
             <div style={{ width:1, height:20, background:T.border, margin:"0 4px" }}/>
             <div style={{ fontSize:10, color:T.sub, fontFamily:"'DM Mono',monospace" }}>{time}</div>
-            <div style={{ width:30, height:30, borderRadius:"50%", background:G.green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, cursor:"pointer" }}>P</div>
+            <button onClick={()=>setActive("wallet")} title="Ví credit" style={{ background:T.ghost, border:`1px solid ${T.border}`, borderRadius:16, padding:"4px 10px", color:T.green, fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>💳 {auth.me?.balance ?? 0} credit</button>
+            <div title={auth.me?.email} style={{ width:30, height:30, borderRadius:"50%", background:G.green, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, color:"#04120d" }}>{(auth.me?.profile?.full_name || auth.me?.email || "?").trim().charAt(0).toUpperCase()}</div>
+            <button onClick={async()=>{ await auth.api.signOut(); auth.reload(); }} style={{ background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, padding:"4px 9px", color:T.sub, fontSize:11, cursor:"pointer" }}>Đăng xuất</button>
           </div>
         </header>
 
