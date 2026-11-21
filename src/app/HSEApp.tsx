@@ -13,6 +13,7 @@ import { PaidGate } from "../auth/PaidGate.tsx";
 import { WalletModule } from "../auth/WalletModule.tsx";
 import { InductionModule } from "../auth/InductionModule.tsx";
 import { AdminModule } from "../auth/AdminModule.tsx";
+import { GhgModule } from "../ghg/GhgModule.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
@@ -2635,6 +2636,7 @@ const NAV_GROUPS = [
       { id:"wwsim",       icon:"💧", label:"Mô Phỏng Dòng Nước Thải" },
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
+      { id:"ghg",        icon:"🌫", label:"Kiểm Kê Khí Nhà Kính" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"isoforms",   icon:"📋", label:"Biểu Mẫu ISO 14001" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
@@ -2658,7 +2660,7 @@ function EnergyModuleStub() {
     <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:16 }}>
       <KPICard icon="⚡" label="Điện YTD" value={(total/1000).toFixed(0)} unit="MWh" color={T.amber} sub="GRI 302-1"/>
       <KPICard icon="💧" label="Nước YTD" value={(ENERGY_DATA.reduce((a,b)=>a+b.water,0)/1000).toFixed(1)} unit="ngàn m³" color={T.cyan} sub="GRI 303-1"/>
-      <KPICard icon="🌫" label="Scope 2" value={(total*0.4457/1000).toFixed(2)} unit="tCO₂e" color={T.violet} sub="HF VN 0.4457"/>
+      <KPICard icon="🌫" label="Scope 2" value={(total*0.6766/1000).toFixed(2)} unit="tCO₂e" color={T.violet} sub="EF lưới 0,6766 (CV 327/BĐKH-PTCBT)"/>
     </div>
     <div style={{ background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"16px 16px 10px" }}>
       <div style={{ fontSize:12,fontWeight:700,marginBottom:12 }}>Điện (kWh) & NPK sản lượng (tấn)</div>
@@ -2765,6 +2767,7 @@ function AppInner() {
       case "gpmt01":      return <GpmtModule/>;
       case "sim3d":       return <PlantSim/>;
       case "wwsim":       return <WwtpSim/>;
+      case "ghg":         return <GhgModule/>;
       case "wallet":      return <WalletModule setActive={setActive}/>;
       case "induction":   return <InductionModule setActive={setActive}/>;
       case "admin":       return auth.me?.is_admin ? <AdminModule/> : null;
