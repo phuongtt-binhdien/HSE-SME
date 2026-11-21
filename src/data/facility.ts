@@ -1,0 +1,175 @@
+// Hồ sơ Nhà máy Phân bón Bình Điền – Long An (tổng hợp 20/11/2026 từ: Biện pháp phòng ngừa, ứng phó sự cố hóa chất 2026;
+// Nội quy PCCC&CNCH 2026; QĐ 199/QĐ.KS-BĐ; Biên bản kiểm tra nghiệm thu PCCC bến tàu 3000 DWT; GPMT 2986/GPMT-STNMT;
+// Thuyết minh BCNCKT và TKCS dự án NPK 100.000 tấn/năm, 2016).
+
+export const PLANT = {
+  name: "Nhà máy Phân bón Bình Điền – Long An",
+  company: "Công ty Cổ phần Phân bón Bình Điền",
+  address: "CCN Long Định – Long Cang, xã Long Cang, tỉnh Tây Ninh (trước sáp nhập: xã Long Định, huyện Cần Đước, tỉnh Long An)",
+  coord: "X 1172180,87 · Y 580534,24 (VN2000)",
+  ceo: "Tổng Giám đốc Ngô Văn Đông",
+  neighbors: [
+    ["Bắc", "Nhà máy xi măng Hà Tiên"],
+    ["Tây", "Sông Vàm Cỏ Đông (≈ 500 m) — nguồn tiếp nhận nước thải và nguồn nước chữa cháy"],
+    ["Đông", "Đường Nguyễn Trung Trực và khu dân cư"],
+    ["Nam", "Công ty Gas Thành Tài"],
+  ],
+  figures: [
+    ["Diện tích các hạng mục chính", "≈ 44.991 m²"],
+    ["Khu đất (theo biên bản PCCC cảng)", "≈ 140.110 m²"],
+    ["Công suất NPK (Biện pháp UPSCHC)", "≈ 330.000 tấn/năm"],
+    ["Công suất theo GPMT 2986", "600.000 tấn/năm (giai đoạn 1 + 2)"],
+    ["Dây chuyền", "Trộn 100.000 tấn/năm; tạo hạt 20 tấn/h"],
+    ["Diện tích nhà máy (giới thiệu Cty)", "16 ha, có cảng sông, thuận tiện đường bộ"],
+    ["Số dây chuyền (giới thiệu Cty)", "3 dây chuyền tạo hạt (công nghệ một hạt) + 4 dây chuyền trộn; công suất 600.000 tấn/năm"],
+    ["Xử lý khí thải", "30.000 – 50.000 Nm³/h (NH₃, bụi, SOₓ, NOₓ, CO₂)"],
+    ["Lò hơi", "8 tấn hơi/h — đang điều chỉnh GPMT bổ sung lò sinh khối 6 t/h"],
+    ["HTXLNT", "Thiết kế 120 m³/ngày, hiện ≈ 90 m³/ngày, đạt QCVN 40:2011/BTNMT cột A, xả sông Vàm Cỏ Đông"],
+    ["Cảng", "Bến 1.000 DWT và 3.000 DWT (cầu tàu 15 × 74 m = 1.110 m²)"],
+    ["ISO 14001:2015", "Hiệu lực đến 24/12/2026 — tái chứng nhận"],
+  ],
+} as const;
+
+/** Danh mục hóa chất cần kiểm soát — Biện pháp phòng ngừa, ứng phó sự cố hóa chất 2026. */
+export const CONTROLLED_CHEMICALS = [
+  { name: "Amoniac (NH₃)", hazard: "Độc cấp tính, ăn mòn; khí hóa lỏng", note: "Kho NH₃ — nguy cơ rò rỉ lớn nhất" },
+  { name: "Agrotain", hazard: "Phụ gia ức chế urease", note: "" },
+  { name: "Axit citric", hazard: "Kích ứng", note: "" },
+  { name: "Axit clohydric (HCl)", hazard: "Nhóm 8 — ăn mòn", note: "" },
+  { name: "Axit nitric (HNO₃)", hazard: "Nhóm 8 — ăn mòn; 5.1 — oxy hóa", note: "Tách xa chất hữu cơ, chất khử" },
+  { name: "Axit sunfuric (H₂SO₄)", hazard: "Nhóm 8 — ăn mòn", note: "" },
+  { name: "Natri hydroxit (NaOH)", hazard: "Nhóm 8 — ăn mòn", note: "Hấp thụ khí thải lò than" },
+  { name: "Borax", hazard: "Độc sinh sản (CMR)", note: "Vi lượng" },
+  { name: "Clorin / Ca(OH)₂", hazard: "Oxy hóa, ăn mòn", note: "Khử trùng nước thải" },
+  { name: "PAC", hazard: "Kích ứng", note: "Keo tụ HTXLNT" },
+  { name: "Polymer", hazard: "Trơn trượt khi đổ tràn", note: "Keo tụ HTXLNT" },
+] as const;
+
+export const DOCUMENTS = [
+  { no: "2986/GPMT-STNMT", date: "28/04/2023", title: "Giấy phép môi trường (Sở TN&MT Long An, nay Sở NN&MT Tây Ninh), 10 năm", area: "Môi trường" },
+  { no: "385/2026/QĐ-KS.BĐ", date: "22/04/2026", title: "Ban hành Biện pháp phòng ngừa, ứng phó sự cố hóa chất (lần 03, 05/05/2026) — người soạn Trịnh Thiên Phương, P.KTSX", area: "Hóa chất" },
+  { no: "759/QĐ.KS-BĐ", date: "07/09/2026", title: "Nội quy phòng cháy, chữa cháy và cứu nạn, cứu hộ (Luật PCCC&CNCH 55/2024/QH15, NĐ 105/2025, TT 36/2025/TT-BCA)", area: "PCCC" },
+  { no: "199/QĐ.KS-BĐ", date: "14/09/2026", title: "Ban hành 07 nội quy, hướng dẫn vận hành an toàn thiết bị (thang nâng, cầu trục xoay, cần trục ô tô 51L-827.19, cần trục KATO KR-25H-V, máy tiện, máy mài 2 đá, máy khoan)", area: "An toàn thiết bị" },
+  { no: "Biên bản KT nghiệm thu PCCC", date: "26/01/2026", title: "Bến tàu 3000 DWT — hệ thống cấp nước chữa cháy ngoài nhà (Phòng CS PCCC&CNCH Công an tỉnh Tây Ninh)", area: "PCCC" },
+  { no: "164/NT-PCCC", date: "26/05/2025", title: "Nghiệm thu mạng ống chữa cháy DN100 hiện hữu", area: "PCCC" },
+  { no: "Danh sách HL ATVSLĐ", date: "02–12/10/2026", title: "Huấn luyện nhóm 4, 5, 6 năm 2026 (328 lượt) — xem tab Huấn luyện ATVSLĐ", area: "ATVSLĐ" },
+  { no: "BC khảo sát cải tạo HTXLNT", date: "14/10/2026", title: "Global Green — khảo sát 09/09/2026, Jar test 10/09/2026, phương án cải tạo HTXLNT 120 m³/ngày.đêm (kèm bản vẽ mặt bằng trước/sau cải tạo 12/10/2026)", area: "Môi trường" },
+  { no: "BOQ xử lý NH₃", date: "2026", title: "Dự toán hệ thống tháp hấp thụ NH₃ + bồn axit + quạt + bơm + điện điều khiển/DCS — tổng 23.037.659.200 đồng (nhiều hạng mục “cần khảo sát thực tế”)", area: "Dự án" },
+  { no: "Bảng so sánh lò đốt sinh khối", date: "29/06/2026", title: "Dây chuyền tạo hạt thùng quay urê hóa lỏng số 2: hiện hữu (than) → điều chỉnh 2026 (sinh khối)", area: "Dự án" },
+  { no: "BV CN-04-01/02", date: "10/2026", title: "Sơ đồ đường ống công nghệ, bảng thống kê thiết bị hệ thống xử lý bụi, khí thải lò sấy nóng — Nguồn số 04 (kèm bản vẽ lò đốt sấy nóng, cyclone đơn, lọc bụi tay áo 432 túi)", area: "Môi trường" },
+  { no: "Sổ tay ATHC VINACHEM (v05)", date: "10/2026", title: "Bản đề xuất hoàn thiện của Nhà máy trên dự thảo v05, tích hợp 40 góp ý — TÀI LIỆU GÓP Ý, KHÔNG PHẢI BẢN BAN HÀNH", area: "Hóa chất" },
+  { no: "Nghị định 283/2026/NĐ-CP", date: "2026", title: "Xử phạt vi phạm hành chính về lao động, bảo hiểm xã hội, người lao động đi làm việc ở nước ngoài (tập huấn của Cục Việc làm — Trung tâm quốc gia về ATVSLĐ)", area: "ATVSLĐ" },
+  { no: "BCNCKT, TKCS NPK", date: "05/2016", title: "Thuyết minh báo cáo nghiên cứu khả thi và thiết kế cơ sở dự án NPK 100.000 tấn/năm", area: "Dự án" },
+] as const;
+
+export const LEGAL_BASIS = [
+  ["Hóa chất", "Luật Hóa chất 69/2025/QH15; NĐ 24/2026, 25/2026, 26/2026/NĐ-CP; TT 01/2026, 02/2026/TT-BCT"],
+  ["PCCC & CNCH", "Luật 55/2024/QH15 (VBHN 58/VBHN-VPQH 2026); NĐ 105/2025/NĐ-CP; TT 36/2025/TT-BCA; NĐ 136/2020/NĐ-CP (nghiệm thu)"],
+  ["Môi trường", "GPMT 2986/GPMT-STNMT; QCVN 40:2011/BTNMT cột A (nước thải); QCVN 19:2009/BTNMT cột B Kp 0,8 Kv 1,0 (khí thải)"],
+  ["Môi trường (đề xuất cải tạo)", "Báo cáo khảo sát cải tạo HTXLNT so sánh với QCVN 14:2025/BTNMT Bảng 2 cột A (nước thải sinh hoạt) — khác QCVN 40:2011 cột A trong GPMT; cần xác định quy chuẩn áp dụng"],
+  ["Xử phạt lao động", "Nghị định 283/2026/NĐ-CP (xử phạt vi phạm hành chính lĩnh vực lao động, ATVSLĐ, BHXH): tổ chức bị phạt gấp 2 lần mức phạt đối với cá nhân"],
+  ["ATVSLĐ", "Huấn luyện theo nhóm 1–6 (Luật ATVSLĐ 2015, NĐ 44/2016/NĐ-CP sửa đổi bởi NĐ 140/2018/NĐ-CP)"],
+] as const;
+
+export const SAFETY_RULES = [
+  { title: "Cầu trục xoay (Võ Văn Phu, 10/09/2026)", items: ["Chỉ người được huấn luyện vận hành", "Không nâng quá 01 tấn", "Kiểm tra móc, cáp/xích, chốt an toàn, quai bao Jumbo trước khi nâng", "Cấm đứng dưới tải, kéo ngang, nâng tải mắc/lệch"] },
+  { title: "Thang nâng kho bao bì", items: ["Không xếp quá 500 kg, không để hàng nhô khỏi sàn", "Không khởi động khi có người trong vùng nguy hiểm", "Báo sự cố ngay cho phụ trách và Cơ điện"] },
+  { title: "Máy tiện, máy mài 2 đá, máy khoan", items: ["Người vận hành có chuyên môn và chứng chỉ ATLĐ", "Kiểm tra tiếp đất, chạy thử không tải", "Máy khoan: kẹp chặt phôi, không đeo găng tay, tắt máy trước khi thay mũi"] },
+  { title: "PCCC khu vực sản xuất (QĐ 759)", items: ["Không hút thuốc, không đưa nguồn lửa vào", "Hàn, cắt phải có người giám sát an toàn và kiểm tra sau khi kết thúc", "Không che chắn tủ điện, phương tiện PCCC, lối thoát nạn", "Phát hiện cháy: báo động, gọi 114, chữa cháy tại chỗ nếu an toàn"] },
+] as const;
+
+/** Điểm số liệu chưa thống nhất giữa các tài liệu — cần đối chiếu trước khi đưa vào hồ sơ. */
+export const DATA_GAPS = [
+  "Quy chuẩn nước thải: GPMT 2986 áp dụng QCVN 40:2011/BTNMT cột A (× Kq, Kf); báo cáo khảo sát cải tạo (Global Green, 14/10/2026) so với QCVN 14:2025/BTNMT Bảng 2 cột A (BOD₅ 30, COD 80, TSS 50, T-N 25, T-P 4,0, NH₄⁺-N 6,0 mg/L, coliform 3.000 MPN/100 mL) — cần chốt quy chuẩn áp dụng; mô phỏng 3D đang dùng QCVN 40:2011.",
+  "Bản vẽ HTXLNT (12/10/2026): tờ 3 ghi “Sơ đồ công nghệ HTXLNT ADC, công suất 35 m³/ngày.đêm” trong khi hạng mục là 120 m³/ngày.đêm — cần kiểm tra tiêu đề bản vẽ.",
+  "Quạt hút hệ thống Nguồn 04: CN-04-02 ghi 55.000 m³/h, 350 mmH₂O, 155 HP; Bảng so sánh thiết bị 29/06/2026 ghi hiện hữu 50.000 m³/h (450 mmH₂O) và điều chỉnh 40.000 m³/h, 37 kW (150 mmH₂O); BOQ NH₃ ghi quạt ly tâm 55.000 m³/h, 55 kW, hút −450 mmH₂O — cần thống nhất.",
+  "Buồng đốt lò sinh khối: CN-04-02 ghi 1,0 × 1,4 m (1,4 m²) còn Bảng so sánh ghi 1,4 × 2,5 m (3,5 m²).",
+  "Tháp hấp thụ NH₃ mới ở giai đoạn dự toán (BOQ còn nhiều hạng mục “cần khảo sát thực tế”: đường ống, xây dựng, lắp đặt; hai phương án vật liệu SUS304 / CS bọc FRP) — chưa có trong bản vẽ CN-04-01.",
+  "Nguồn 04 (BV CN-04-01): ống khói cao 22 m, D1 800 / D2 600 mm, Q 55.000 m³/h → vận tốc ra ≈ 54 m/s nếu D2 là đường kính miệng — cao bất thường, cần đối chiếu đường kính đỉnh; số liệu quan trắc 2026 trước đây dùng ống 15 m / Ø1,2 m / 46.000 Nm³/h (khác nguồn) — cần thống nhất trước khi chạy Gauss cho hồ sơ.",
+  "Nguồn 04 (CN-04-01) chưa có tháp hấp thụ NH₃ sau túi vải; mô phỏng 3D vẫn đặt tháp HT01 theo BOQ dự án (đang dự toán) và quy trình MT-HD05 — cần xác nhận hiện trạng.",
+  "Bản vẽ CN-04-02 còn nhiều mục “… (đo bổ sung)”: quạt thổi khí nóng (lưu lượng, cột áp, công suất), Ø ống cyclone chùm, kích thước ống Ô1, Ô2, Ô5–Ô7.",
+  "Mặt bằng 3D: lưới trục 1–19 giả định 6 m/nhịp (≈ 108 × 48 m) và vị trí thiết bị đọc xấp xỉ từ bản vẽ mặt bằng tổng thể — cần đo/đối chiếu bản vẽ gốc trước khi dùng cho mục đích khác ngoài huấn luyện.",
+  "Số lò hơi: Biện pháp UPSCHC 2026 ghi 02 lò 8 tấn hơi/h, GPMT 2986 chỉ cấp phép 01 lò hơi (nguồn 01) — trùng với mục C6 ghi chú nội bộ hồ sơ điều chỉnh GPMT (BC BVMT 2022 có điểm KT2 \"lò hơi số 2\").",
+  "Lưu lượng nước thải: Biện pháp UPSCHC ghi ≈ 90 m³/ngày, ghi chú nội bộ hồ sơ GPMT (mục B7) ghi thực tế 2025 ≈ 49 m³/ngày, GPMT liệt kê ≈ 25,7 m³/ngày.",
+  "Công suất: ≈ 330.000 tấn NPK/năm (UPSCHC) so với 600.000 tấn/năm (GPMT, tổng hai giai đoạn) — ghi rõ phạm vi khi trích dẫn.",
+  "Danh sách huấn luyện nhóm 3 (an toàn điện, 28/09/2026) chưa có bản PDF — chưa nạp vào app.",
+] as const;
+
+/** Dây chuyền tạo hạt số 2 – Nguồn số 04 (BV CN-04-01/02, 10/2026; bộ bản vẽ lò đốt sấy nóng, Cty Nguyễn Thành Chung 2025;
+ *  bản vẽ hoàn công CME: cyclone đơn CYC-HE23-02,03; lọc bụi túi LTA-432). Mục "…" là số liệu còn thiếu trong bản vẽ (đo bổ sung). */
+export const LINE2_EQUIPMENT = [
+  { id: "LĐ", name: "Lò đốt sinh khối", spec: "2.500.000 kcal/h; buồng đốt 1,0 × 1,4 m (1,4 m²); BSKK hiệu suất 85 %; khí nóng 160–250 °C; ≈ 2.400 tấn sinh khối/năm; nền lò 5,3 × 2,55 m, cao 5,1 m", status: "Lắp mới, thay lò đốt than" },
+  { id: "CL", name: "Hệ thống cấp liệu", spec: "Hố 3 × 1,6 × 2 m; băng tải 8,5 m nghiêng 32°; phễu, vít cấp liệu, quạt thổi liệu", status: "Lắp mới" },
+  { id: "CC", name: "Cyclone chùm", spec: "16 ống (4 × 4), thép CT3 dày 4 mm, bảo ôn 50 mm + inox 0,4 mm; hiệu suất > 95 %; nối tiếp giữa lò đốt và máy sấy, KHÔNG có ống thải", status: "Lắp mới" },
+  { id: "QT", name: "Quạt thổi khí nóng", spec: "Lưu lượng, cột áp, công suất: … (đo bổ sung); ống Ø1.200 → côn Ø1.000", status: "Lắp mới" },
+  { id: "MS", name: "Máy sấy thùng quay (máy sấy khô 1)", spec: "Ø2,2 × 22 m, 4 v/ph, nghiêng 1,5°; nhiệt độ sấy < 180 °C", status: "Hiện hữu" },
+  { id: "CĐ", name: "Cyclone đơn", spec: "Ø2 × 6 m (thân 4,2 + chóp 1,6), thép 3 mm; hiệu suất > 95 %; bụi hồi lưu tạo hạt", status: "Theo Bảng 2.1 báo cáo" },
+  { id: "TV", name: "Lọc bụi túi vải", spec: "432 túi Ø130 × 3.360 mm; 556 m² vải; 48 van solenoid; khí nén 6–10 kg/cm²", status: "Hiện hữu, không điều chỉnh" },
+  { id: "QH", name: "Quạt hút", spec: "55.000 m³/h; 350 mmH₂O; 155 HP", status: "Hiện hữu, không điều chỉnh" },
+  { id: "OK", name: "Ống khói – dòng thải 04", spec: "Cao 22 m; D1 800 / D2 600 mm; X 1172155, Y 580357 (VN2000); có vị trí lấy mẫu", status: "Hiện hữu, không điều chỉnh" },
+  { id: "TH", name: "Máy tạo hạt thùng quay", spec: "Ø2,2 × 9 m; nghiêng 1,5°; 9 v/ph; 45 HP (giới thiệu Cty)", status: "Hiện hữu" },
+] as const;
+
+/** Thiết bị trên mặt bằng tổng thể phân xưởng dây chuyền 2 (bản vẽ "Mặt bằng phương án thi công"). */
+export const LINE2_LAYOUT = [
+  "1 Hệ thống định lượng", "2 Hệ thống máy nghiền", "3 Máy tạo hạt thùng quay", "4 Máy sấy khô 1", "5 Máy sấy khô 2", "6 Sàng quay 2 lưới", "7 Máy làm nguội",
+  "8 Máy đánh bóng hạt", "9 Máy nghiền hồi lưu", "10 Cụm lò đốt", "11 Hệ thống lò hơi", "12 Máy đánh trộn liên tục", "13 Hệ thống băng tải", "14 Hệ thống gầu tải",
+  "15 Hệ thống vít tải hồi lưu", "16 Hệ thống urê hóa lỏng",
+] as const;
+
+/** Gói thầu lò hơi tầng sôi ống nước 1 balong đốt sinh khối 6.000 kg/h (E-TBMT IB2600448600, mở thầu 17/09/2026). */
+export const BOILER_TENDER = {
+  code: "IB2600448600", opened: "17/09/2026", capacity: "6.000 kg/h",
+  bids: [["NTC", 5940000000], ["Hải Âu Việt", 6048000000], ["GreenBoiler", 6600000000], ["Đông Anh", 6889999999], ["DIVI", 6975719780]],
+  note: "Bảng chấm thầu còn nhiều ô “Chưa rõ”; cần đối chiếu E-HSMT gốc trước khi kết luận.",
+} as const;
+
+/** Khảo sát cải tạo HTXLNT 120 m³/ngày.đêm (Global Green, khảo sát 09/09/2026, báo cáo 14/10/2026). */
+export const WWTP_RETROFIT = {
+  before: "Hố thu → lắng hóa lý 1 → lắng hóa lý 2 → điều hòa → tuyển nổi → keo tụ → tạo bông → lắng bông bùn 3 → thiếu khí 1 → thiếu khí 2 → MBBR → hiếu khí → lắng hồi lưu 4 → trung gian → lọc áp lực → khử trùng → nguồn tiếp nhận",
+  after: "B01 hố bơm tổng hợp → B02 tách dầu → B03 lắng sơ bộ → B04 điều hòa → B05-A keo tụ → B05-B tạo bông → B06 lắng hóa lý → B07 thiếu khí → B08 MBBR → B09 hiếu khí → B10 lắng sinh học → B11 trung gian → FT11 lọc áp lực → B12 khử trùng → B13 bể sinh thái → nguồn tiếp nhận",
+  changes: [
+    "Loại bỏ công đoạn tuyển nổi (nhiệm vụ tách dầu mỡ, SS chuyển cho B02 tách dầu và B03 lắng sơ bộ); điều hòa bơm thẳng sang keo tụ",
+    "B02 cải tạo từ ngăn bơm nước giặt túi lọc bụi; B03 cải tạo từ ngăn bơm nước xưởng CK-XN",
+    "B08 MBBR cải tạo từ bể Anoxic hiện hữu, bổ sung giá thể vi sinh và phân phối khí; B10 cải tạo từ bể lắng hồi lưu",
+    "B14 bể chứa bùn hóa lý (từ ngăn lắng B02B), B15 bể chứa bùn sinh học; thêm bể sinh thái B13 trước khi xả",
+    "Hai máy thổi khí (nhà điều hành) chạy luân phiên; PAC, polymer, NaOH, clorine châm bằng bơm định lượng",
+  ],
+  jar: "Jar test 10/09/2026: PAC 50 mg/L + PAM 2 mg/L → bông lớn, lắng nhanh; với Q = 120 m³/ngày ≈ 6,0 kg PAC/ngày và 0,24 kg PAM/ngày",
+  // Nước thải đầu vào 2021–2022 (08 mẫu): [chỉ tiêu, đơn vị, min, max, trung bình, QCVN 14:2025 cột A]
+  influent: [
+    ["pH", "–", "6,88", "12", "–", "5–9"], ["BOD₅", "mg/L", "20", "570", "117,5", "30"], ["COD", "mg/L", "36", "1.082", "222,6", "80"],
+    ["TSS", "mg/L", "30", "180", "97,4", "50"], ["Tổng nitơ", "mg/L", "23,5", "322", "119,0", "25"], ["Tổng phospho", "mg/L", "5,72", "62,0", "31,0", "4,0"],
+    ["Amoni (N)", "mg/L", "20,7", "293", "101,1", "6,0"], ["Coliform", "MPN/100 mL", "14.000", "540.000", "152.875", "3.000"],
+  ],
+} as const;
+
+/** Hệ thống tháp hấp thụ NH₃ — BOQ (tiền VNĐ). Tổng gồm cả phần “hạ nhiệt”: 8.437.576.000 + 14.600.083.200 = 23.037.659.200. */
+export const NH3_TOWER_BOQ = {
+  total: 23037659200,
+  parts: [
+    ["Tháp hạ nhiệt (SUS304, Ø3,5 × H10 m, T thiết kế 150 °C)", 8437576000],
+    ["Tháp hấp thụ NH₃ ngược dòng (CS bọc FRP, Ø3,5 × H10 m, đệm Cascade Mini-Ring #2 30 m³, 16 vòi phun dịch, 20 vòi rửa)", 10437576000],
+    ["Bồn chứa axit 98 % (15 m³) + bơm nạp + 2 bơm định lượng H₂SO₄", 336347200],
+    ["Quạt ly tâm 55.000 m³/h, 55 kW, hút −450 / đẩy +50 mmH₂O, 65 °C", 574000000],
+    ["Bơm dịch tuần hoàn 2 × (150 m³/h, 50 mH₂O); pH điều khiển 4,0–5,0", 981280000],
+    ["Bơm dịch (NH₄)₂SO₄ + bơm tuần hoàn SA", 641880000],
+    ["Điện điều khiển tại site (biến tần quạt) + theo dõi DCS", 1209000000],
+    ["Chạy thử", 420000000],
+  ],
+  notes: "Cảnh báo ΔP tháp cao 120 mmH₂O (ngập tháp); tỷ trọng dịch SA mục tiêu 28–35 %. Đường ống nước/hóa chất/khí, xây dựng, lắp đặt: “cần khảo sát thực tế” — chưa có giá.",
+} as const;
+
+/** Bảng so sánh thiết bị lò đốt sinh khối – hệ thống sấy nóng (cập nhật 29/06/2026): [thiết bị, hiện hữu (than), điều chỉnh 2026 (sinh khối)]. */
+export const FURNACE_COMPARE = [
+  ["Quạt đầu vào (gió cấp oxy)", "~20.000 m³/h; cấp liệu thủ công", "5,5 kW, 10.000 m³/h, 150 mmH₂O; thêm quạt thổi liệu 3,7 kW, 6.000 m³/h"],
+  ["Lò đốt", "2,5 Mkcal/h; buồng 1,76 × 2,5 = 4,4 m²; than; η 70 %; khí nóng 250–400 °C", "2,5 Mkcal/h; buồng 1,4 × 2,5 = 3,5 m²; sinh khối; η 85 %; khí nóng 160–250 °C"],
+  ["Lọc bụi sau lò", "Cyclone đơn Ø2 × 6 m, CT3 4 mm, > 95 %", "Cyclone chùm; ống Ø1.200 → Ø1.000; CT3 4 mm; > 95 %; bảo ôn 50 mm + inox 304"],
+  ["Quạt hút sau lọc bụi", "40.000 m³/h, 150 mmH₂O", "37 kW, 40.000 m³/h, 150 mmH₂O"],
+  ["Ống cấp nhiệt / cấp liệu", "Inox 304 Ø1.000 và Ø500, dày 4 mm", "Giữ; nâng cấp vật liệu chịu nhiệt, cách nhiệt tốt hơn"],
+  ["Lò sấy (máy sấy khô)", "Hiện hữu", "Giữ nguyên; chỉ thay nguồn nhiệt"],
+  ["Cyclone đơn sau lò sấy", "Cyclone đơn Ø2 × 6 m", "Giữ (hoặc nâng cấp), kết hợp túi vải phía sau"],
+  ["Túi vải (tay áo)", "Hiện hữu (nếu có)", "Bổ sung/nâng cấp sau cyclone đơn, hiệu suất > 99 %"],
+  ["Quạt hút cuối hệ thống", "50.000 m³/h, 450 mmH₂O", "Giữ hoặc điều chỉnh theo tổng lưu lượng mới (ưu tiên 40.000 m³/h cho dòng chính)"],
+  ["Ống khói", "Hiện hữu", "Giữ; kiểm tra chiều cao và đường kính theo quy chuẩn mới"],
+] as const;
