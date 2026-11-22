@@ -20,6 +20,9 @@ export interface Api {
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
   resetPassword(email: string): Promise<void>;
+  /** Gọi khi người dùng mở liên kết đặt lại mật khẩu trong email (sự kiện PASSWORD_RECOVERY). */
+  onRecovery(cb: () => void): () => void;
+  updatePassword(password: string): Promise<void>;
   ensureProfile(meta: { full_name?: string; phone?: string; company?: string }): Promise<Me>;
   me(): Promise<Me>;
   catalog(): Promise<{ packages: Pkg[]; services: Service[]; settings: Record<string, any> }>;
@@ -53,10 +56,14 @@ export const errText = (e: any): string => {
   if (/already registered|already been registered/i.test(m)) return "Email này đã đăng ký.";
   if (/Email not confirmed/i.test(m)) return "Email chưa được xác nhận — kiểm tra hộp thư.";
   if (/Password should be|weak/i.test(m)) return "Mật khẩu quá yếu (tối thiểu 8 ký tự).";
+  if (/Load failed|Failed to fetch|NetworkError|fetch failed/i.test(m)) return "Không kết nối được máy chủ tài khoản. Kiểm tra mạng; nếu bạn mở tệp .html trong trình xem trước của ứng dụng, hãy mở bằng Safari/Chrome hoặc dùng địa chỉ Vercel của dự án.";
   if (/rate limit/i.test(m)) return "Thao tác quá nhanh, vui lòng thử lại sau ít phút.";
   if (/hse_|relation .* does not exist|schema cache|Could not find the function/i.test(m)) return "BACKEND_NOT_READY";
   return m || "Có lỗi xảy ra.";
 };
+
+// Địa chỉ quay lại sau khi bấm liên kết trong email. Chỉ dùng khi trang được mở qua http(s); mở từ tệp (file://) hoặc trình xem trước thì để Supabase dùng "Site URL".
+const appUrl = () => { try { return location.protocol.startsWith("http") ? location.origin + location.pathname : undefined; } catch { return undefined; } };
 
 // ───────────────────────── Supabase ─────────────────────────
 async function makeSupabase(): Promise<Api> {
@@ -70,12 +77,14 @@ async function makeSupabase(): Promise<Api> {
     async getUser() { const { data } = await sb.auth.getSession(); const u = data.session?.user; return u ? { id: u.id, email: u.email || "", meta: u.user_metadata || {} } : null; },
     onAuth(cb) { const { data } = sb.auth.onAuthStateChange(() => cb()); return () => data.subscription.unsubscribe(); },
     async signUp(email, password, meta) {
-      const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: typeof location !== "undefined" ? location.origin : undefined } });
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: meta, emailRedirectTo: appUrl() } });
       if (error) throw error; return { needsConfirm: !data.session };
     },
     async signIn(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; },
     async signOut() { await sb.auth.signOut(); },
-    async resetPassword(email) { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: typeof location !== "undefined" ? location.origin : undefined }); if (error) throw error; },
+    async resetPassword(email) { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }); if (error) throw error; },
+    onRecovery(cb) { const { data } = sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") cb(); }); return () => data.subscription.unsubscribe(); },
+    async updatePassword(password) { const { error } = await sb.auth.updateUser({ password }); if (error) throw error; },
     ensureProfile: meta => rpc("hse_ensure_profile", { p_name: meta.full_name || "", p_phone: meta.phone || "", p_company: meta.company || "" }),
     me: () => rpc("hse_me"),
     async catalog() {
@@ -132,7 +141,7 @@ async function makeLocal(): Promise<Api> {
     onAuth(cb) { listeners.add(cb); return () => listeners.delete(cb); },
     async signUp(email, password, meta) { if (db.users.some((u: any) => u.email === email)) throw new Error("already registered"); if (password.length < 8) throw new Error("Password should be"); const id = "u" + db.seq++; db.users.push({ id, email, password, profile: meta }); db.session = id; save(); emit(); return { needsConfirm: false }; },
     async signIn(email, password) { const u = db.users.find((x: any) => x.email === email && x.password === password); if (!u) throw new Error("Invalid login credentials"); db.session = u.id; save(); emit(); },
-    async signOut() { db.session = null; save(); emit(); }, async resetPassword() {},
+    async signOut() { db.session = null; save(); emit(); }, async resetPassword() {}, onRecovery() { return () => {}; }, async updatePassword(pw: string) { const u = need(); if (pw.length < 8) throw new Error("Password should be"); u.password = pw; save(); },
     async ensureProfile(meta) { const u = need(); u.profile = { full_name: u.profile?.full_name || meta.full_name || "", phone: u.profile?.phone || meta.phone || "", company: u.profile?.company || meta.company || "" }; db.wallets[u.id] ??= 0; save(); return meOf(u); },
     async me() { return meOf(need()); },
     async catalog() { return { packages: db.packages, services: db.services, settings: db.settings }; },

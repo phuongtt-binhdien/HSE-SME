@@ -8,7 +8,7 @@ const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
 
 export function AuthProvider({ children }) {
-  const [st, setSt] = useState({ loading: true, user: null, me: null, catalog: null, backendError: false });
+  const [st, setSt] = useState({ loading: true, user: null, me: null, catalog: null, backendError: false, recovery: false });
   const apiRef = useRef(null);
   const load = useCallback(async () => {
     try {
@@ -16,13 +16,14 @@ export function AuthProvider({ children }) {
       if (!u) { setSt(s => ({ ...s, loading: false, user: null, me: null })); return; }
       const me = await api.ensureProfile({ full_name: u.meta?.full_name, phone: u.meta?.phone, company: u.meta?.company });
       const catalog = await api.catalog();
-      setSt({ loading: false, user: u, me, catalog, backendError: false });
+      setSt(s => ({ loading: false, user: u, me, catalog, backendError: false, recovery: s.recovery }));
     } catch (e) { const t = errText(e); setSt(s => ({ ...s, loading: false, backendError: t === "BACKEND_NOT_READY" ? true : t, user: s.user })); }
   }, []);
-  useEffect(() => { let off = () => {}; (async () => { const api = (apiRef.current ??= await getApi()); off = api.onAuth(load); load(); })(); return () => off(); }, [load]);
+  useEffect(() => { let off = () => {}, off2 = () => {}; (async () => { const api = (apiRef.current ??= await getApi()); off = api.onAuth(load); off2 = api.onRecovery(() => setSt(s => ({ ...s, recovery: true }))); load(); })(); return () => { off(); off2(); }; }, [load]);
+  const endRecovery = useCallback(() => setSt(s => ({ ...s, recovery: false })), []);
   const refreshMe = useCallback(async () => { const api = apiRef.current; if (!api) return; try { const me = await api.me(); setSt(s => ({ ...s, me })); } catch {} }, []);
   const refreshCatalog = useCallback(async () => { const api = apiRef.current; if (!api) return; try { const catalog = await api.catalog(); setSt(s => ({ ...s, catalog })); } catch {} }, []);
-  const value = { ...st, api: apiRef.current, reload: load, refreshMe, refreshCatalog,
+  const value = { ...st, api: apiRef.current, reload: load, endRecovery, refreshMe, refreshCatalog,
     hasPass: key => !!st.me?.passes?.some(p => p.service_key === key && new Date(p.expires_at) > new Date()),
     service: key => st.catalog?.services?.find(s => s.key === key && s.active) };
   return <Ctx.Provider value={value}><AuthStyle />{children}</Ctx.Provider>;
@@ -34,11 +35,31 @@ export function AuthGate({ children }) {
   if (a.backendError) return <Screen><Card title="Máy chủ tài khoản chưa sẵn sàng">
     {a.backendError === true ? <Msg kind="err">Chưa thấy các bảng/hàm <code>hse_*</code> trong cơ sở dữ liệu. Quản trị cần chạy tệp <code>supabase/migrations/20261121000000_hse_accounts_credits.sql</code> trong Supabase (SQL Editor) rồi tải lại trang.</Msg> : <Msg kind="err">{a.backendError}</Msg>}
     <div style={{ marginTop: 12, display: "flex", gap: 8 }}><Btn onClick={() => a.reload()}>Thử lại</Btn><Btn onClick={async () => { await a.api?.signOut(); a.reload(); }}>Đăng xuất</Btn></div></Card></Screen>;
+  if (a.recovery && a.user) return <NewPasswordScreen />;
   if (!a.user) return <LoginScreen />;
   return children;
 }
 
 const Screen = ({ children }) => <div style={{ minHeight: "100vh", background: C.bg, color: C.txt, display: "grid", placeItems: "center", padding: 16, fontFamily: "'Outfit',system-ui" }}><div style={{ width: "100%", maxWidth: 440 }}>{children}</div></div>;
+
+function NewPasswordScreen() {
+  const a = useAuth(); const [pw, setPw] = useState(""), [pw2, setPw2] = useState(""), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
+  const submit = async e => {
+    e.preventDefault(); setMsg(null);
+    if (pw.length < 8) return setMsg({ kind: "err", text: "Mật khẩu tối thiểu 8 ký tự." });
+    if (pw !== pw2) return setMsg({ kind: "err", text: "Hai mật khẩu không khớp." });
+    setBusy(true);
+    try { await a.api.updatePassword(pw); try { history.replaceState(null, "", location.pathname + location.search); } catch {} a.endRecovery(); }
+    catch (err) { setMsg({ kind: "err", text: errText(err) }); } finally { setBusy(false); }
+  };
+  const inp = { width: "100%", boxSizing: "border-box", background: C.bg, color: C.txt, border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10, font: "15px 'Outfit',system-ui" };
+  return <Screen><Card title="Đặt mật khẩu mới"><form onSubmit={submit}>
+    <div style={{ color: C.sub, fontSize: 13, marginBottom: 12 }}>Tài khoản: {a.user?.email}</div>
+    <input type="password" autoComplete="new-password" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" value={pw} onChange={e => setPw(e.target.value)} style={inp} />
+    <input type="password" autoComplete="new-password" placeholder="Nhập lại mật khẩu mới" value={pw2} onChange={e => setPw2(e.target.value)} style={inp} />
+    {msg && <Msg kind={msg.kind}>{msg.text}</Msg>}
+    <Btn type="submit" disabled={busy}>{busy ? "Đang lưu…" : "Lưu mật khẩu mới"}</Btn></form></Card></Screen>;
+}
 
 function LoginScreen() {
   const a = useAuth(); const [mode, setMode] = useState("in"); const [f, setF] = useState({ email: "", password: "", full_name: "", phone: "", company: "", agree: false });
