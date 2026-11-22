@@ -10,6 +10,7 @@ import PlantSim from "../sim/PlantSim.tsx";
 import WwtpSim from "../sim/WwtpSim.tsx";
 import DcsScreen from "../sim/DcsScreen.tsx";
 import PlantDcs from "../sim/PlantDcs.tsx";
+import GasDcs from "../sim/GasDcs.tsx";
 import { AuthProvider, AuthGate, useAuth } from "../auth/AuthContext.tsx";
 import { PaidGate } from "../auth/PaidGate.tsx";
 import { WalletModule } from "../auth/WalletModule.tsx";
@@ -18,7 +19,7 @@ import { AdminModule } from "../auth/AdminModule.tsx";
 import { GhgModule } from "../ghg/GhgModule.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
-import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS } from "../data/facility";
+import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS, EMISSION_SOURCES } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2417,6 +2418,11 @@ function FacilityModule() {
       </div>
 
       <div style={card}>
+        <SectionHeader title="Nguồn phát sinh và hệ thống xử lý khí thải — GPMT 2986/GPMT-STNMT" sub="Phụ lục 2 (28/04/2023): 8 nguồn, 7 dòng thải có hệ thống xử lý; tọa độ VN2000 (X / Y)"/>
+        <Table heads={["Dòng","Nguồn","Q (m³/h)","Ống khói","Xử lý","Giới hạn"]} rows={EMISSION_SOURCES.map(e=>(<tr key={e.id}><TD><Mono c={T.text} s={11}>{e.id}</Mono></TD><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{e.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.flow?e.flow.toLocaleString():"—"}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.stack}<br/>{e.xy}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.treat}</TD><TD style={{ color:T.dim, fontSize:11 }}>{e.limit}</TD></tr>))}/>
+      </div>
+
+      <div style={card}>
         <SectionHeader title="Dây chuyền tạo hạt số 2 — Nguồn số 04 (hệ thống sấy nóng, xử lý bụi khí thải)" sub="BV CN-04-01/02 (10/2026) · bản vẽ lò đốt sấy nóng, bản vẽ hoàn công cyclone/túi vải · khí: lò đốt → cyclone chùm → quạt thổi → máy sấy → cyclone đơn → túi vải → quạt hút → ống khói 22 m"/>
         <Table heads={["Ký hiệu","Thiết bị","Đặc tính kỹ thuật","Tình trạng"]} rows={LINE2_EQUIPMENT.map(e=>(<tr key={e.id}><TD><Mono c={T.text} s={11}>{e.id}</Mono></TD><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{e.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.spec}</TD><TD style={{ color:T.dim, fontSize:11 }}>{e.status}</TD></tr>))}/>
         <div style={{ fontSize:11, color:T.sub, marginTop:10, lineHeight:1.6 }}><b style={{ color:T.text }}>Mặt bằng thiết bị phân xưởng:</b> {LINE2_LAYOUT.join(" · ")}. Bản vẽ ghi 02 máy sấy (khô 1, khô 2); mô phỏng 3D mới đưa máy sấy khô 1 (Nguồn 04) vào vận hành.</div>
@@ -2638,6 +2644,7 @@ const NAV_GROUPS = [
       { id:"wwsim",       icon:"💧", label:"Mô Phỏng Dòng Nước Thải" },
       { id:"dcsplant",   icon:"🖥", label:"Màn Hình DCS Dây Chuyền" },
       { id:"dcs",        icon:"🖥", label:"Màn Hình DCS Nước Thải" },
+      { id:"dcsgas",     icon:"🖥", label:"Màn Hình DCS Khí Thải" },
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"ghg",        icon:"🌫", label:"Kiểm Kê Khí Nhà Kính" },
@@ -2773,6 +2780,7 @@ function AppInner() {
       case "wwsim":       return <WwtpSim/>;
       case "dcsplant":    return <PlantDcs/>;
       case "dcs":         return <DcsScreen/>;
+      case "dcsgas":      return <GasDcs/>;
       case "ghg":         return <GhgModule/>;
       case "wallet":      return <WalletModule setActive={setActive}/>;
       case "induction":   return <InductionModule setActive={setActive}/>;

@@ -92,7 +92,21 @@ export const DATA_GAPS = [
   "Số lò hơi: Biện pháp UPSCHC 2026 ghi 02 lò 8 tấn hơi/h, GPMT 2986 chỉ cấp phép 01 lò hơi (nguồn 01) — trùng với mục C6 ghi chú nội bộ hồ sơ điều chỉnh GPMT (BC BVMT 2022 có điểm KT2 \"lò hơi số 2\").",
   "Lưu lượng nước thải: Biện pháp UPSCHC ghi ≈ 90 m³/ngày, ghi chú nội bộ hồ sơ GPMT (mục B7) ghi thực tế 2025 ≈ 49 m³/ngày, GPMT liệt kê ≈ 25,7 m³/ngày.",
   "Công suất: ≈ 330.000 tấn NPK/năm (UPSCHC) so với 600.000 tấn/năm (GPMT, tổng hai giai đoạn) — ghi rõ phạm vi khi trích dẫn.",
+  "Khí thải (GPMT 2986, Phụ lục 2): các dòng thải 01–07 không thuộc diện quan trắc tự động liên tục (Điều 98 NĐ 08/2022); GPMT không nêu hiệu suất xử lý, nồng độ khí thô, số quạt dự phòng hay hóa chất/ pH vận hành của tháp kiềm lò hơi — các giá trị này trong mô hình DCS khí thải là giả định, cần số liệu quan trắc 03 tháng/lần và hồ sơ thiết kế thực tế.",
+  "GPMT ghi dòng thải 06 (tạo hạt số 3) 140.000 m³/h nhưng đoạn thu gom ghi hệ thống xử lý \"công suất 55.000 m³/giờ\" (trang 12); các tiêu đề phần vận hành thử nghiệm ghi 140.000 — cần xác nhận lưu lượng thực của hệ thống bụi lò sấy số 3.",
   "Danh sách huấn luyện nhóm 3 (an toàn điện, 28/09/2026) chưa có bản PDF — chưa nạp vào app.",
+] as const;
+
+/** Nguồn phát sinh khí thải và hệ thống xử lý — Phụ lục 2, GPMT 2986/GPMT-STNMT (28/04/2023); tọa độ VN2000, kinh tuyến trục 105°45', múi chiếu 3°. */
+export const EMISSION_SOURCES = [
+  { id: "G01", name: "Lò hơi đốt than 8 t/h", flow: 25000, stack: "cao 18 m, D700", xy: "1172156 / 580206", treat: "Bộ lọc bụi ướt → hấp thụ dung dịch kiềm (NaOH) → quạt hút", limit: "QCVN 19:2009 cột B (Kp 0,8; Kv 1,0): CO 800; NOx 680; SO₂ 400; bụi 160 mg/Nm³" },
+  { id: "G02", name: "Lò sấy nóng — dây chuyền tạo hạt 1", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172150 / 580263", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "QCVN 19 + QCVN 21:2009 cột B (Kp 0,8): CO 800; NOx 680; SO₂ 400; bụi 160; NH₃ 40 mg/Nm³" },
+  { id: "G03", name: "Lò sấy nguội — dây chuyền tạo hạt 1", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172132 / 580277", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
+  { id: "G04", name: "Lò sấy nóng — dây chuyền tạo hạt 2 (Nguồn 04)", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172155 / 580357", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
+  { id: "G05", name: "Lò sấy nguội — dây chuyền tạo hạt 2", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172194 / 580350", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
+  { id: "G06", name: "Lò sấy — dây chuyền tạo hạt 3", flow: 140000, stack: "cao 22 m, D1 3 m / D2 2 m", xy: "1172157 / 580332", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
+  { id: "G07", name: "Phối trộn phân hữu cơ", flow: 10000, stack: "cao 1,2 m, D300", xy: "1171990 / 580289", treat: "Lọc bụi túi vải → quạt hút", limit: "QCVN 21:2009 cột B (Kp 1,0): bụi 200 mg/Nm³" },
+  { id: "G08", name: "Máy phát điện dự phòng", flow: 0, stack: "—", xy: "1172298 / 580288", treat: "Không có hệ thống xử lý", limit: "—" },
 ] as const;
 
 /** Dây chuyền tạo hạt số 2 – Nguồn số 04 (BV CN-04-01/02, 10/2026; bộ bản vẽ lò đốt sấy nóng, Cty Nguyễn Thành Chung 2025;
