@@ -1,7 +1,7 @@
 // Lớp truy cập dữ liệu tài khoản/credit. Hai cài đặt cùng giao diện:
 //  - supabaseApi: Supabase Auth + các hàm hse_* (supabase/migrations) — bản chính thức;
 //  - localApi: bản thử lưu trong localStorage (?backend=local) để demo và kiểm thử giao diện — KHÔNG an toàn, không dùng thu tiền thật.
-import { BACKEND, useLocalBackend, fastInduction } from "./config.ts";
+import { BACKEND, useLocalBackend, fastInduction, isDemo } from "./config.ts";
 
 export interface Me { user_id: string; email: string; profile: { full_name: string; phone: string; company: string } | null; balance: number; is_admin: boolean; passes: { service_key: string; expires_at: string }[]; induction: { passed_at: string; expires_at: string; score: number; total: number } | null }
 export interface Pkg { vnd: number; credits: number }
@@ -125,7 +125,8 @@ async function makeLocal(): Promise<Api> {
     services: [["sim3d", "Mô phỏng 3D nhà máy", 15, true], ["wwsim", "Mô phỏng dòng nước thải", 10, false], ["dcs", "Màn hình DCS nước thải", 10, false], ["dcsplant", "Màn hình DCS dây chuyền sản xuất", 15, false], ["dcsgas", "Màn hình DCS xử lý khí thải", 15, false], ["dispersion", "Lan truyền khí thải (Gauss ISC3)", 20, false], ["gpmt01", "GPMT Nguồn 01 — lò hơi", 20, false], ["lowsrc", "Nguồn thấp · Đường · Mặt", 15, false], ["isoforms", "Biểu mẫu ISO 14001", 10, false], ["gri", "Báo cáo GRI", 10, false]].map(([key, title, price, ni], i) => ({ key, title, price, pass_hours: 24, needs_induction: ni, active: true, sort: i + 1 })),
     packages: [[100000, 100], [200000, 220], [300000, 345], [400000, 480], [500000, 625]].map(([vnd, credits]) => ({ vnd, credits })),
     settings: { induction_minutes: 15, induction_pass_pct: 80, induction_valid_days: 365, bank_bin: "", bank_name: "", bank_account: "", bank_account_name: "", contact_zalo_name: "", contact_zalo_phone: "" } as any });
-  let db = load() || base(); const save = () => localStorage.setItem(LOCAL_KEY, JSON.stringify(db)); const listeners = new Set<() => void>(); const emit = () => listeners.forEach(f => f());
+  let db = load() || base();
+  if (isDemo() && !db.users.some((u: any) => u.id === "demo")) { db.users.push({ id: "demo", email: "demo@hse.local", password: "demo-demo", profile: { full_name: "Người dùng DEMO", phone: "", company: "Phân bón Bình Điền" } }); db.session = "demo"; db.wallets.demo = 500; db.inductions.demo = { passed_at: new Date().toISOString(), expires_at: new Date(Date.now() + 365 * 86400e3).toISOString(), score: 10, total: 10 }; try { localStorage.setItem(LOCAL_KEY, JSON.stringify(db)); } catch {} } const save = () => localStorage.setItem(LOCAL_KEY, JSON.stringify(db)); const listeners = new Set<() => void>(); const emit = () => listeners.forEach(f => f());
   const user = () => db.users.find((u: any) => u.id === db.session); const need = () => { const u = user(); if (!u) throw new Error("NOT_AUTHENTICATED"); return u; };
   const isAdmin = (u: any) => /^admin/i.test(u.email); const adminOnly = () => { if (!isAdmin(need())) throw new Error("FORBIDDEN"); };
   const now = () => new Date(); const iso = (d: Date) => d.toISOString();
