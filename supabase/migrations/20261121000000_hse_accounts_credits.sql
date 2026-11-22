@@ -286,6 +286,7 @@ insert into public.hse_packages (vnd, credits, sort) values (100000, 100, 1), (2
 insert into public.hse_services (key, title, price, pass_hours, needs_induction, sort) values
   ('sim3d', 'Mô phỏng 3D nhà máy', 15, 24, true, 1),
   ('wwsim', 'Mô phỏng dòng nước thải', 10, 24, false, 2),
+  ('dcs', 'Màn hình DCS nước thải', 10, 24, false, 8),
   ('dispersion', 'Lan truyền khí thải (Gauss ISC3)', 20, 24, false, 3),
   ('gpmt01', 'GPMT Nguồn 01 — lò hơi', 20, 24, false, 4),
   ('lowsrc', 'Nguồn thấp · Đường · Mặt', 15, 24, false, 5),

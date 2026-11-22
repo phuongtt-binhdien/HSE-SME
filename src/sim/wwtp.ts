@@ -67,7 +67,11 @@ export const STANDARDS: Record<string, Standard> = {
   qcvn14: { name: "QCVN 14:2025/BTNMT Bảng 2 cột A (báo cáo khảo sát cải tạo)", bod: 30, cod: 80, tss: 50, nh4: 6, tn: 25, tp: 4, coli: 3000, ph: [5, 9] },
 };
 
+/** Vòng điều khiển PID dạng vận tốc (chống bão hòa tích phân): AUTO tự điều chỉnh OUT theo sai lệch SP − PV; MAN do vận hành viên đặt OUT. */
+export interface Loop { mode: "AUTO" | "MAN"; sp: number; out: number; kp: number; ti: number; prev: number }
 export interface Controls {
+  doLoop: Loop;   // AIC-901: DO bể hiếu khí → tốc độ máy thổi khí (biến tần), OUT 0,15–1
+  phLoop: Loop;   // AIC-501: pH bể keo tụ → châm NaOH (+) / axit (−), OUT −1…+1, quyền hiệu chỉnh ±1,5 đơn vị pH
   wp: Record<string, boolean>; blowerA: boolean; blowerB: boolean; blowerFail: boolean;
   pac: boolean; pacDose: number; polymer: boolean; naoh: boolean; clo: boolean; valveAuto: boolean; valveOpen: boolean; diurnal: boolean;
 }
@@ -75,7 +79,7 @@ export interface TankState { c: Conc; vol: number; q: number; level: number; stu
 export interface WwState {
   mode: Mode; t: number; tanks: TankState[]; inf: Conc; infKey: string; qIn: number; ctl: Controls; std: string;
   out: { q: number; c: Conc }; pond: { vol: number; cap: number }; spill: number; discharged: number; load: { cod: number; nh4: number; tn: number; tp: number };
-  tracerUntil?: number; alarms: string[]; log: { t: number; text: string }[]; hist: { t: number; cod: number; nh4: number; tss: number; ph: number }[]; exceedSince: number | null;
+  tracerUntil?: number; alarms: string[]; log: { t: number; text: string }[]; hist: { t: number; cod: number; nh4: number; tss: number; ph: number; do: number; doSp: number; doOut: number; phPv: number; phSp: number; phOut: number; lvEq: number; q: number }[]; exceedSince: number | null; violVol: number;
 }
 
 const vNom = (st: Stage) => st.hrt * Q_DESIGN;
@@ -89,13 +93,13 @@ export function createWw(mode: Mode = "retro", infKey = "typical"): WwState {
   const s: WwState = {
     mode, t: 0, infKey, inf, qIn: Q_DESIGN, std: "qcvn40",
     tanks: stages.map(st => ({ c: { ...inf, do: st.kind === "aer" ? 3 : st.kind === "mbbr" ? 2 : 0 }, vol: vNom(st) * (st.pumped ? 0.4 : 1), q: Q_DESIGN, level: st.pumped ? 0.4 : 0.5 })),
-    ctl: { wp, blowerA: true, blowerB: false, blowerFail: false, pac: true, pacDose: 50, polymer: true, naoh: true, clo: true, valveAuto: true, valveOpen: true, diurnal: false },
+    ctl: { wp, doLoop: { mode: "AUTO", sp: 2.5, out: 0.6, kp: 0.35, ti: 1, prev: 0 }, phLoop: { mode: "AUTO", sp: 7.2, out: 0, kp: 0.6, ti: 0.25, prev: 0 }, blowerA: true, blowerB: false, blowerFail: false, pac: true, pacDose: 50, polymer: true, naoh: true, clo: true, valveAuto: true, valveOpen: true, diurnal: false },
     out: { q: Q_DESIGN, c: { ...inf } }, pond: { vol: 0, cap: 200 }, spill: 0, discharged: 0, load: { cod: 0, nh4: 0, tn: 0, tp: 0 },
-    alarms: [], log: [], hist: [], exceedSince: null,
+    alarms: [], log: [], hist: [], exceedSince: null, violVol: 0,
   };
   // khởi động nóng: chạy ổn định 120 h với van xả mở, rồi đặt lại bộ đếm
   s.ctl.valveAuto = false; settle(s, 120); s.ctl.valveAuto = true;
-  s.t = 0; s.spill = 0; s.discharged = 0; s.load = { cod: 0, nh4: 0, tn: 0, tp: 0 }; s.pond.vol = 0; s.hist = []; s.log = []; s.alarms = []; s.ctl.valveOpen = true;
+  s.t = 0; s.violVol = 0; s.spill = 0; s.discharged = 0; s.load = { cod: 0, nh4: 0, tn: 0, tp: 0 }; s.pond.vol = 0; s.hist = []; s.log = []; s.alarms = []; s.ctl.valveOpen = true;
   return s;
 }
 
@@ -112,8 +116,13 @@ export function stepWw(s: WwState, dt: number) {
   if (s.tracerUntil && s.t > s.tracerUntil) { s.inf.tracer = 0; s.tracerUntil = undefined; }
   const diur = ctl.diurnal ? 1 + 0.45 * Math.sin(((s.t % 24) - 8) / 24 * 2 * Math.PI) : 1;
   s.qIn = Q_DESIGN * INFLUENT[s.infKey].qMul * diur;
-  let qIn = s.qIn, cIn: Conc = s.inf;
-  const air = ctl.blowerFail ? 0 : (ctl.blowerA || ctl.blowerB) ? 1 : 0;
+  let qIn = s.qIn, cIn: Conc = s.inf; const qIn0 = s.qIn;
+  // vòng điều khiển PID (đo ở bước trước)
+  const iAer = stages.findIndex(x => x.kind === "aer"), iCoag = stages.findIndex(x => x.kind === "coag");
+  const runLoop = (L: Loop, pv: number, lo: number, hi: number) => { const e = L.sp - pv; if (L.mode === "AUTO") L.out = clamp(L.out + L.kp * ((e - L.prev) + (e * dt) / L.ti), lo, hi); else L.out = clamp(L.out, lo, hi); L.prev = e; };
+  runLoop(ctl.doLoop, s.tanks[iAer].c.do, 0.15, 1); runLoop(ctl.phLoop, s.tanks[iCoag].c.ph, -1, 1);
+  const blowerRun = (ctl.blowerA && !ctl.blowerFail) || ctl.blowerB;   // máy A hỏng thì chạy máy dự phòng B
+  const air = blowerRun ? ctl.doLoop.out : 0;
   const alarms: string[] = [];
   for (let i = 0; i < stages.length; i++) {
     const st = stages[i], T = s.tanks[i], Vn = vNom(st);
@@ -139,7 +148,7 @@ export function stepWw(s: WwState, dt: number) {
       case "oil": e.tss = 0.15; e.cod = 0.05; e.bod = 0.03; break;
       case "sed": e.tss = 0.3; e.cod = 0.1; e.bod = 0.08; e.tp = 0.03; break;
       case "eq": e.bod = 0.03; break;
-      case "coag": phTarget = (ctl.naoh ? cIn.ph + clamp(7.3 - cIn.ph, -1.5, 1.5) : cIn.ph) - (ctl.pac ? 0.4 : 0); phTau = 0.15; break; // châm NaOH/axit hiệu chỉnh tối đa ±1,5 đơn vị pH
+      case "coag": phTarget = cIn.ph + (ctl.naoh ? 1.5 * ctl.phLoop.out : 0) - (ctl.pac ? 0.4 : 0); phTau = 0.15; break; // châm NaOH/axit hiệu chỉnh tối đa ±1,5 đơn vị pH pH
       case "floc": phTarget = cIn.ph; break;
       case "clar_chem": {
         const dose = ctl.pac ? ctl.pacDose : 0, f = clamp(dose / 50, 0, 1) * (ctl.polymer ? 1 : 0.6) * fpH(cIn.ph);
@@ -185,7 +194,7 @@ export function stepWw(s: WwState, dt: number) {
   const qOut = last.q;
   if (ctl.valveOpen) {
     s.out = { q: qOut, c: { ...last.c } }; const m = qOut * dt;
-    s.discharged += m; s.load.cod += m * last.c.cod / 1000; s.load.nh4 += m * last.c.nh4 / 1000; s.load.tn += m * last.c.tn / 1000; s.load.tp += m * last.c.tp / 1000;
+    if (bad) { const crit = autoEx.length > 0; if (crit) s.violVol += m; } s.discharged += m; s.load.cod += m * last.c.cod / 1000; s.load.nh4 += m * last.c.nh4 / 1000; s.load.tn += m * last.c.tn / 1000; s.load.tp += m * last.c.tp / 1000;
     if (bad) alarms.push(`Đang xả vượt chuẩn: ${ex.join(", ")}`);
   } else {
     s.out = { q: 0, c: { ...last.c } }; s.pond.vol += qOut * dt;
@@ -193,7 +202,9 @@ export function stepWw(s: WwState, dt: number) {
     alarms.push("Van xả đóng — nước chuyển về hồ sự cố");
   }
   s.alarms = alarms;
-  if (s.hist.length === 0 || s.t - s.hist[s.hist.length - 1].t >= 0.25) { s.hist.push({ t: s.t, cod: last.c.cod, nh4: last.c.nh4, tss: last.c.tss, ph: last.c.ph }); if (s.hist.length > 400) s.hist.shift(); }
+  if (s.hist.length === 0 || s.t - s.hist[s.hist.length - 1].t >= 0.1) {
+    const eq = s.tanks.findIndex((_, i) => stages[i].kind === "eq");
+    s.hist.push({ t: s.t, cod: last.c.cod, nh4: last.c.nh4, tss: last.c.tss, ph: last.c.ph, do: s.tanks[iAer].c.do, doSp: ctl.doLoop.sp, doOut: ctl.doLoop.out, phPv: s.tanks[iCoag].c.ph, phSp: ctl.phLoop.sp, phOut: ctl.phLoop.out, lvEq: s.tanks[eq].level, q: qIn0 }); if (s.hist.length > 600) s.hist.shift(); }
 }
 
 export function exceedances(c: Conc, std: Standard): string[] {
