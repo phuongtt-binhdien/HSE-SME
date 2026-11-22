@@ -16,7 +16,7 @@ export const UNITS: UnitDef[] = [
   { opFlow: 0.7, id: "G04", name: "Sấy nóng · tạo hạt 2 (Nguồn 04)", kind: "dryer", flow: 55000, stack: "S04", hs: 22, d: "D1 800 / D2 600 (hồ sơ điều chỉnh 10/11/2026: 2.000 / 1.500)", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
   { opFlow: 0.68, id: "G05", name: "Sấy nguội · tạo hạt 2", kind: "dryer", flow: 55000, stack: "S05", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
   { opFlow: 0.56, id: "G06", name: "Sấy · tạo hạt 3", kind: "dryer", flow: 140000, stack: "S06", hs: 22, d: "D1 3 m / D2 2 m", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { opFlow: 1, id: "G07", name: "Phối trộn phân hữu cơ", kind: "mixer", flow: 10000, stack: "S07", hs: 1.2, d: "D300", lim: { dust: 200 }, train: ["Lọc bụi túi vải", "Quạt hút", "Ống thải"] },
+  { opFlow: 1, id: "G07", name: "Phối trộn phân hữu cơ (hiện không chạy)", kind: "mixer", flow: 10000, stack: "S07", hs: 1.2, d: "D300", lim: { dust: 200 }, train: ["Lọc bụi túi vải", "Quạt hút", "Ống thải"] },
 ];
 export const DP_H = 260, DP_HH = 300, DP_CLEAN = 120, PH_SP = 7.5;
 
@@ -31,7 +31,7 @@ export interface Gas { t: number; u: Record<string, Unit>; log: { t: number; tex
 const unit = (d: UnitDef): Unit => ({ fan: true, fanTrip: false, feed: 1, feedTgt: 1, holes: 0.002, cake: 0.35, dp: 190, airOk: true, wet: false, pulse: 0, pulseAuto: true, pulseSp: 220, jam: false,
   pumpA: true, pumpB: false, pumpFail: false, dosA: true, dosB: false, dosLost: false, alk: 0.72, phOut: 0.45, phMode: "AUTO", phSp: PH_SP, phI: 0.45,
   dust: 0, so2: 0, nox: 0, co: 0, nh3: 0, flow: d.flow, overMin: 0, fugitive: 0 });
-export function createGas(): Gas { const g: Gas = { t: 0, u: {}, log: [], alarms: {}, peakDust: {} }; for (const d of UNITS) { g.u[d.id] = unit(d); g.peakDust[d.id] = 0; } for (let i = 0; i < 400; i++) stepGas(g, 1); g.t = 0; g.log = []; g.alarms = {}; for (const d of UNITS) { g.peakDust[d.id] = 0; g.u[d.id].overMin = 0; g.u[d.id].fugitive = 0; } return g; }
+export function createGas(): Gas { const g: Gas = { t: 0, u: {}, log: [], alarms: {}, peakDust: {} }; for (const d of UNITS) { g.u[d.id] = unit(d); g.peakDust[d.id] = 0; } { const m = g.u.G07; m.fan = false; m.feed = 0; m.feedTgt = 0; } for (let i = 0; i < 400; i++) stepGas(g, 1); g.t = 0; g.log = []; g.alarms = {}; for (const d of UNITS) { g.peakDust[d.id] = 0; g.u[d.id].overMin = 0; g.u[d.id].fugitive = 0; } return g; }
 const log = (g: Gas, text: string) => { g.log.unshift({ t: g.t, text }); if (g.log.length > 200) g.log.length = 200; };
 export const ph = (u: Unit) => 3.5 + 5.5 * Math.max(0, Math.min(1, u.alk));
 

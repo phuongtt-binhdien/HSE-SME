@@ -100,3 +100,7 @@ Gồm: mimic 7 dòng, faceplate (tải, quạt hút, rũ bụi/PDIC, thay túi, 
 (rách túi lọc, NaOH mất mồi, quạt hút trip, mất khí nén). Số liệu chưa có trong hồ sơ (khí thô, hiệu suất, mã tag) là giả định — xem `DATA_GAPS` và `EMISSION_SOURCES` trong `src/data/facility.ts`.
 
 Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 phiếu quan trắc 2026 (`MONITORING_2026`, `src/data/facility.ts`) và hồ sơ đề nghị điều chỉnh GPMT 10/11/2026 (`GPMT_ADJUSTMENT`): bụi ống khói 13–19 mg/Nm³, NH₃ < 2 mg/Nm³, lưu lượng thực ≈ 56–85 % thiết kế; ống khói nguồn 04 dùng D2 1,5 m theo hồ sơ điều chỉnh (chưa được cấp phép).
+
+## Tab "Phí BVMT Khí & Nước Thải"
+
+`src/fees/FeesModule.tsx`, `src/lib/fees.ts`, `src/data/fees.ts`, `tests/fees.test.ts`. Nạp 2 thông báo của Sở NN&MT Tây Ninh (khí thải 25439/TB-SNNMT 16/11/2026: 1.536.858 đ; nước thải 24989/TB-SNNMT 11/11/2026: 407.600 đ, Quý I+II/2026), trạng thái nộp (đã nộp đến hết Quý II/2026, lưu trong trình duyệt) và bảng ước tính các quý sau. Các mức phí được suy ra bằng cách khớp ngược thông báo (sai số ≤ 2 đồng) — cần đối chiếu NĐ 153/2024 và NĐ 346/2025 trước khi dùng cho tờ khai.

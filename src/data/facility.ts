@@ -93,11 +93,11 @@ export const DATA_GAPS = [
   "Lưu lượng nước thải: Biện pháp UPSCHC ghi ≈ 90 m³/ngày, ghi chú nội bộ hồ sơ GPMT (mục B7) ghi thực tế 2025 ≈ 49 m³/ngày, GPMT liệt kê ≈ 25,7 m³/ngày.",
   "Công suất: ≈ 330.000 tấn NPK/năm (UPSCHC) so với 600.000 tấn/năm (GPMT, tổng hai giai đoạn) — ghi rõ phạm vi khi trích dẫn.",
   "Khí thải (GPMT 2986, Phụ lục 2): các dòng thải 01–07 không thuộc diện quan trắc tự động liên tục (Điều 98 NĐ 08/2022); GPMT không nêu hiệu suất xử lý, nồng độ khí thô, số quạt dự phòng hay hóa chất/ pH vận hành của tháp kiềm lò hơi — các giá trị này trong mô hình DCS khí thải là giả định, cần số liệu quan trắc 03 tháng/lần và hồ sơ thiết kế thực tế.",
-  "GPMT ghi dòng thải 06 (tạo hạt số 3) 140.000 m³/h nhưng đoạn thu gom ghi hệ thống xử lý \"công suất 55.000 m³/giờ\" (trang 12); các tiêu đề phần vận hành thử nghiệm ghi 140.000 — cần xác nhận lưu lượng thực của hệ thống bụi lò sấy số 3.",
   "Hồ sơ đề nghị điều chỉnh GPMT (10/11/2026) giải quyết nghi vấn vận tốc ≈ 54 m/s ở ống khói nguồn 04: đề nghị đổi D1/D2 thành 2.000/1.500 mm (≈ 8,6 m/s). Mô phỏng Gauss/3D đã dùng D2 1,5 m — chỉ đúng nếu hồ sơ được chấp thuận; GPMT hiện hành vẫn là D2 600 mm.",
-  "Chiều dài túi lọc: hồ sơ điều chỉnh (Bảng 1.1) ghi 3.460 mm, bản vẽ CN-04-02 và Bảng 2.1 cùng hồ sơ ghi 3.360 mm — cần đối chiếu (432 túi, 556 m²).",
-  "Lưu lượng đo thực tế 2026 thấp hơn thiết kế: lò hơi 18,5–19,6 nghìn/25 nghìn m³/h; sấy 1, 2: 30,8–50,9 nghìn/55 nghìn; sấy 3: 77,6–79,1 nghìn/140 nghìn m³/h (~56 %) — xác nhận chế độ chạy khi lấy mẫu và công suất hệ thống bụi lò sấy số 3.",
+  "Chiều dài túi lọc: chủ cơ sở xác nhận hồ sơ điều chỉnh ghi 3.460 mm; bản vẽ CN-04-02 và Bảng 2.1 của cùng hồ sơ ghi 3.360 mm — cần đo thực tế (432 túi, 556 m²).",
+  "Lưu lượng đo thực tế 2026 thấp hơn thiết kế: lò hơi 18,5–19,6 nghìn/25 nghìn m³/h; sấy 1, 2: 30,8–50,9 nghìn/55 nghìn; sấy 3: 77,6–79,1 nghìn/140 nghìn m³/h (≈ 56 %; thiết kế 140.000 m³/h đã được chủ cơ sở xác nhận) — cần xác nhận chế độ chạy khi lấy mẫu.",
   "Quan trắc 06/04/2026 tại G04: CO 172 mg/Nm³ (cao hơn nhiều lần so với các đợt còn lại 14–79; vẫn dưới giới hạn 800) — nên ghi nhận điều kiện đốt khi lấy mẫu.",
+  "Phí BVMT khí thải khai theo lưu lượng thiết kế × 1.152 giờ/quý (không theo lưu lượng đo thực tế); phí nước thải Quý I tờ khai ghi TSS = 0 trong khi kết quả \"< 4 mg/L\" nên bị thẩm định lại 3,9 mg/L (+49.140 đ). Dây chuyền phối trộn hữu cơ (G07) hiện không vận hành nên không có phiếu quan trắc.",
   "Danh sách huấn luyện nhóm 3 (an toàn điện, 28/09/2026) chưa có bản PDF — chưa nạp vào app.",
 ] as const;
 
