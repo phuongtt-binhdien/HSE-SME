@@ -74,7 +74,8 @@ export function gridToImage(g: PlumeGrid, ref: number, limit?: number): ImageDat
 }
 
 /** Nguồn phát thải của nhà máy ứng với trạng thái mô phỏng. Tọa độ ống khói theo bố trí cảnh 3D. */
-export const STACK_POS = { S01: { x: -23, z: 28, hs: 18, d: 0.7 }, S02: { x: 50, z: -38, hs: 22, d: 0.6 } };
+// S02: theo Hồ sơ đề nghị điều chỉnh GPMT (10/11/2026) — ống khói dòng 04 đổi D2 600 → 1.500 mm (Q 55.000 m³/h → ≈ 8,6 m/s; GPMT hiện hành D2 600 mm cho ≈ 54 m/s).
+export const STACK_POS = { S01: { x: -23, z: 28, hs: 18, d: 0.7 }, S02: { x: 50, z: -38, hs: 22, d: 1.5 } };
 const FLOW_N_DRYER = 46000; // Nm³/h — dòng sấy nóng DC1 (số liệu quan trắc 2026)
 export function sourcesFromSim(eq: Record<string, { on: boolean; load: number }>, pv: { tsp: number; nh3: number }): PlumeSource[] {
   const out: PlumeSource[] = [];
@@ -83,6 +84,6 @@ export function sourcesFromSim(eq: Record<string, { on: boolean; load: number }>
   else if (coal > 0.05) out.push({ id: "S01", ...STACK_POS.S01, vs: 14.2, Ts: 86 + 273.15, Q: { tsp: 0.086 * coal, no2: 0.154 * coal, nh3: 0 } });
   else out.push({ id: "S01", ...STACK_POS.S01, vs: 1, Ts: 303, Q: { tsp: 0, no2: 0, nh3: 0 } });
   const fan = eq.QH01.load, q = FLOW_N_DRYER / 3.6e6 * fan;
-  out.push({ id: "S02", ...STACK_POS.S02, vs: 54 * fan + 0.1, Ts: 50 + 273.15, Q: { tsp: pv.tsp * q, nh3: pv.nh3 * q, no2: (eq.LD01.load > 0.2 ? 10 : 0) * q } });
+  out.push({ id: "S02", ...STACK_POS.S02, vs: 8.6 * fan + 0.1, Ts: 50 + 273.15, Q: { tsp: pv.tsp * q, nh3: pv.nh3 * q, no2: (eq.LD01.load > 0.2 ? 10 : 0) * q } });
   return out;
 }

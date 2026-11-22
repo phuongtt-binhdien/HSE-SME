@@ -8,15 +8,15 @@
 // để đào tạo, tương đương kết quả đo định kỳ; hằng số động học là gần đúng (không dùng thiết kế). Mã tag do mô hình đề xuất — kỹ sư cần duyệt.
 export type Kind = "boiler" | "dryer" | "mixer";
 export interface Limits { dust: number; so2?: number; nox?: number; co?: number; nh3?: number }
-export interface UnitDef { id: string; name: string; kind: Kind; flow: number; stack: string; hs: number; d: string; lim: Limits; train: string[]; note?: string }
+export interface UnitDef { opFlow: number; id: string; name: string; kind: Kind; flow: number; stack: string; hs: number; d: string; lim: Limits; train: string[]; note?: string }
 export const UNITS: UnitDef[] = [
-  { id: "G01", name: "Lò hơi than 8 t/h", kind: "boiler", flow: 25000, stack: "S01", hs: 18, d: "D700", lim: { dust: 160, so2: 400, nox: 680, co: 800 }, train: ["Bộ lọc bụi ướt", "Tháp hấp thụ kiềm (NaOH)", "Quạt hút", "Ống khói"] },
-  { id: "G02", name: "Sấy nóng · tạo hạt 1", kind: "dryer", flow: 55000, stack: "S02", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { id: "G03", name: "Sấy nguội · tạo hạt 1", kind: "dryer", flow: 55000, stack: "S03", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { id: "G04", name: "Sấy nóng · tạo hạt 2 (Nguồn 04)", kind: "dryer", flow: 55000, stack: "S04", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { id: "G05", name: "Sấy nguội · tạo hạt 2", kind: "dryer", flow: 55000, stack: "S05", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { id: "G06", name: "Sấy · tạo hạt 3", kind: "dryer", flow: 140000, stack: "S06", hs: 22, d: "D1 3 m / D2 2 m", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
-  { id: "G07", name: "Phối trộn phân hữu cơ", kind: "mixer", flow: 10000, stack: "S07", hs: 1.2, d: "D300", lim: { dust: 200 }, train: ["Lọc bụi túi vải", "Quạt hút", "Ống thải"] },
+  { opFlow: 0.76, id: "G01", name: "Lò hơi than 8 t/h", kind: "boiler", flow: 25000, stack: "S01", hs: 18, d: "D700", lim: { dust: 160, so2: 400, nox: 680, co: 800 }, train: ["Bộ lọc bụi ướt", "Tháp hấp thụ kiềm (NaOH)", "Quạt hút", "Ống khói"] },
+  { opFlow: 0.85, id: "G02", name: "Sấy nóng · tạo hạt 1", kind: "dryer", flow: 55000, stack: "S02", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
+  { opFlow: 0.85, id: "G03", name: "Sấy nguội · tạo hạt 1", kind: "dryer", flow: 55000, stack: "S03", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
+  { opFlow: 0.7, id: "G04", name: "Sấy nóng · tạo hạt 2 (Nguồn 04)", kind: "dryer", flow: 55000, stack: "S04", hs: 22, d: "D1 800 / D2 600 (hồ sơ điều chỉnh 10/11/2026: 2.000 / 1.500)", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
+  { opFlow: 0.68, id: "G05", name: "Sấy nguội · tạo hạt 2", kind: "dryer", flow: 55000, stack: "S05", hs: 22, d: "D1 800 / D2 600", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
+  { opFlow: 0.56, id: "G06", name: "Sấy · tạo hạt 3", kind: "dryer", flow: 140000, stack: "S06", hs: 22, d: "D1 3 m / D2 2 m", lim: { dust: 160, so2: 400, nox: 680, co: 800, nh3: 40 }, train: ["Cyclone chùm", "Lọc bụi túi vải", "Quạt hút", "Ống khói"] },
+  { opFlow: 1, id: "G07", name: "Phối trộn phân hữu cơ", kind: "mixer", flow: 10000, stack: "S07", hs: 1.2, d: "D300", lim: { dust: 200 }, train: ["Lọc bụi túi vải", "Quạt hút", "Ống thải"] },
 ];
 export const DP_H = 260, DP_HH = 300, DP_CLEAN = 120, PH_SP = 7.5;
 
@@ -28,15 +28,15 @@ export interface Unit {
   dust: number; so2: number; nox: number; co: number; nh3: number; flow: number; overMin: number; fugitive: number;
 }
 export interface Gas { t: number; u: Record<string, Unit>; log: { t: number; text: string }[]; alarms: Record<string, { text: string; pri: 1 | 2; since: number; acked: boolean }>; peakDust: Record<string, number> }
-const unit = (d: UnitDef): Unit => ({ fan: true, fanTrip: false, feed: 1, feedTgt: 1, holes: 0.005, cake: 0.35, dp: 190, airOk: true, wet: false, pulse: 0, pulseAuto: true, pulseSp: 220, jam: false,
+const unit = (d: UnitDef): Unit => ({ fan: true, fanTrip: false, feed: 1, feedTgt: 1, holes: 0.002, cake: 0.35, dp: 190, airOk: true, wet: false, pulse: 0, pulseAuto: true, pulseSp: 220, jam: false,
   pumpA: true, pumpB: false, pumpFail: false, dosA: true, dosB: false, dosLost: false, alk: 0.72, phOut: 0.45, phMode: "AUTO", phSp: PH_SP, phI: 0.45,
   dust: 0, so2: 0, nox: 0, co: 0, nh3: 0, flow: d.flow, overMin: 0, fugitive: 0 });
 export function createGas(): Gas { const g: Gas = { t: 0, u: {}, log: [], alarms: {}, peakDust: {} }; for (const d of UNITS) { g.u[d.id] = unit(d); g.peakDust[d.id] = 0; } for (let i = 0; i < 400; i++) stepGas(g, 1); g.t = 0; g.log = []; g.alarms = {}; for (const d of UNITS) { g.peakDust[d.id] = 0; g.u[d.id].overMin = 0; g.u[d.id].fugitive = 0; } return g; }
 const log = (g: Gas, text: string) => { g.log.unshift({ t: g.t, text }); if (g.log.length > 200) g.log.length = 200; };
 export const ph = (u: Unit) => 3.5 + 5.5 * Math.max(0, Math.min(1, u.alk));
 
-/** Khí thô trước xử lý (mg/Nm³) theo loại nguồn — giá trị gần đúng cho mô phỏng. */
-const RAW = { boiler: { dust: 2600, so2: 1500, nox: 380, co: 220, nh3: 0 }, dryer: { dust: 9000, so2: 40, nox: 90, co: 60, nh3: 22 }, mixer: { dust: 1200, so2: 0, nox: 0, co: 0, nh3: 0 } };
+/** Nồng độ "thô" quy đổi để trạng thái nền khớp kết quả quan trắc 2026 (TTKTTN&MT Tây Ninh: 30/3, 6/4, 28/4, 30/6, 6/7, 17/7/2026): bụi ống khói 13–19; NOx lò hơi 28–34, lò sấy < 10–59; SO₂ lò hơi 49–55, lò sấy < 10; CO lò hơi 68–79, lò sấy 14–74 (một lần 172); NH₃ lò sấy KPH–1,6 mg/Nm³. opFlow = lưu lượng đo/lưu lượng thiết kế. */
+const RAW = { boiler: { dust: 450, so2: 1500, nox: 32, co: 70, nh3: 0 }, dryer: { dust: 9000, so2: 8, nox: 25, co: 45, nh3: 0.8 }, mixer: { dust: 1200, so2: 0, nox: 0, co: 0, nh3: 0 } };
 
 export function stepGas(g: Gas, dt: number) {
   g.t += dt;
@@ -46,7 +46,7 @@ export function stepGas(g: Gas, dt: number) {
     u.feed += Math.max(-1, Math.min(1, (u.feedTgt - u.feed) / 30)) * dt * 0.5 * (u.feedTgt >= u.feed ? 1 : 1.5); u.feed = Math.max(0, Math.min(1, u.feed));
     // quạt hút: ΔP túi cao làm giảm lưu lượng; trip khi ΔP > DP_HH kéo dài
     const choke = 1 - 0.3 * Math.max(0, Math.min(1, (u.dp - DP_H) / 100));
-    u.flow = u.fan && !u.fanTrip ? d.flow * choke * (0.35 + 0.65 * Math.max(u.feed, d.kind === "boiler" ? 0.4 : 0.15)) : 0; const q = u.flow / d.flow;
+    u.flow = u.fan && !u.fanTrip ? d.flow * d.opFlow * choke * (0.35 + 0.65 * Math.max(u.feed, d.kind === "boiler" ? 0.4 : 0.15)) : 0; const q = u.flow / (d.flow * d.opFlow);
     // ── túi lọc (dryer, mixer, và không áp dụng cho boiler) ────────────────────────
     const hasBag = d.kind !== "boiler";
     if (hasBag) {
@@ -57,7 +57,7 @@ export function stepGas(g: Gas, dt: number) {
       const tgt = (DP_CLEAN + 450 * Math.max(0, u.cake - 0.08)) * Math.max(0.4, 1 - 2.5 * u.holes) * (0.3 + 0.7 * q * q) + 20;
       u.dp += (tgt - u.dp) * Math.min(1, dt / 20);
       if (u.cake > 1.6) u.cake = 1.6;
-      const leak = 0.04 + 3 * u.holes, dustOut = post * leak * (u.fan ? 1 : 0);
+      const leak = 0.033 + 3 * u.holes, dustOut = post * leak * (u.fan ? 1 : 0);
       u.dust = q > 0 ? dustOut * (0.2 + 0.8 * Math.min(1, u.feed + 0.05)) : 0;
       u.nh3 = q > 0 ? raw.nh3 * Math.min(1, u.feed) * (0.8 + 0.4 * Math.random() * 0) : 0;
       u.nox = q > 0 ? raw.nox * u.feed : 0; u.co = q > 0 ? raw.co * u.feed : 0; u.so2 = q > 0 ? raw.so2 * u.feed : 0;
@@ -107,7 +107,7 @@ export function fan(g: Gas, id: string, on: boolean): { ok: boolean; reason?: st
   return { ok: true };
 }
 export function pulse(g: Gas, id: string) { const u = g.u[id]; if (!u.airOk) return false; u.pulse = 8; log(g, `${id}: rũ bụi thủ công`); return true; }
-export function replaceBags(g: Gas, id: string) { const u = g.u[id]; if (u.feed > 0.05 && u.fan) return false; u.holes = 0.005; u.cake = 0.2; log(g, `${id}: thay túi lọc thủng`); return true; }
+export function replaceBags(g: Gas, id: string) { const u = g.u[id]; if (u.feed > 0.05 && u.fan) return false; u.holes = 0.002; u.cake = 0.2; log(g, `${id}: thay túi lọc thủng`); return true; }
 export function restoreAir(g: Gas, id: string) { g.u[id].airOk = true; log(g, `${id}: khôi phục khí nén`); }
 export function clearJam(g: Gas, id: string) { g.u[id].jam = false; log(g, `${id}: thông van xoay cyclone`); }
 export function primeNaoh(g: Gas, id: string) { const u = g.u[id]; u.dosLost = false; u.dosB = true; u.dosA = true; log(g, `${id}: mồi lại bơm định lượng NaOH và bật bơm dự phòng`); }

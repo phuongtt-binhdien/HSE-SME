@@ -94,6 +94,10 @@ export const DATA_GAPS = [
   "Công suất: ≈ 330.000 tấn NPK/năm (UPSCHC) so với 600.000 tấn/năm (GPMT, tổng hai giai đoạn) — ghi rõ phạm vi khi trích dẫn.",
   "Khí thải (GPMT 2986, Phụ lục 2): các dòng thải 01–07 không thuộc diện quan trắc tự động liên tục (Điều 98 NĐ 08/2022); GPMT không nêu hiệu suất xử lý, nồng độ khí thô, số quạt dự phòng hay hóa chất/ pH vận hành của tháp kiềm lò hơi — các giá trị này trong mô hình DCS khí thải là giả định, cần số liệu quan trắc 03 tháng/lần và hồ sơ thiết kế thực tế.",
   "GPMT ghi dòng thải 06 (tạo hạt số 3) 140.000 m³/h nhưng đoạn thu gom ghi hệ thống xử lý \"công suất 55.000 m³/giờ\" (trang 12); các tiêu đề phần vận hành thử nghiệm ghi 140.000 — cần xác nhận lưu lượng thực của hệ thống bụi lò sấy số 3.",
+  "Hồ sơ đề nghị điều chỉnh GPMT (10/11/2026) giải quyết nghi vấn vận tốc ≈ 54 m/s ở ống khói nguồn 04: đề nghị đổi D1/D2 thành 2.000/1.500 mm (≈ 8,6 m/s). Mô phỏng Gauss/3D đã dùng D2 1,5 m — chỉ đúng nếu hồ sơ được chấp thuận; GPMT hiện hành vẫn là D2 600 mm.",
+  "Chiều dài túi lọc: hồ sơ điều chỉnh (Bảng 1.1) ghi 3.460 mm, bản vẽ CN-04-02 và Bảng 2.1 cùng hồ sơ ghi 3.360 mm — cần đối chiếu (432 túi, 556 m²).",
+  "Lưu lượng đo thực tế 2026 thấp hơn thiết kế: lò hơi 18,5–19,6 nghìn/25 nghìn m³/h; sấy 1, 2: 30,8–50,9 nghìn/55 nghìn; sấy 3: 77,6–79,1 nghìn/140 nghìn m³/h (~56 %) — xác nhận chế độ chạy khi lấy mẫu và công suất hệ thống bụi lò sấy số 3.",
+  "Quan trắc 06/04/2026 tại G04: CO 172 mg/Nm³ (cao hơn nhiều lần so với các đợt còn lại 14–79; vẫn dưới giới hạn 800) — nên ghi nhận điều kiện đốt khi lấy mẫu.",
   "Danh sách huấn luyện nhóm 3 (an toàn điện, 28/09/2026) chưa có bản PDF — chưa nạp vào app.",
 ] as const;
 
@@ -102,11 +106,43 @@ export const EMISSION_SOURCES = [
   { id: "G01", name: "Lò hơi đốt than 8 t/h", flow: 25000, stack: "cao 18 m, D700", xy: "1172156 / 580206", treat: "Bộ lọc bụi ướt → hấp thụ dung dịch kiềm (NaOH) → quạt hút", limit: "QCVN 19:2009 cột B (Kp 0,8; Kv 1,0): CO 800; NOx 680; SO₂ 400; bụi 160 mg/Nm³" },
   { id: "G02", name: "Lò sấy nóng — dây chuyền tạo hạt 1", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172150 / 580263", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "QCVN 19 + QCVN 21:2009 cột B (Kp 0,8): CO 800; NOx 680; SO₂ 400; bụi 160; NH₃ 40 mg/Nm³" },
   { id: "G03", name: "Lò sấy nguội — dây chuyền tạo hạt 1", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172132 / 580277", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
-  { id: "G04", name: "Lò sấy nóng — dây chuyền tạo hạt 2 (Nguồn 04)", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172155 / 580357", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
+  { id: "G04", name: "Lò sấy nóng — dây chuyền tạo hạt 2 (Nguồn 04)", flow: 55000, stack: "cao 22 m, D1 800 / D2 600 (đề nghị 2026: D1 2.000 / D2 1.500)", xy: "1172155 / 580357", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
   { id: "G05", name: "Lò sấy nguội — dây chuyền tạo hạt 2", flow: 55000, stack: "cao 22 m, D1 800 / D2 600", xy: "1172194 / 580350", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
   { id: "G06", name: "Lò sấy — dây chuyền tạo hạt 3", flow: 140000, stack: "cao 22 m, D1 3 m / D2 2 m", xy: "1172157 / 580332", treat: "Cyclone chùm → lọc bụi túi vải → quạt hút", limit: "như G02" },
   { id: "G07", name: "Phối trộn phân hữu cơ", flow: 10000, stack: "cao 1,2 m, D300", xy: "1171990 / 580289", treat: "Lọc bụi túi vải → quạt hút", limit: "QCVN 21:2009 cột B (Kp 1,0): bụi 200 mg/Nm³" },
   { id: "G08", name: "Máy phát điện dự phòng", flow: 0, stack: "—", xy: "1172298 / 580288", treat: "Không có hệ thống xử lý", limit: "—" },
+] as const;
+
+/** Kết quả quan trắc môi trường định kỳ 2026 — Trung tâm Kỹ thuật Tài nguyên và Môi trường Tây Ninh (VIMCERTS 130, VILAS 269); PKQ 26.0331, 26.0424, 26.0731, 26.1461, 26.1537, 26.1662.
+ *  Khí thải: bụi US EPA 5, lưu lượng US EPA 2, NOx/SO₂/CO đo hiện trường, NH₃ JIS K0099 (mg/Nm³; "<" = dưới giới hạn). Q (m³/h) là lưu lượng đo thực tế. */
+export const MONITORING_2026 = [
+  { date: "30/03/2026", src: "G06 · sấy số 3", dust: "15", Q: 79128, T: "—", nox: "<10", so2: "<10", co: "<10", nh3: "KPH (<0,05)", pkq: "0331" },
+  { date: "06/04/2026", src: "G04 · sấy nóng số 2", dust: "18", Q: 47965, T: "—", nox: "21", so2: "<10", co: "172", nh3: "KPH (<0,05)", pkq: "0424" },
+  { date: "06/04/2026", src: "G05 · sấy nguội số 2", dust: "18", Q: 42725, T: "—", nox: "<10", so2: "<10", co: "23", nh3: "KPH (<0,05)", pkq: "0424" },
+  { date: "28/04/2026", src: "G02 · sấy nóng số 1", dust: "16", Q: 50260, T: "—", nox: "11", so2: "10", co: "22", nh3: "KPH (<0,3)", pkq: "0731" },
+  { date: "28/04/2026", src: "G03 · sấy nguội số 1", dust: "17", Q: 50901, T: "—", nox: "<10", so2: "<10", co: "14", nh3: "0,47", pkq: "0731" },
+  { date: "28/04/2026", src: "G01 · lò hơi", dust: "16", Q: 19636, T: "—", nox: "34", so2: "55", co: "68", nh3: "—", pkq: "0731" },
+  { date: "30/06/2026", src: "G01 · lò hơi", dust: "19", Q: 18544, T: "86", nox: "28", so2: "49", co: "79", nh3: "—", pkq: "1461" },
+  { date: "30/06/2026", src: "G06 · sấy số 3", dust: "16", Q: 77554, T: "71", nox: "<10", so2: "<10", co: "<10", nh3: "0,79", pkq: "1461" },
+  { date: "06/07/2026", src: "G02 · sấy nóng số 1", dust: "13", Q: 43509, T: "50", nox: "<10", so2: "<10", co: "21", nh3: "0,62", pkq: "1537" },
+  { date: "06/07/2026", src: "G03 · sấy nguội số 1", dust: "13", Q: 43503, T: "47", nox: "<10", so2: "<10", co: "25", nh3: "KPH (<0,3)", pkq: "1537" },
+  { date: "17/07/2026", src: "G04 · sấy nóng số 2", dust: "13", Q: 30844, T: "57", nox: "55", so2: "<10", co: "62", nh3: "0,59", pkq: "1662" },
+  { date: "17/07/2026", src: "G05 · sấy nguội số 2", dust: "14", Q: 31733, T: "57", nox: "59", so2: "<10", co: "74", nh3: "1,6", pkq: "1662" },
+] as const;
+/** Nước thải sau xử lý (trước khi xả ra sông Vàm Cỏ Đông): COD, TSS (mg/L); Pb, Cd, Hg, As đều KPH (LOD 0,003 / 0,0013 / 0,0002 / 0,0006). */
+export const MONITORING_WATER_2026 = [
+  { date: "30/03/2026", cod: 15, tss: "<4", pkq: "0331" }, { date: "30/06/2026", cod: 12, tss: "5,3", pkq: "1461" },
+] as const;
+/** Nội dung đề nghị điều chỉnh GPMT — Báo cáo 10/11/2026 (dây chuyền tạo hạt số 2, nguồn 04). */
+export const GPMT_ADJUSTMENT = [
+  ["Nhiên liệu lò sấy nóng", "Than đá (GPMT 2986)", "Biomass (trấu, mùn cưa, viên nén, củi băm, vỏ mắc ca…); 2.400 t/năm ≈ 600–660 kg/h; ẩm ≤ 20 %; than dự phòng khi thiếu sinh khối"],
+  ["Lò đốt", "Than; hiệu suất trao đổi nhiệt 70 %", "Biomass 2.500.000 kcal/h; hiệu suất 85 %; thêm quạt thổi liệu 3,7 kW"],
+  ["Xử lý sau lò đốt", "Không có", "Bổ sung Cyclone 1 (CT3 dày 4 mm; η > 95 %; bảo ôn 50 mm + inox 0,4 mm)"],
+  ["Xử lý sau lò sấy", "Cyclone Ø2 m (thân 4,2 + chóp 1,6 m) + túi vải", "Cyclone 2 Ø2 × 6 m (η > 95 %) + túi vải 432 túi, 556 m², vận tốc lọc 1,6 m/phút (Q = 53.376 → chọn 55.000 m³/h)"],
+  ["Ống thu gom", "6 mm, CT3, dài 25 m", "Ø1 m, CT3, dài 6,8 m (≈ 19,45 m/s)"],
+  ["Ống khói nguồn 04", "Cao 22 m; D1 800 / D2 600 mm", "Cao 22 m; D1 2.000 / D2 1.500 mm (≈ 8,6 m/s)"],
+  ["Nồng độ tính toán sau lò sấy", "—", "Bụi 26,67; SO₂ 0,09; NOx 2,06; CO 78,79 mg/m³ (hệ số WHO 2013: bụi 4,4; SO₂ 0,015; NOx 0,34; CO 13 kg/tấn củi)"],
+  ["Than đá", "5.486 t/năm (lò hơi + lò đốt)", "4.286 t/năm; thêm biomass 2.400 t/năm; xỉ than 89,2 → 76,46 t/tháng; tro biomass 2,0 t/tháng"],
 ] as const;
 
 /** Dây chuyền tạo hạt số 2 – Nguồn số 04 (BV CN-04-01/02, 10/2026; bộ bản vẽ lò đốt sấy nóng, Cty Nguyễn Thành Chung 2025;

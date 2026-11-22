@@ -19,7 +19,7 @@ import { AdminModule } from "../auth/AdminModule.tsx";
 import { GhgModule } from "../ghg/GhgModule.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
-import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS, EMISSION_SOURCES } from "../data/facility";
+import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS, EMISSION_SOURCES, MONITORING_2026, MONITORING_WATER_2026, GPMT_ADJUSTMENT } from "../data/facility";
 import { wideBuildingDownwind, wideBuildingWake, lineSource, canyonLeeward, canyonWindward, ppmToMgM3, psi, PSI_TABLE, giffordHanna, boxModel } from "../lib/lowSources";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2420,6 +2420,17 @@ function FacilityModule() {
       <div style={card}>
         <SectionHeader title="Nguồn phát sinh và hệ thống xử lý khí thải — GPMT 2986/GPMT-STNMT" sub="Phụ lục 2 (28/04/2023): 8 nguồn, 7 dòng thải có hệ thống xử lý; tọa độ VN2000 (X / Y)"/>
         <Table heads={["Dòng","Nguồn","Q (m³/h)","Ống khói","Xử lý","Giới hạn"]} rows={EMISSION_SOURCES.map(e=>(<tr key={e.id}><TD><Mono c={T.text} s={11}>{e.id}</Mono></TD><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{e.name}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.flow?e.flow.toLocaleString():"—"}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.stack}<br/>{e.xy}</TD><TD style={{ color:T.sub, fontSize:11 }}>{e.treat}</TD><TD style={{ color:T.dim, fontSize:11 }}>{e.limit}</TD></tr>))}/>
+      </div>
+
+      <div style={card}>
+        <SectionHeader title="Kết quả quan trắc môi trường định kỳ 2026" sub="TTKTTN&MT Tây Ninh (VIMCERTS 130) · mg/Nm³ · so với QCVN 19/21:2009 cột B (Kp 0,8): bụi 160; NOx 680; SO₂ 400; CO 800; NH₃ 40"/>
+        <Table heads={["Ngày lấy mẫu","Nguồn","Bụi","Q đo (m³/h)","T (°C)","NOx","SO₂","CO","NH₃","PKQ"]} rows={MONITORING_2026.map((m,i)=>(<tr key={i}><TD><Mono c={T.text} s={11}>{m.date}</Mono></TD><TD style={{ color:T.text, fontSize:12 }}>{m.src}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.dust}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.Q.toLocaleString()}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.T}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.nox}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.so2}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.co}</TD><TD style={{ color:T.sub, fontSize:11 }}>{m.nh3}</TD><TD style={{ color:T.dim, fontSize:11 }}>{m.pkq}</TD></tr>))}/>
+        <div style={{ fontSize:11, color:T.sub, marginTop:10, lineHeight:1.6 }}><b style={{ color:T.text }}>Nước thải sau xử lý (NT01):</b> {MONITORING_WATER_2026.map(w=>`${w.date}: COD ${w.cod}, TSS ${w.tss} mg/L`).join(" · ")}; Pb, Cd, Hg, As đều không phát hiện. Tất cả kết quả đạt giới hạn.</div>
+      </div>
+
+      <div style={card}>
+        <SectionHeader title="Đề nghị điều chỉnh GPMT — dây chuyền tạo hạt số 2 (nguồn 04)" sub="Báo cáo 10/11/2026 · thay lò đốt than bằng lò đốt sinh khối, bổ sung cyclone"/>
+        <Table heads={["Hạng mục","Theo GPMT 2986","Đề nghị điều chỉnh"]} rows={GPMT_ADJUSTMENT.map(r=>(<tr key={r[0]}><TD style={{ color:T.text, fontWeight:600, fontSize:12 }}>{r[0]}</TD><TD style={{ color:T.sub, fontSize:11 }}>{r[1]}</TD><TD style={{ color:T.sub, fontSize:11 }}>{r[2]}</TD></tr>))}/>
       </div>
 
       <div style={card}>

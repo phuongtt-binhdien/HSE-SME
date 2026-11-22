@@ -98,3 +98,5 @@ Tab **Màn Hình DCS Nước Thải** (`src/sim/dcs.ts`, `DcsScreen.tsx`) dựng
 (lò hơi than 8 t/h: lọc bụi ướt → tháp kiềm NaOH; 5 hệ lò sấy: cyclone chùm → lọc bụi túi vải; phối trộn hữu cơ: lọc bụi túi vải), giới hạn QCVN 19/21:2009 cột B (Kp 0,8).
 Gồm: mimic 7 dòng, faceplate (tải, quạt hút, rũ bụi/PDIC, thay túi, khí nén, bơm tuần hoàn, vòng pH AIC), báo động P1/P2 có ACK, nhật ký, xu hướng, và 4 bài thử thách tự chấm
 (rách túi lọc, NaOH mất mồi, quạt hút trip, mất khí nén). Số liệu chưa có trong hồ sơ (khí thô, hiệu suất, mã tag) là giả định — xem `DATA_GAPS` và `EMISSION_SOURCES` trong `src/data/facility.ts`.
+
+Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 phiếu quan trắc 2026 (`MONITORING_2026`, `src/data/facility.ts`) và hồ sơ đề nghị điều chỉnh GPMT 10/11/2026 (`GPMT_ADJUSTMENT`): bụi ống khói 13–19 mg/Nm³, NH₃ < 2 mg/Nm³, lưu lượng thực ≈ 56–85 % thiết kế; ống khói nguồn 04 dùng D2 1,5 m theo hồ sơ điều chỉnh (chưa được cấp phép).

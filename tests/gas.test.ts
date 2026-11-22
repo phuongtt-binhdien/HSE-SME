@@ -46,3 +46,9 @@ test("thử thách 4 (mất khí nén): bỏ mặc → KHÔNG ĐẠT; khôi ph�
   let a = false; const r = play("dp", (g, t) => { if (!a && t > 120) { restoreAir(g, "G06"); pulse(g, "G06"); a = true; } });
   assert.equal(r.state, "pass", r.text);
 });
+test("trạng thái nền khớp kết quả quan trắc 2026 (bụi 13–19, SO₂ lò hơi 49–55, NH₃ < 2 mg/Nm³, lưu lượng ≈ 56–85 % thiết kế)", () => {
+  const g = createGas(); run(g, 900);
+  for (const id of ["G02", "G03", "G04", "G05", "G06"]) { const u = g.u[id]; assert.ok(u.dust >= 12 && u.dust <= 20, `${id} ${u.dust}`); assert.ok(u.nh3 < 2); }
+  assert.ok(g.u.G01.so2 >= 45 && g.u.G01.so2 <= 60 && g.u.G01.dust >= 14 && g.u.G01.dust <= 20 && g.u.G01.nox >= 25 && g.u.G01.nox <= 36);
+  assert.ok(Math.abs(g.u.G06.flow - 78400) < 1500);
+});
