@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "build:standalone": "node scripts/build-standalone.mjs",
-    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts tests/lowSources.test.ts tests/plantSim.test.ts tests/wwtp.test.ts tests/hseCredits.test.ts tests/vietqr.test.ts tests/ghg.test.ts tests/dcs.test.ts tests/gas.test.ts tests/fees.test.ts",
+    "test": "node --experimental-strip-types --no-warnings --test tests/gaussPlume.test.ts tests/lowSources.test.ts tests/plantSim.test.ts tests/wwtp.test.ts tests/hseCredits.test.ts tests/vietqr.test.ts tests/ghg.test.ts tests/dcs.test.ts tests/gas.test.ts tests/fees.test.ts tests/epr.test.ts",
     "model:plant": "node --experimental-strip-types --no-warnings scripts/plant-dispersion.ts"
   },
   "dependencies": {

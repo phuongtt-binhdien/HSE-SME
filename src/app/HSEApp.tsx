@@ -18,6 +18,7 @@ import { InductionModule } from "../auth/InductionModule.tsx";
 import { AdminModule } from "../auth/AdminModule.tsx";
 import { GhgModule } from "../ghg/GhgModule.tsx";
 import { FeesModule } from "../fees/FeesModule.tsx";
+import { EprModule } from "../epr/EprModule.tsx";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS, EMISSION_SOURCES, MONITORING_2026, MONITORING_WATER_2026, GPMT_ADJUSTMENT } from "../data/facility";
@@ -2661,6 +2662,7 @@ const NAV_GROUPS = [
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
       { id:"ghg",        icon:"🌫", label:"Kiểm Kê Khí Nhà Kính" },
       { id:"fees",       icon:"🧾", label:"Phí BVMT Khí & Nước Thải" },
+      { id:"epr",        icon:"♻", label:"EPR Bao Bì · Đóng Quỹ" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"isoforms",   icon:"📋", label:"Biểu Mẫu ISO 14001" },
       { id:"gri",        icon:"📄", label:"Báo Cáo GRI" },
@@ -2796,6 +2798,7 @@ function AppInner() {
       case "dcsgas":      return <GasDcs/>;
       case "ghg":         return <GhgModule/>;
       case "fees":        return <FeesModule/>;
+      case "epr":         return <EprModule/>;
       case "wallet":      return <WalletModule setActive={setActive}/>;
       case "induction":   return <InductionModule setActive={setActive}/>;
       case "admin":       return auth.me?.is_admin ? <AdminModule/> : null;

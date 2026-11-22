@@ -104,3 +104,7 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 ## Tab "Phí BVMT Khí & Nước Thải"
 
 `src/fees/FeesModule.tsx`, `src/lib/fees.ts`, `src/data/fees.ts`, `tests/fees.test.ts`. Nạp 2 thông báo của Sở NN&MT Tây Ninh (khí thải 25439/TB-SNNMT 16/11/2026: 1.536.858 đ; nước thải 24989/TB-SNNMT 11/11/2026: 407.600 đ, Quý I+II/2026), trạng thái nộp (đã nộp đến hết Quý II/2026, lưu trong trình duyệt) và bảng ước tính các quý sau. Các mức phí được suy ra bằng cách khớp ngược thông báo (sai số ≤ 2 đồng) — cần đối chiếu NĐ 153/2024 và NĐ 346/2025 trước khi dùng cho tờ khai.
+
+## Tab "EPR Bao Bì · Đóng Quỹ"
+
+`src/epr/EprModule.tsx`, `src/lib/epr.ts`, `src/data/epr.ts`, `tests/epr.test.ts`. Từ Tờ trình Phòng KT-SX (11/2026) theo Nghị định 110/2026/NĐ-CP: 2 kỳ đã kê khai (F = V×R×Fs: 840.707.206 đ và 944.283.656 đ), bảng số lượng bao bì theo quy cách → V, so sánh đóng Quỹ BVMT Việt Nam với thuê đơn vị tái chế (báo giá Eco Revive), mốc thời gian, danh sách việc cần làm rõ. Khối lượng 1 bao mặc định là giả định.
