@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { createWw, stepWw, settle, STAGES, STANDARDS, Q_DESIGN } from "./wwtp.ts";
 import { INSTRUMENTS, LOOPS, PID_MODEL, CHALLENGES, pv, limits, newRun, updateAlarms, ackAll, operator, startChallenge, tickChallenge } from "./dcs.ts";
 
-const K = { bg: "#0c1117", panel: "#151c26", line: "#2a3646", txt: "#dbe4ef", dim: "#7d8da3", ok: "#3fae7b", warn: "#e0a526", crit: "#e5484d", blue: "#4c9be8", pipe: "#5a6c82" };
-const CSS = `.dc-b{background:#1d2735;color:${K.txt};border:1px solid ${K.line};border-radius:5px;padding:5px 10px;font:600 12px 'DM Mono',ui-monospace,monospace;cursor:pointer;white-space:nowrap}.dc-b:hover{background:#26344a}.dc-b.on{background:#1f4e8c;border-color:#4c9be8}.dc-b.go{background:#14543a;border-color:#3fae7b}.dc-b.stp{background:#6e1f23;border-color:#e5484d}
+export const K = { bg: "#0c1117", panel: "#151c26", line: "#2a3646", txt: "#dbe4ef", dim: "#7d8da3", ok: "#3fae7b", warn: "#e0a526", crit: "#e5484d", blue: "#4c9be8", pipe: "#5a6c82" };
+export const DCS_CSS = `.dc-b{background:#1d2735;color:${K.txt};border:1px solid ${K.line};border-radius:5px;padding:5px 10px;font:600 12px 'DM Mono',ui-monospace,monospace;cursor:pointer;white-space:nowrap}.dc-b:hover{background:#26344a}.dc-b.on{background:#1f4e8c;border-color:#4c9be8}.dc-b.go{background:#14543a;border-color:#3fae7b}.dc-b.stp{background:#6e1f23;border-color:#e5484d}
 @keyframes dcblink{0%,49%{opacity:1}50%,100%{opacity:.25}}.dc-blink{animation:dcblink 1s steps(1) infinite}@media(min-width:1100px){.dc-grid{grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr)!important}}.dc-card{background:${K.panel};border:1px solid ${K.line};border-radius:8px;padding:10px;min-width:0;color:${K.txt}}`;
-const fmt = (v, d = 1) => (isFinite(v) ? Number(v).toFixed(d) : "—");
-const clock = h => `${String(Math.floor(h / 24)).padStart(1, "0")}d ${String(Math.floor(h % 24)).padStart(2, "0")}:${String(Math.floor((h * 60) % 60)).padStart(2, "0")}`;
+export const fmt = (v, d = 1) => (isFinite(v) ? Number(v).toFixed(d) : "—");
+export const clock = h => `${String(Math.floor(h / 24)).padStart(1, "0")}d ${String(Math.floor(h % 24)).padStart(2, "0")}:${String(Math.floor((h * 60) % 60)).padStart(2, "0")}`;
 
-function Trend({ data, series, title, h = 90, unit = "" }) {
+export function Trend({ data, series, title, h = 90, unit = "" }) {
   const W = 300; const pts = data.slice(-300); if (pts.length < 2) return <div className="dc-card" style={{ height: h + 28, color: K.dim, fontSize: 11 }}>{title}: chưa có dữ liệu</div>;
   const all = series.flatMap(s => pts.map(p => p[s.key])).filter(isFinite); let lo = Math.min(...all), hi = Math.max(...all); if (series.fixed) { lo = series.fixed[0]; hi = series.fixed[1]; } if (hi - lo < 1e-6) { hi += 1; lo -= 1; } const pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
   const t0 = pts[0].t, t1 = pts[pts.length - 1].t; const X = t => 4 + ((t - t0) / Math.max(1e-6, t1 - t0)) * (W - 8), Y = v => h - 4 - ((v - lo) / (hi - lo)) * (h - 8);
@@ -27,7 +27,7 @@ export default function DcsScreen() {
   const [, tick] = useState(0); const [sel, setSel] = useState("AIT-901"); const [tab, setTab] = useState("alarms"); const [ui, setUi] = useState({ speed: 1, paused: false, hint: false, chId: "" });
   const s = S.current, r = R.current, stages = STAGES.retro;
   useEffect(() => {
-    const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
+    const st = document.createElement("style"); st.textContent = DCS_CSS; document.head.appendChild(st);
     const iv = setInterval(() => { const q = run.current; if (q.paused) return; const S1 = S.current; for (let i = 0; i < q.speed; i++) { stepWw(S1, 0.01); updateAlarms(R.current, S1); tickChallenge(R.current, S1); if (R.current.challenge && R.current.challenge.state !== "run") { q.paused = false; } } }, 100);
     const uv = setInterval(() => tick(t => t + 1), 250); return () => { clearInterval(iv); clearInterval(uv); st.remove(); };
   }, []);

@@ -150,3 +150,14 @@ test("Nguồn phát thải theo trạng thái nhà máy: quạt hút tắt thì 
   src = sourcesFromSim(s.eq, s.pv); assert.ok(Math.abs(src[0].Q.no2 - 0.154) < 1e-9);
   s.eq.QH01.load = 0; src = sourcesFromSim(s.eq, s.pv); assert.equal(src[1].Q.tsp, 0);
 });
+
+test("TIC-301 (PID): nhiệt độ ra thùng sấy bám SP khi đổi SP; chế độ MAN giữ OUT", () => {
+  const s = createSim(); presetRunning(s); run(s, 600); assert.ok(Math.abs(s.pv.dryerOut - 85) < 3, String(s.pv.dryerOut));
+  s.loops.tic.sp = 95; run(s, 1800); assert.ok(Math.abs(s.pv.dryerOut - 95) < 3, String(s.pv.dryerOut));
+  s.loops.tic.mode = "MAN"; s.loops.tic.out = 0.4; const o = s.loops.tic.out; run(s, 600); assert.equal(s.loops.tic.out, o); assert.ok(s.pv.dryerOut < 75);
+});
+test("PDIC-501: AUTO tự rũ bụi khi ΔP vượt SP (bụi bám cao thông thường); MAN thì ΔP vẫn cao; bết túi thì xung tự động không đủ", () => {
+  const a = createSim(); presetRunning(a); a.pv.dust = 0.95; a.pv.dp = 272; run(a, 600); assert.ok(a.pv.dp < 215, String(a.pv.dp));
+  const m = createSim(); presetRunning(m); m.loops.pdic.mode = "MAN"; m.pv.dust = 0.95; m.pv.dp = 272; run(m, 600); assert.ok(m.pv.dp > 250, String(m.pv.dp));
+  const b = createSim(); presetRunning(b); injectFault(b, "bagBlind"); run(b, 1500); assert.ok(b.eq.LB01.tripped || b.pv.dp > 260, "bết túi: AUTO không cứu được");
+});

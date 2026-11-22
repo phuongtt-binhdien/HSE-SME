@@ -9,6 +9,7 @@ import { buildModel, maxOnCenterline, sigmas, windExponent, emissionRateFromStac
 import PlantSim from "../sim/PlantSim.tsx";
 import WwtpSim from "../sim/WwtpSim.tsx";
 import DcsScreen from "../sim/DcsScreen.tsx";
+import PlantDcs from "../sim/PlantDcs.tsx";
 import { AuthProvider, AuthGate, useAuth } from "../auth/AuthContext.tsx";
 import { PaidGate } from "../auth/PaidGate.tsx";
 import { WalletModule } from "../auth/WalletModule.tsx";
@@ -2635,6 +2636,7 @@ const NAV_GROUPS = [
       { id:"gpmt01",     icon:"📑", label:"GPMT Nguồn 01 — Lò Hơi" },
       { id:"sim3d",       icon:"🎮", label:"Mô Phỏng 3D Nhà Máy" },
       { id:"wwsim",       icon:"💧", label:"Mô Phỏng Dòng Nước Thải" },
+      { id:"dcsplant",   icon:"🖥", label:"Màn Hình DCS Dây Chuyền" },
       { id:"dcs",        icon:"🖥", label:"Màn Hình DCS Nước Thải" },
       { id:"lowsrc",     icon:"🏭", label:"Nguồn Thấp · Đường · Mặt" },
       { id:"energy",     icon:"⚡", label:"Năng Lượng" },
@@ -2769,6 +2771,7 @@ function AppInner() {
       case "gpmt01":      return <GpmtModule/>;
       case "sim3d":       return <PlantSim/>;
       case "wwsim":       return <WwtpSim/>;
+      case "dcsplant":    return <PlantDcs/>;
       case "dcs":         return <DcsScreen/>;
       case "ghg":         return <GhgModule/>;
       case "wallet":      return <WalletModule setActive={setActive}/>;

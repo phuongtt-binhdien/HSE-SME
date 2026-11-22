@@ -70,7 +70,11 @@ export interface Alarm { id: string; level: "warn" | "crit"; text: string; since
 export interface LogEntry { ts: number; text: string; kind: "op" | "alarm" | "clear" | "info" | "trip" }
 export interface Ev { t: number; kind: "start" | "stop" | "trip" | "action" | "ack" | "blocked" | "fault" | "bypass"; id: string; cause?: string; info?: Record<string, number> }
 export interface Seq { mode: "start" | "stop"; list: string[]; i: number; nextAt: number }
+/** Vòng điều khiển PID dạng vận tốc (đơn vị thời gian: giây mô phỏng). */
+export interface PLoop { mode: "AUTO" | "MAN"; sp: number; out: number; kp: number; ti: number; prev: number }
 export interface SimState {
+  /** TIC-301: nhiệt độ ra thùng sấy → tốc độ cấp nhiên liệu/gió lò đốt (OUT 0,2–1). PDIC-501: ΔP túi lọc → rũ bụi theo yêu cầu (AUTO) hoặc thủ công. */
+  loops: { tic: PLoop; pdic: PLoop }; pulseOn: boolean;
   t: number; eq: Record<string, EqState>; pv: PV; faults: Faults; bypass: boolean;
   alarms: Alarm[]; acked: Record<string, boolean>; log: LogEntry[]; events: Ev[]; seq: Seq | null; mistakes: number;
 }
@@ -85,7 +89,7 @@ export function createSim(): SimState {
   // HTXLNT chạy liên tục 24/7, không dừng theo dây chuyền sản xuất
   for (const id of ["BM01", "TK01", "DL01"]) { eq[id].on = true; eq[id].load = 1; }
   return {
-    t: 0, eq, bypass: false, alarms: [], acked: {}, log: [], events: [], seq: null, mistakes: 0,
+    t: 0, loops: { tic: { mode: "AUTO", sp: 85, out: 0.7, kp: 0.012, ti: 60, prev: 0 }, pdic: { mode: "AUTO", sp: 200, out: 0, kp: 0, ti: 0, prev: 0 } }, pulseOn: false, eq, bypass: false, alarms: [], acked: {}, log: [], events: [], seq: null, mistakes: 0,
     faults: { bagBlind: false, bagTear: false, scrubWeak: false, blowerFail: false, dosingFail: false },
     pv: { dryerIn: AMBIENT, dryerOut: AMBIENT, dust: 0.3, dp: 0, tsp: 0, nh3: 0, steam: 0, DO: 3.2, pH: 7.3, cod: 45, nh4: 3, discharge: true, kw: 0, tph: 0, dpHigh: 0, okFor: 99, kwh: 0 },
   };
@@ -217,15 +221,20 @@ export function step(s: SimState, dt: number): void {
   // Nhiệt độ sấy
   const burner = e.LD01.load, dryer = e.SY01.load, hot = burner > 0.2;
   const feeding = e.TH01.on && e.BT03.on;
-  const inT = hot ? (dryer > 0.2 ? 280 : 520) : AMBIENT;
-  const outT = hot && dryer > 0.2 ? (feeding ? 85 : 140) : AMBIENT;
+  // TIC-301 (PID): giữ nhiệt độ ra thùng sấy theo SP bằng tốc độ cấp nhiên liệu của lò đốt
+  { const L = s.loops.tic, er = L.sp - pv.dryerOut; if (L.mode === "AUTO" && hot) L.out = Math.min(1, Math.max(0.2, L.out + L.kp * ((er - L.prev) + (er * dt) / L.ti))); L.prev = er; L.out = Math.min(1, Math.max(0.2, L.out)); }
+  const fire = s.loops.tic.out;
+  const inT = hot ? (dryer > 0.2 ? AMBIENT + (120 + 230 * fire - AMBIENT) : 300 + 300 * fire) : AMBIENT;
+  const outT = hot && dryer > 0.2 ? AMBIENT + (inT - AMBIENT) * (feeding ? 0.213 : 0.434) : AMBIENT;
   pv.dryerIn = lag(pv.dryerIn, inT, 0.03, dt);
   pv.dryerOut = lag(pv.dryerOut, outT, 0.02, dt);
 
   // Lọc bụi túi vải: ΔP theo lượng bụi bám
   const fanOn = e.QH01.load > 0.1;
   const accumulate = e.SY01.on && fanOn ? 0.0012 * (f.bagBlind ? 14 : 1) : 0;
-  const clean = e.LB01.on ? 0.0012 : 0;
+  // PDIC-501: rũ bụi theo yêu cầu — AUTO: xung khí nén khi ΔP vượt SP (trễ 10 mmH₂O); MAN: không tự rũ
+  { const L = s.loops.pdic; if (L.mode === "AUTO") { if (pv.dp > L.sp) s.pulseOn = true; else if (pv.dp < L.sp - 10) s.pulseOn = false; } else s.pulseOn = false; if (!e.LB01.on) s.pulseOn = false; }
+  const clean = e.LB01.on ? 0.0012 + (s.pulseOn ? 0.02 * (f.bagBlind ? 0.05 : 1) : 0)  /* bết túi: xung tự động không đủ, phải rũ/thay thủ công */ : 0;
   pv.dust = Math.min(1.6, Math.max(0.05, pv.dust + (accumulate - clean) * dt));
   pv.dp = lag(pv.dp, fanOn ? e.QH01.load * (130 + 150 * pv.dust) : 0, 0.3, dt);
   if (pv.dp > LIMITS.dpTrip && e.LB01.on) { pv.dpHigh += dt; if (pv.dpHigh > 30) { stop(s, "LB01", "fault", `ΔP ${pv.dp.toFixed(0)} mmH₂O > ${LIMITS.dpTrip}`); pv.dpHigh = 0; } } else pv.dpHigh = Math.max(0, pv.dpHigh - dt);
