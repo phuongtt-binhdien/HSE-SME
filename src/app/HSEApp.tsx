@@ -19,6 +19,7 @@ import { AdminModule } from "../auth/AdminModule.tsx";
 import { GhgModule } from "../ghg/GhgModule.tsx";
 import { FeesModule } from "../fees/FeesModule.tsx";
 import { EprModule } from "../epr/EprModule.tsx";
+import { AMBIENT_POINTS, AMBIENT_LIMIT_1H, AMBIENT_ISSUES, backgroundPreset } from "../data/ambient";
 import { SESSIONS, TRAINEES } from "../data/training2026";
 import { FORMS, PROCEDURES, FORM_CATALOG, F_CATALOG, PENALTY_GAPS, OPEN_ITEMS } from "../data/isoForms";
 import { WWTP_RETROFIT, NH3_TOWER_BOQ, FURNACE_COMPARE, LINE2_EQUIPMENT, LINE2_LAYOUT, BOILER_TENDER, PLANT, CONTROLLED_CHEMICALS, DOCUMENTS, LEGAL_BASIS, SAFETY_RULES, DATA_GAPS, EMISSION_SOURCES, MONITORING_2026, MONITORING_WATER_2026, GPMT_ADJUSTMENT } from "../data/facility";
@@ -1672,6 +1673,7 @@ function DispersionModule() {
             <NumIn label="y ngang gió" unit="m" value={p.ry} onChange={set("ry")}/>
             <NumIn label="Độ cao z" unit="m" value={p.rz} onChange={set("rz")} min={0} hint="1,5 m = vùng thở"/>
             <NumIn label="Nồng độ nền" unit="μg/m³" value={p.bg} onChange={set("bg")} min={0}/>
+            {(()=>{ const rs = AMBIENT_POINTS.map(a=>({ a, r:a.vals[pol] })).filter(x=>x.r && !x.r.kph && x.r.hi!=null); if (!rs.length) return null; const lo = Math.min(...rs.map(x=>x.r.lo ?? 0)), hi = Math.max(...rs.map(x=>x.r.hi)); return <div style={{ gridColumn:"1 / -1", fontSize:10, color:T.dim, lineHeight:1.6 }}>Quan trắc tham khảo (Long Định – Long Cang): {lo} – {hi} μg/m³ <button onClick={()=>set("bg")(lo)} style={{ marginLeft:6, background:T.ghost, color:T.sub, border:`1px solid ${T.border}`, borderRadius:6, padding:"2px 8px", fontSize:10, cursor:"pointer" }}>dùng {lo}</button><button onClick={()=>set("bg")(hi)} style={{ marginLeft:4, background:T.ghost, color:T.sub, border:`1px solid ${T.border}`, borderRadius:6, padding:"2px 8px", fontSize:10, cursor:"pointer" }}>dùng {hi}</button><br/>{rs.map(x=>`${x.a.name}: ${x.r.lo ?? "<"} – ${x.r.hi}`).join(" · ")}</div>; })()}
             <div style={{ gridColumn:"1 / -1" }}>
               <NumIn label="Giới hạn 1 giờ" unit="μg/m³" value={p.limit} onChange={set("limit")} min={0} hint="Theo QCVN 05:2023/BTNMT — đối chiếu bản gốc trước khi dùng"/>
             </div>
@@ -2090,6 +2092,23 @@ function GpmtModule() {
             </tbody>
           </table>
           <div style={{ fontSize:10, color:T.dim, marginTop:6 }}>Giới hạn QCVN 05:2023 điền sẵn theo trí nhớ — đối chiếu bản gốc trước khi dùng. NOₓ coi toàn bộ là NO₂ (bảo thủ).</div>
+        </div>
+        <div style={{ marginTop:14, borderTop:`1px solid ${T.border}`, paddingTop:12 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.text, marginBottom:6 }}>Quan trắc không khí xung quanh khu vực Long Định – Long Cang (tham khảo)</div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+            {[["Nền cấp tỉnh — thấp","TINH","lo"],["Nền cấp tỉnh — cao","TINH","hi"],["Hàng rào KK1–KK2 — thấp","KK","lo"],["Hàng rào KK1–KK2 — cao","KK","hi"]].map(([l,src,side])=>(
+              <button key={l} onClick={()=>{ const b=backgroundPreset(src,side); setShared({ bg:{ tsp:b.tsp??"", so2:b.so2??"", nox:b.nox??"", co:b.co??"" } }); }} style={{ background:T.ghost, color:T.sub, border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>{l}</button>))}
+            <button onClick={()=>setShared({ bg:{ tsp:"", so2:"", nox:"", co:"" } })} style={{ background:"transparent", color:T.dim, border:`1px solid ${T.border}`, borderRadius:8, padding:"5px 10px", fontSize:11, cursor:"pointer" }}>Xóa nền</button>
+          </div>
+          <div style={{ overflowX:"auto" }}><table style={{ borderCollapse:"collapse", fontSize:11, minWidth:640 }}>
+            <thead><tr>{["Thông số","Hàng rào KK1–KK2 (μg/m³)","Tỉnh Tây Ninh 2018–2025","Giới hạn 1 giờ","Mô hình: đóng góp ống khói S01 (kịch bản 4, cực đại)","% so với KK cao"].map(h=><th key={h} style={{ textAlign:"left", padding:"5px 8px", color:T.dim, fontSize:10, borderBottom:`1px solid ${T.border}` }}>{h}</th>)}</tr></thead>
+            <tbody>{GP_POLL.map(pp=>{ const k = pp.id==="nox"?"no2":pp.id; const kk = AMBIENT_POINTS.find(a=>a.id==="KK1_KK2").vals[k], tn = AMBIENT_POINTS.find(a=>a.id==="TINH").vals[k]; const r4 = results.find(r=>r.s.id==="s4"), m = r4?.per?.[pp.id]?.model;
+              const fmtR = r => !r ? "—" : r.kph ? "KPH" : `${r.lo} – ${r.hi}`;
+              return <tr key={pp.id}><td style={{ padding:"5px 8px", fontWeight:700, color:T.text }}>{pp.name}</td><td style={{ padding:"5px 8px", color:T.sub }}>{fmtR(kk)}</td><td style={{ padding:"5px 8px", color:T.sub }}>{fmtR(tn)}</td><td style={{ padding:"5px 8px", color:T.sub }}>{AMBIENT_LIMIT_1H[k]?.toLocaleString("vi-VN")}</td>
+                <td style={{ padding:"5px 8px", color:T.text, fontFamily:"'DM Mono',monospace" }}>{m!=null?fmtC(m):"—"}</td><td style={{ padding:"5px 8px", color:T.sub }}>{m!=null && kk && kk.hi ? `${fmtN(m/kk.hi*100,1)} %` : "—"}</td></tr>; })}</tbody></table></div>
+          {(()=>{ const r4 = results.find(r=>r.s.id==="s4"), mt = r4?.per?.tsp?.model; return mt!=null && <div style={{ fontSize:11, color:T.sub, marginTop:8, lineHeight:1.7 }}>Nhận xét: với số liệu quan trắc ống khói 2026, ống khói S01 chỉ đóng góp tối đa ≈ {fmtC(mt)} μg/m³ bụi ở mặt đất (cực đại tại điều kiện bất lợi nhất) — khoảng {fmtN(mt/401*100,1)} % giá trị bụi cao nhất đo tại hàng rào (401 μg/m³). Nồng độ bụi và CO cao ở KK1–KK2 vì vậy chủ yếu do nguồn thấp/bụi bay (đường nội bộ, xe tải, bốc dỡ nguyên liệu, nguồn lân cận), không do nguồn ống khói — xem tab "Nguồn Thấp · Đường · Mặt".</div>; })()}
+          <ul style={{ margin:"8px 0 0", paddingLeft:18, color:T.dim, fontSize:10, lineHeight:1.6 }}>{AMBIENT_ISSUES.map((t,i)=><li key={i}>{t}</li>)}</ul>
+          <div style={{ fontSize:10, color:T.dim, marginTop:4 }}>Nguồn: bản tổng hợp do người dùng cung cấp (báo cáo đề xuất cấp GPMT 2024 và quan trắc cấp tỉnh) — chưa có phiếu kết quả gốc; chỉ dùng tham khảo, không đưa vào hồ sơ khi chưa đối chiếu.</div>
         </div>
       </div>
 

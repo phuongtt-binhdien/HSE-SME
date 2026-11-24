@@ -112,3 +112,7 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 ## Đường ống trong cảnh 3D (kiểu BIM phòng bơm)
 
 `src/sim/scene3d.ts` (`PIPE_SYSTEMS`, `sysPipe`, `addValve`): ống theo công chất có màu riêng — khí nóng/khí thải (bạc, đai cam), hơi nước (vàng, đai trắng), dung dịch hấp thụ NH₃ (vàng chanh), nước thải (nâu), nước thải sau xử lý (xanh lơ), bùn tuần hoàn, hóa chất (tím), khí nén/khí thổi (xanh dương) — kèm đai bảo ôn, mặt bích, gối đỡ/giá treo, van cổng/van một chiều/van bướm/bơm, mũi tên chiều dòng chạy theo trạng thái thiết bị. Chú giải và bật/tắt từng hệ trong khung "Đường ống · chú giải" ở góc phải 3D. Tuyến thu gom nước thải nội bộ (Ø300, ≈ 280 m) và bình khí nén rũ bụi LB01 là vị trí giả định, vẽ nổi để dễ hình dung.
+
+## Quan trắc không khí xung quanh trong mô hình Gauss
+
+`src/data/ambient.ts`: số liệu KK1–KK2 (nhà máy), CCN Long Định – Long Cang và tỉnh Tây Ninh; các nút "Áp dụng nền" trong tab GPMT Nguồn 01 và gợi ý nền trong tab Lan Truyền Khí Thải; bảng đối chiếu đóng góp của ống khói S01 (số liệu quan trắc 2026) với giá trị đo ở hàng rào. Số liệu là bản tổng hợp chưa có phiếu gốc, các điểm không nhất quán nằm trong `AMBIENT_ISSUES`.
