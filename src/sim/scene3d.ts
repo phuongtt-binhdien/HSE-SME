@@ -25,6 +25,18 @@ export const ZONE_VIEWS = {
 const tex = (w, h, draw, repeat) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); draw(g, w, h);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; if (repeat) t.repeat.set(...repeat); t.anisotropy = 4; return t; };
 
+/** Hệ thống đường ống (màu theo công chất, như bản vẽ BIM phòng bơm chữa cháy): dùng cho cảnh 3D và chú giải. */
+export const PIPE_SYSTEMS = {
+  gas:    { name: "Khí nóng · khí thải (ống gió bảo ôn)", color: 0xaeb6be, band: 0xd9822b, arrow: 0xff7a1a },
+  steam:  { name: "Hơi nước", color: 0xe3a712, band: 0xf1f3f5, arrow: 0xffffff },
+  liquor: { name: "Dung dịch hấp thụ NH₃ (H₂SO₄)", color: 0xd9c92a, band: 0x2e3338, arrow: 0xffffff },
+  ww:     { name: "Nước thải thu gom · đang xử lý", color: 0x7b4f2a, band: 0xf1f3f5, arrow: 0xffe0b0 },
+  wwt:    { name: "Nước thải sau xử lý → sông Vàm Cỏ Đông", color: 0x2fa7cf, band: 0xf1f3f5, arrow: 0xffffff },
+  sludge: { name: "Bùn tuần hoàn", color: 0x4a3b2c, band: 0xf2c200, arrow: 0xffd966 },
+  chem:   { name: "Hóa chất định lượng (PAC · NaOH · axit)", color: 0x8b5cf6, band: 0xf1f3f5, arrow: 0xffffff },
+  air:    { name: "Khí nén · khí thổi", color: 0x2b6cb0, band: 0xf1f3f5, arrow: 0xffffff },
+};
+
 export function createPlantScene(container, hooks) {
   const W = () => container.clientWidth || 800, H = () => container.clientHeight || 500;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -65,6 +77,62 @@ export function createPlantScene(container, hooks) {
     m.position.copy(a).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); m.castShadow = true; p.add(m); return m; };
   const pipe = (pts, r, mat, p) => { const v = pts.map(q => V(...q)); for (let i = 1; i < v.length; i++) { link(v[i - 1], v[i], r, mat, p); sph(r, mat, v[i].x, v[i].y, v[i].z, p); } sph(r, mat, v[0].x, v[0].y, v[0].z, p); };
   const infra = new THREE.Group(); scene.add(infra);
+
+  // ── Hệ thống đường ống kiểu BIM: màu theo công chất, đai bảo ôn, mặt bích, gối đỡ, van tay quay, mũi tên chiều dòng ──
+  const sysGroups = {}, sysInst = {}, sysArrows = [], bodyMats = {}, bandMats = {};
+  for (const k in PIPE_SYSTEMS) { sysGroups[k] = new THREE.Group(); scene.add(sysGroups[k]); sysInst[k] = { band: [], flange: [], steel: [], conc: [] }; }
+  const sysM = k => (bodyMats[k] ||= M(PIPE_SYSTEMS[k].color, { roughness: 0.38, metalness: 0.15 }));
+  const bandM = k => (bandMats[k] ||= M(PIPE_SYSTEMS[k].band, { roughness: 0.5 }));
+  const flangeM = M(0x4d5560, { roughness: 0.45, metalness: 0.5 }), steelM = M(0x6d7782, { roughness: 0.5, metalness: 0.4 }), concM = M(0xb9bcc0, { roughness: 0.95, metalness: 0 });
+  const valveBodyM = M(0x59626c, { roughness: 0.5, metalness: 0.4 }), wheelM = M(0xc9ced3, { roughness: 0.4, metalness: 0.4 }), pumpM = M(0x2b6cb0, { roughness: 0.45 }), motorM = M(0x4d5560, { roughness: 0.5, metalness: 0.3 });
+  const _Y = V(0, 1, 0), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = V(1, 1, 1), _ident = new THREE.Quaternion();
+  const instCyl = (list, pos, dir, r, len) => { _q.setFromUnitVectors(_Y, dir); _m.compose(pos, _q, _s.set(r, len, r)); list.push(_m.clone()); };
+  const instBox = (list, x, y, z, w, h, d) => { _m.compose(V(x, y, z), _ident, _s.set(w, h, d)); list.push(_m.clone()); };
+  const supportAt = (I, p, r, o) => {
+    const base = o.base ?? 0.48; if (o.hang != null) { const h = o.hang - p.y; if (h > 0.3) instBox(I.steel, p.x, p.y + h / 2, p.z, 0.07, h, 0.07); return; }
+    const h = p.y - r - base; if (h < 0.12) return;
+    if (h < 1.3) { instBox(I.conc, p.x, base + h / 2, p.z, 0.65, h, 0.65); return; }
+    instBox(I.steel, p.x, base + (h - 0.2) / 2 + 0.05, p.z, 0.2, h - 0.2, 0.2); instBox(I.steel, p.x, base + 0.05, p.z, 0.75, 0.1, 0.75); instBox(I.steel, p.x, p.y - r - 0.06, p.z, r * 2.4, 0.12, 0.5);
+  };
+  const addValve = (grp, p, dir, r, kind, wheelMat, key) => {
+    const vg = new THREE.Group(); vg.position.copy(p); const d = dir.clone(); if (d.x < -0.999) d.negate(); vg.quaternion.setFromUnitVectors(V(1, 0, 0), d); grp.add(vg);
+    const add = (geo, mat, x, y, z, rot) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (rot) m.rotation.set(...rot); m.castShadow = true; vg.add(m); return m; };
+    const fl = (x) => add(new THREE.CylinderGeometry(r * 1.55, r * 1.55, 0.12, 20), flangeM, x, 0, 0, [0, 0, Math.PI / 2]);
+    if (kind === "pump") {
+      add(new THREE.CylinderGeometry(r * 2.3, r * 2.3, r * 3.4, 24), pumpM, 0, 0, 0, [0, 0, Math.PI / 2]); add(new THREE.CylinderGeometry(r * 1.25, r * 1.25, r * 2.2, 16), pumpM, 0, r * 2.4, 0);
+      add(new THREE.CylinderGeometry(r * 1.7, r * 1.7, r * 4.2, 20), motorM, r * 4.6, r * 0.5, 0, [0, 0, Math.PI / 2]); add(new THREE.BoxGeometry(r * 10, 0.14, r * 4.6), steelM, r * 1.6, -r * 2.5, 0);
+      for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.3, Math.max(0.1, p.y - r * 2.6 - 0.45), 0.3), concM, r * 1.6 + sx * r * 4, -r * 2.5 - Math.max(0.1, p.y - r * 2.6 - 0.45) / 2, 0);
+      return vg; }
+    if (kind === "check") { add(new THREE.CylinderGeometry(r * 1.3, r * 1.3, r * 2.6, 20), valveBodyM, 0, 0, 0, [0, 0, Math.PI / 2]); add(new THREE.SphereGeometry(r * 0.85, 14, 10), M(0xe0a526), 0, r * 1.1, 0); fl(-r * 1.4); fl(r * 1.4); return vg; }
+    if (kind === "butterfly") { add(new THREE.CylinderGeometry(r * 1.25, r * 1.25, r * 0.9, 20), valveBodyM, 0, 0, 0, [0, 0, Math.PI / 2]); add(new THREE.BoxGeometry(0.1, r * 1.6, 0.1), steelM, 0, r * 1.5, 0); add(new THREE.BoxGeometry(r * 0.5, 0.1, r * 2.6), wheelMat || wheelM, 0, r * 2.3, 0); fl(-r * 0.6); fl(r * 0.6); return vg; }
+    // van cổng (tay quay)
+    add(new THREE.BoxGeometry(r * 2.8, r * 2.2, r * 2.2), valveBodyM, 0, 0, 0); fl(-r * 1.55); fl(r * 1.55);
+    add(new THREE.CylinderGeometry(r * 0.85, r * 0.95, r * 1.6, 16), valveBodyM, 0, r * 1.8, 0); add(new THREE.CylinderGeometry(r * 0.14, r * 0.14, r * 3.2, 8), steelM, 0, r * 3.4, 0);
+    const wm = wheelMat || wheelM; add(new THREE.TorusGeometry(r * 1.25, r * 0.14, 8, 22), wm, 0, r * 5.0, 0, [Math.PI / 2, 0, 0]); add(new THREE.BoxGeometry(r * 2.4, r * 0.1, r * 0.14), wm, 0, r * 5.0, 0); add(new THREE.BoxGeometry(r * 0.14, r * 0.1, r * 2.4), wm, 0, r * 5.0, 0);
+    return vg; };
+  /** Đường ống theo công chất: key = khóa trong PIPE_SYSTEMS; pts = đường gấp khúc; o = { flow(sim)→0..1, valves:[{u,kind,wheel}], support, flange, pitch, hang, noSupport, posts:[[x,y,z]], base }. */
+  const sysPipe = (key, pts, r, o = {}) => {
+    const grp = sysGroups[key], v = pts.map(q => V(...q)), I = sysInst[key], mat = sysM(key), segs = []; let total = 0;
+    for (let i = 1; i < v.length; i++) { const d = new THREE.Vector3().subVectors(v[i], v[i - 1]), L = d.length(); if (L < 1e-3) continue; const dir = d.clone().normalize(); segs.push({ a: v[i - 1], b: v[i], d: dir, L, s0: total }); total += L; link(v[i - 1], v[i], r, mat, grp, 12); sph(r, mat, v[i].x, v[i].y, v[i].z, grp); }
+    if (!segs.length) return; sph(r, mat, v[0].x, v[0].y, v[0].z, grp);
+    for (const sg of segs) {
+      const pitch = o.pitch ?? Math.max(1.5, r * 6), bl = r * 1.4; for (let t = pitch * 0.5; t < sg.L - bl; t += pitch) instCyl(I.band, sg.a.clone().addScaledVector(sg.d, t), sg.d, r * 1.13, bl);
+      if (sg.L > 1.2) { const fts = [0.35, sg.L - 0.35]; for (let t = o.flange ?? 6; t < sg.L - 1; t += o.flange ?? 6) fts.push(t); for (const t of fts) instCyl(I.flange, sg.a.clone().addScaledVector(sg.d, t), sg.d, r * 1.4, 0.09 + r * 0.08); }
+      if (!o.noSupport && sg.L >= 3.5 && Math.abs(sg.d.y) < 0.6) { const sp = o.support ?? 5; for (let t = Math.min(2.5, sg.L / 2); t < sg.L - 0.8; t += sp) supportAt(I, sg.a.clone().addScaledVector(sg.d, t), r, o); }
+    }
+    for (const q of o.posts || []) supportAt(I, V(...q), r, o);
+    const at = u => { let s = Math.max(0, Math.min(total, u * total)); for (const sg of segs) if (s <= sg.s0 + sg.L + 1e-6) return { p: sg.a.clone().addScaledVector(sg.d, s - sg.s0), d: sg.d }; const l = segs[segs.length - 1]; return { p: l.b.clone(), d: l.d }; };
+    for (const vv of o.valves || []) { const { p, d } = at(vv.u); addValve(grp, p, d, r, vv.kind || "gate", vv.wheel, key); }
+    if (o.flow && total > 2) { const n = Math.max(1, Math.round(total / (o.gap ?? 4.5))); const am = new THREE.MeshBasicMaterial({ color: PIPE_SYSTEMS[key].arrow });
+      for (let i = 0; i < n; i++) { const m = new THREE.Mesh(new THREE.ConeGeometry(Math.max(0.1, r * 0.55), Math.max(0.3, r * 1.6), 5), am); m.castShadow = false; m.visible = false; grp.add(m); sysArrows.push({ m, at, total, s: (i / n) * total, fn: o.flow, r }); } }
+  };
+  const finalizePipes = () => {
+    const cylG = new THREE.CylinderGeometry(1, 1, 1, 14), boxG = new THREE.BoxGeometry(1, 1, 1);
+    const mk = (geo, mat, list, grp) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, mat, list.length); list.forEach((mm, i) => im.setMatrixAt(i, mm)); im.instanceMatrix.needsUpdate = true; im.frustumCulled = false; im.receiveShadow = true; grp.add(im); };
+    for (const k in sysInst) { const I = sysInst[k], g = sysGroups[k]; mk(cylG, bandM(k), I.band, g); mk(cylG, flangeM, I.flange, g); mk(boxG, steelM, I.steel, g); mk(boxG, concM, I.conc, g); g.traverse(o => { o.raycast = () => {}; }); } };
+  const _pv = V(0, 0, 0);
+  anims.push((dt, t, sim) => { for (const a of sysArrows) { let act = 0; try { act = a.fn(sim) || 0; } catch { act = 0; } const grpOn = a.m.parent.visible; if (act < 0.05 || !grpOn) { a.m.visible = false; continue; }
+    a.s = (a.s + dt * (1.2 + 3.2 * act)) % a.total; const { p, d } = a.at(a.s / a.total); const up = Math.abs(d.y) > 0.8 ? V(1, 0, 0) : V(0, 1, 0); a.m.position.copy(p).addScaledVector(up, a.r * 1.18); a.m.quaternion.setFromUnitVectors(_Y, d); a.m.visible = true; } });
   const newEq = id => { const g = new THREE.Group(); g.userData.eq = id; scene.add(g); eqRoot[id] = g; return g; };
   const lampM = id => { const m = new THREE.MeshBasicMaterial({ color: 0x888888 }); lamps[id] = m; return m; };
   const addLamp = (id, x, y, z) => { sph(0.75, lampM(id), x, y, z, eqRoot[id]).castShadow = false; };
@@ -213,12 +281,12 @@ export function createPlantScene(container, hooks) {
     const wh = new THREE.Group(); wh.position.set(x, 2.2, z + 0.55); g.add(wh); for (let i = 0; i < 8; i++) { const b = box(0.15, 1.2, 0.15, M(0x2a2f34), 0, 0, 0, wh); b.rotation.z = (i / 8) * Math.PI * 2; } spinners.push({ m: wh, axis: "z", k: 12, id: "QT01" });
     box(3.2, 0.4, 2.4, M(C.steel), x, 0.5, z, g); addLamp("QT01", x, 4.4, z); addLabel("QT01", x, 5.8, z, "QT01 · Quạt thổi khí nóng"); }
   { const [x, z] = Hx(63, 14); drum("SY01", x, 3.4, z, 22, 1.1, C.orange, 0.5, { bed: 0xe3d9c4, rings: [-0.32, 0.05, 0.3] }); addLamp("SY01", x, 6.4, z); addLabel("SY01", x, 8, z, "SY01 · Thùng sấy Ø2,2×22 m"); }
-  { const g = infra; const duct = M(0x9aa3ab, { roughness: 0.5 }); const a = Hx(39, 11.5), b = Hx(45.5, 11.5), c = Hx(49, 8.5), d = Hx(52, 14);
-    pipe([[a[0] + 2.6, 4.2, a[1]], [a[0] + 3.2, 4.2, a[1]], [b[0] - 1.3, 5.5, b[1]]], 0.55, duct, g); pipe([[b[0], 3.0, b[1]], [b[0], 1.6, b[1] + 0], [c[0], 2.2, c[1] + 2.4]], 0.5, duct, g);
-    pipe([[c[0] + 1.4, 2.2, c[1]], [d[0] - 1.6, 2.6, d[1] - 1.5], [d[0] - 1.6, 3.4, d[1]]], 0.6, duct, g); }
+  { const a = Hx(39, 11.5), b = Hx(45.5, 11.5), c = Hx(49, 8.5), d = Hx(52, 14); const hot = s => s.eq.LD01.load * (0.35 + 0.65 * s.eq.QT01.load);
+    sysPipe("gas", [[a[0] + 2.6, 4.2, a[1]], [a[0] + 3.2, 4.2, a[1]], [b[0] - 1.3, 5.5, b[1]]], 0.55, { flow: hot, noSupport: true, gap: 3 }); sysPipe("gas", [[b[0], 3.0, b[1]], [b[0], 1.6, b[1] + 0], [c[0], 2.2, c[1] + 2.4]], 0.5, { flow: hot, noSupport: true, gap: 3 });
+    sysPipe("gas", [[c[0] + 1.4, 2.2, c[1]], [d[0] - 1.6, 2.6, d[1] - 1.5], [d[0] - 1.6, 3.4, d[1]]], 0.6, { flow: hot, valves: [{ u: 0.3, kind: "butterfly" }], gap: 3 }); }
   { const g = newEq("XC01"); const [x, z] = Hx(78.5, 14); const sh = shellM(0xc9ced3, { roughness: 0.5 }); cyl(1.0, 1.0, 4.2, sh, x, 6.1, z, g, 28); cyl(1.0, 0.25, 1.6, sh, x, 3.2, z, g, 28); box(1.4, 0.8, 1.4, M(C.steel), x, 7.2, z + 1.4, g);
     for (const dx of [-1.1, 1.1]) for (const dz of [-1.1, 1.1]) box(0.25, 3.0, 0.25, M(C.steel), x + dx, 1.6, z + dz, g); cyl(0.3, 0.3, 0.5, M(C.blue), x, 2.0, z, g, 10);
-    addLamp("XC01", x, 9.2, z); addLabel("XC01", x, 10.6, z, "XC01 · Cyclone đơn Ø2×6 m"); pipe([[x - 55.5 + 55.5 - 2.0, 3.4, z], [x - 1.0, 7.2, z]], 0.5, M(0x9aa3ab), infra); }
+    addLamp("XC01", x, 9.2, z); addLabel("XC01", x, 10.6, z, "XC01 · Cyclone đơn Ø2×6 m"); sysPipe("gas", [[x - 2.0, 3.4, z], [x - 1.0, 7.2, z]], 0.5, { flow: s => s.eq.QH01.load * (s.eq.SY01.load > 0.2 ? 1 : 0.3), noSupport: true }); }
   { const g = newEq("LB01"); const [x, z] = Hx(86.5, 14); sph(0.01, M(0xffffff), x, 0, z, g);
     box(8.7, 3.9, 2.8, shellM(0xb9c0c7, { roughness: 0.5 }), x, 8.2, z, g); box(8.9, 0.4, 3.0, M(0x8a939b), x, 10.4, z, g);
     for (let i = 0; i < 3; i++) { const hp = cyl(1.8, 0.3, 3.2, M(0x9aa3ab), x - 3 + i * 3, 4.6, z, g, 4); hp.rotation.y = Math.PI / 4; cyl(0.3, 0.3, 0.5, M(C.blue), x - 3 + i * 3, 2.7, z, g, 10); }
@@ -232,18 +300,21 @@ export function createPlantScene(container, hooks) {
     const wh = new THREE.Group(); wh.position.set(x, 2.4, z + 0.8); g.add(wh); for (let i = 0; i < 10; i++) { const b = box(0.2, 1.6, 0.16, M(0x2a2f34), 0, 0, 0, wh); b.rotation.z = (i / 10) * Math.PI; } spinners.push({ m: wh, axis: "z", k: 14, id: "QH01" });
     box(4, 0.4, 3, M(C.steel), x, 0.5, z, g); addLamp("QH01", x, 5.4, z); addLabel("QH01", x, 6.8, z, "QH01 · Quạt hút 55.000 m³/h"); }
   { const g = newEq("HT01"); const [x, z] = Hx(99, 14); const sh = shellM(0x7fb6d6, { roughness: 0.35, metalness: 0.1 }); cyl(1.4, 1.4, 9, sh, x, 5, z, g, 28); cyl(1.9, 1.9, 1.2, M(0x4d86a8), x, 0.9, z, g, 28); for (const y of [3, 6, 9]) cyl(1.5, 1.5, 0.3, M(0x3d6f8f), x, y, z, g, 28);
-    pipe([[x + 1.7, 1.0, z + 1.5], [x + 2.4, 1.0, z + 1.5], [x + 2.4, 7.5, z + 1.5], [x + 1.2, 7.5, z + 0.8]], 0.15, M(C.cyan), g);
+    sysPipe("liquor", [[x + 1.7, 1.0, z + 1.5], [x + 4.6, 1.0, z + 1.5], [x + 4.6, 7.5, z + 1.5], [x + 1.2, 7.5, z + 0.8]], 0.16, { flow: s => s.eq.HT01.load, support: 3, gap: 2.5, valves: [{ u: 0.12, kind: "pump" }, { u: 0.2, kind: "check" }, { u: 0.27, kind: "gate" }] });
+    sysPipe("ww", [[x - 1.2, 0.5, z + 1.2], [x - 3.6, 0.5, z + 1.2], [x - 3.6, 0.5, z + 2.4]], 0.12, { noSupport: true, flow: s => s.eq.HT01.load * 0.3, valves: [{ u: 0.45, kind: "gate" }] });
     const drops = []; for (let i = 0; i < 50; i++) { const d = sph(0.08, M(0x9fd6ee), x + (Math.random() - 0.5) * 1.8, 2 + Math.random() * 7, z + (Math.random() - 0.5) * 1.8, g); d.castShadow = false; d.userData.sp = 2 + Math.random() * 2; drops.push(d); }
     anims.push((dt, t, sim) => { const l = sim.eq.HT01.load; for (const d of drops) { d.visible = l > 0.2; d.position.y -= dt * d.userData.sp * l; if (d.position.y < 1.8) d.position.y = 8.5; } });
     addLamp("HT01", x, 10.8, z); addLabel("HT01", x, 12.2, z, "HT01 · Tháp hấp thụ NH₃ (dự án BOQ)"); }
   { const g = infra; const [x, z] = Hx(104, 14); const st = cyl(0.3, 0.4, 22, M(0xe9ebed), x, 11.3, z, g, 20); st.castShadow = true; for (const y of [15, 18, 21]) cyl(0.34, 0.34, 1.0, M(C.red), x, y, z, g, 20); sph(0.2, new THREE.MeshBasicMaterial({ color: 0xff3030 }), x, 22.4, z, g);
     box(0.9, 0.5, 0.9, M(C.steel), x + 0.5, 12.5, z, g); ctxLabel(x, 24.6, z, "S02 · Ống khói dòng thải 04 — cao 22 m, D1 800 / D2 600 mm");
-    const duct = M(0x9aa3ab, { roughness: 0.5 }); const xc = Hx(78.5, 14), lb = Hx(86.5, 14), qh = Hx(94, 14), ht = Hx(99, 14), sy = Hx(63, 14);
-    pipe([[sy[0] + 11.5, 3.4, sy[1]], [xc[0] - 1.0, 3.4, xc[1]]], 0.5, duct, g); pipe([[xc[0] + 1.0, 7.2, xc[1] + 1.4], [lb[0] - 4.3, 7.2, lb[1]]], 0.5, duct, g);
-    pipe([[lb[0] + 6.9, 5.0, lb[1]], [qh[0] - 1.7, 2.4, qh[1]]], 0.55, duct, g); pipe([[qh[0] + 1.7, 2.4, qh[1] - 1.0], [ht[0] - 1.4, 3.0, ht[1] - 1.0]], 0.55, duct, g);
-    pipe([[ht[0], 9.6, ht[1]], [ht[0], 10.6, ht[1]], [x, 10.6, z], [x, 11.0, z]], 0.4, duct, g);
-    const steamM = M(C.yellow, { roughness: 0.4 }); const gx = Hx(47.5, 28);
-    pipe([[-23, 7, 24], [-23, 7, 2], [gx[0] - 1.5, 7, 2], [gx[0] - 1.5, 7, gx[1] + 2]], 0.3, steamM, g); for (const [px, pz] of [[-23, 14], [-23, 6], [-12, 2], [-4, 2], [gx[0] - 1.5, -10], [gx[0] - 1.5, -20]]) box(0.4, 7, 0.4, M(C.steel), px, 3.5, pz, g); }
+    const xc = Hx(78.5, 14), lb = Hx(86.5, 14), qh = Hx(94, 14), ht = Hx(99, 14), sy = Hx(63, 14); const exh = s => s.eq.QH01.load * (s.eq.SY01.load > 0.2 ? 1 : 0.35);
+    sysPipe("gas", [[sy[0] + 11.5, 3.4, sy[1]], [xc[0] - 1.0, 3.4, xc[1]]], 0.5, { flow: exh }); sysPipe("gas", [[xc[0] + 1.0, 7.2, xc[1] + 1.4], [lb[0] - 4.3, 7.2, lb[1]]], 0.5, { flow: exh, noSupport: true });
+    sysPipe("gas", [[lb[0] + 6.9, 5.0, lb[1]], [qh[0] - 1.7, 2.4, qh[1]]], 0.55, { flow: exh, noSupport: true, valves: [{ u: 0.5, kind: "butterfly" }] }); sysPipe("gas", [[qh[0] + 1.7, 2.4, qh[1] - 1.0], [ht[0] - 1.4, 3.0, ht[1] - 1.0]], 0.55, { flow: exh, noSupport: true });
+    sysPipe("gas", [[ht[0], 9.6, ht[1]], [ht[0], 10.6, ht[1]], [x, 10.6, z], [x, 11.0, z]], 0.4, { flow: exh, noSupport: true });
+    const gx = Hx(47.5, 28); const stm = s => Math.max(s.eq.LH01.load, s.eq.LH02.load);
+    sysPipe("steam", [[-23, 7, 24], [-23, 7, 2], [gx[0] - 1.5, 7, 2], [gx[0] - 1.5, 7, gx[1] + 2]], 0.3, { flow: stm, support: 6, valves: [{ u: 0.12, kind: "gate" }, { u: 0.92, kind: "gate" }] });
+    sysPipe("steam", [[-38, 9.8, 35], [-38, 11.2, 35], [-38, 11.2, 24], [-23, 11.2, 24], [-23, 7, 24]], 0.25, { flow: s => s.eq.LH01.load, support: 8, valves: [{ u: 0.12, kind: "gate" }] });
+    sysPipe("steam", [[-8, 9.8, 35], [-8, 11.2, 35], [-8, 11.2, 24], [-23, 11.2, 24]], 0.25, { flow: s => s.eq.LH02.load, support: 8, valves: [{ u: 0.12, kind: "gate" }] }); }
 
   // ── Làm nguội → sàng → băng tải → đóng bao (hướng Đông) ──
   { const [x, z] = Hx(84, 22); drum("LN01", x, 3.0, z, 16, 1.5, 0x4aa3d6, 0.6, { bed: 0xd9d6cc }); addLamp("LN01", x, 6, z); addLabel("LN01", x, 7.6, z, "LN01 · Thùng làm nguội"); const a = Hx(75, 14), s = Hx(75, 21); pipe([[a[0], 3.0, a[1] + 1.5], [s[0], 3.0, s[1] - 0.5]], 0.5, M(C.steel), infra); }
@@ -274,7 +345,7 @@ export function createPlantScene(container, hooks) {
   boiler("LH01", -38, 38, 0x6b8aa8, false); boiler("LH02", -8, 38, 0x5a5f66, true);
   { const g = infra; cyl(0.5, 0.65, 18, M(0xf1f3f5), -23, 9, 28, g, 20); for (const y of [13, 15.5, 18]) cyl(0.52, 0.52, 1.1, M(C.red), -23, y - 0.5, 28, g, 20).scale.set(1.0, 1, 1);
     sph(0.25, new THREE.MeshBasicMaterial({ color: 0xff3030 }), -23, 18.3, 28, g);
-    const duct = M(0x9aa3ab, { roughness: 0.5 }); pipe([[-36, 7.4, 34], [-36, 10, 34], [-36, 10, 28], [-23.6, 10, 28]], 0.6, duct, g); pipe([[-10, 7.4, 34], [-10, 10, 34], [-10, 10, 28], [-22.4, 10, 28]], 0.6, duct, g);
+    sysPipe("gas", [[-36, 7.4, 34], [-36, 10, 34], [-36, 10, 28], [-23.6, 10, 28]], 0.6, { flow: s => s.eq.LH01.load, support: 7 }); sysPipe("gas", [[-10, 7.4, 34], [-10, 10, 34], [-10, 10, 28], [-22.4, 10, 28]], 0.6, { flow: s => s.eq.LH02.load, support: 7 });
     addLabel(null, -23, 20.4, 28, "S01 · Ống khói chung 18 m, Ø700"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
     const wood = new THREE.Mesh(new THREE.ConeGeometry(9, 6, 18), M(0x9c7a4d, { roughness: 1, metalness: 0 })); wood.position.set(-58, 3, 56); wood.castShadow = true; g.add(wood);
     box(26, 0.4, 20, M(C.concrete), -58, 0.3, 56, g); addLabel(null, -58, 9, 56, "Kho sinh khối"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
@@ -290,23 +361,43 @@ export function createPlantScene(container, hooks) {
     tankR(-96, 28, 12, 7, 4, 0x8a7a55, "Bể điều hòa"); tankR(-85, 28, 6, 6, 3.6, 0x9a8a60, "Keo tụ – tạo bông"); tankC(-76, 28, 3.6, 4, 0x8a8a70, "Tuyển nổi (loại bỏ khi cải tạo)"); tankC(-66, 28, 4, 3.6, 0x7a8a78, "Lắng hóa lý");
     tankR(-96, 46, 10, 7, 4.2, 0x6a7a5a, "Anoxic"); tankR(-84, 46, 10, 7, 4.2, 0x5a7a58, "MBBR"); const aeroW = tankR(-69, 46, 16, 8, 4.6, 0x4a7a55, "Aerotank"); tankC(-96, 60, 5, 3.6, 0x6a8a78, "Lắng sinh học"); tankR(-84, 60, 8, 6, 3.2, 0x7aaa9a, "Khử trùng – lọc");
     const pond = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), waterM(0x5c6f5c)); pond.rotation.x = -Math.PI / 2; pond.position.set(-66, 0.42, 60); g.add(pond); box(21.5, 0.5, 13.5, M(0x6a6f55), -66, 0.2, 60, g).castShadow = false; addLabel(null, -66, 3, 60, "Hồ sự cố"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
-    const pm = M(C.cyan, { roughness: 0.4 }); pipe([[-90, 1.5, 28], [-88.2, 1.5, 28]], 0.28, pm, g); pipe([[-82, 1.5, 28], [-79.6, 1.5, 28]], 0.28, pm, g); pipe([[-72.4, 1.5, 28], [-70, 1.5, 28]], 0.28, pm, g);
-    pipe([[-62, 1.5, 28], [-60, 1.5, 28], [-60, 1.5, 36], [-104, 1.5, 36], [-104, 1.5, 46], [-101, 1.5, 46]], 0.28, pm, g); pipe([[-91, 1.5, 46], [-89, 1.5, 46]], 0.28, pm, g); pipe([[-79, 1.5, 46], [-77, 1.5, 46]], 0.28, pm, g);
-    pipe([[-69, 1.2, 50.2], [-69, 1.2, 54], [-96, 1.2, 54], [-96, 1.2, 57.4]], 0.28, pm, g); pipe([[-91, 1.2, 60], [-88, 1.2, 60]], 0.28, pm, g);
-    const outM = M(0x3a8fb5); pipe([[-88, 1.2, 66], [-88, 1.2, 66.6], [-116, 1.2, 66.6]], 0.3, outM, g);
-    const valve = new THREE.MeshBasicMaterial({ color: 0x35e08a }); sph(0.7, valve, -108, 2.1, 66.6, g); addLabel(null, -108, 4.6, 66.6, "Van xả ra sông", false); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); labels[labels.length - 1].valve = true;
+    const ww1 = s => 0.25 + 0.75 * s.eq.BM01.load, ww2 = s => (0.25 + 0.75 * s.eq.BM01.load) * (s.pv.DO > 0.5 ? 1 : 0.5); const outFlow = s => (s.pv.discharge ? 0.25 + 0.75 * s.eq.BM01.load : 0);
+    sysPipe("ww", [[-90, 1.5, 28], [-88.2, 1.5, 28]], 0.28, { flow: ww1, noSupport: true, valves: [{ u: 0.5, kind: "gate" }] }); sysPipe("ww", [[-82, 1.5, 28], [-79.6, 1.5, 28]], 0.28, { flow: ww1, noSupport: true }); sysPipe("ww", [[-72.4, 1.5, 28], [-70, 1.5, 28]], 0.28, { flow: ww1, noSupport: true });
+    sysPipe("ww", [[-62, 1.5, 28], [-60, 1.5, 28], [-60, 1.5, 36], [-104, 1.5, 36], [-104, 1.5, 46], [-101, 1.5, 46]], 0.28, { flow: ww1, support: 6, valves: [{ u: 0.03, kind: "gate" }, { u: 0.94, kind: "check" }] }); sysPipe("ww", [[-91, 1.5, 46], [-89, 1.5, 46]], 0.28, { flow: ww2, noSupport: true }); sysPipe("ww", [[-79, 1.5, 46], [-77, 1.5, 46]], 0.28, { flow: ww2, noSupport: true });
+    sysPipe("ww", [[-69, 1.2, 50.2], [-69, 1.2, 54], [-96, 1.2, 54], [-96, 1.2, 57.4]], 0.28, { flow: ww2, support: 6, valves: [{ u: 0.12, kind: "gate" }] }); sysPipe("wwt", [[-91, 1.2, 60], [-88, 1.2, 60]], 0.28, { flow: ww2, noSupport: true });
+    const valve = new THREE.MeshBasicMaterial({ color: 0x35e08a }); sysPipe("wwt", [[-88, 1.2, 66], [-88, 1.2, 66.6], [-116, 1.2, 66.6]], 0.3, { flow: outFlow, support: 7, valves: [{ u: 0.72, kind: "gate", wheel: valve }] });
+    addLabel(null, -108, 4.6, 66.6, "Van xả ra sông", false); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); labels[labels.length - 1].valve = true;
+    sysPipe("sludge", [[-99, 1.2, 55.2], [-99, 1.2, 49.8]], 0.2, { flow: ww2, noSupport: true, gap: 2, valves: [{ u: 0.3, kind: "pump" }, { u: 0.75, kind: "check" }] });
+    sysPipe("chem", [[-58, 2.9, 28], [-58, 5.4, 28], [-85, 5.4, 28], [-85, 4.3, 28]], 0.11, { noSupport: true, flow: s => s.eq.DL01.load, gap: 3, posts: [[-60.5, 5.4, 28], [-71.2, 5.4, 28], [-80.8, 5.4, 28]], valves: [{ u: 0.06, kind: "gate" }, { u: 0.2, kind: "check" }] });
+    sysPipe("air", [[-60.2, 2, 46], [-62, 2, 46], [-62, 5.4, 46], [-62, 5.4, 41], [-78, 5.4, 41]], 0.3, { flow: s => s.eq.TK01.load, support: 5, valves: [{ u: 0.12, kind: "gate" }, { u: 0.2, kind: "check" }] });
+    for (const dx of [-66, -70, -74]) sysPipe("air", [[dx, 5.4, 41], [dx, 5.4, 44], [dx, 3.2, 44]], 0.16, { noSupport: true, flow: s => s.eq.TK01.load, gap: 2 });
     // bọt khí Aerotank
     const bub = []; for (let i = 0; i < 90; i++) { const b = sph(0.12, M(0xdff3ff, { transparent: true, opacity: 0.7 }), -76 + Math.random() * 14, 0.5 + Math.random() * 3.6, 46 + (Math.random() - 0.5) * 6, g); b.castShadow = false; b.userData.sp = 0.7 + Math.random() * 0.8; bub.push(b); }
     anims.push((dt, t, sim) => { const on = sim.eq.TK01.load > 0.3 && sim.pv.DO > 1; for (const b of bub) { b.visible = on; b.position.y += dt * b.userData.sp; if (b.position.y > 4.5) b.position.y = 0.6; } valve.color.set(sim.pv.discharge ? 0x35e08a : 0xe53935); aeroW.material.color.setHSL(0.33 - 0.04 * (1 - Math.min(1, sim.pv.DO / 3)), 0.35, 0.36); });
     // cầu gạt bể lắng
     const arm = box(9, 0.2, 0.3, M(C.steel), -96, 4.1, 60, g); anims.push((dt, t, sim) => { arm.rotation.y += dt * 0.3 * sim.eq.BM01.load; }); }
   { const g = newEq("BM01"); box(2.6, 1.3, 1.4, M(C.blue), -104, 0.9, 30, g); const mt = cyl(0.6, 0.6, 1.8, M(C.light), -102, 0.95, 30, g, 16); mt.rotation.z = Math.PI / 2; const sh = cyl(0.25, 0.25, 0.9, M(C.red), -103.3, 0.95, 30, g, 10); sh.rotation.z = Math.PI / 2; spinners.push({ m: sh, axis: "y", k: 20, id: "BM01" });
-    pipe([[-104, 1.2, 30], [-104, 1.2, 25], [-97, 1.2, 25]], 0.2, M(C.cyan), g); addLamp("BM01", -103, 3.2, 30); addLabel("BM01", -103, 4.7, 30, "BM01 · Bơm nước thải"); }
+    sysPipe("ww", [[-104, 1.2, 30], [-104, 1.2, 25], [-97, 1.2, 25]], 0.2, { flow: s => s.eq.BM01.load, noSupport: true, gap: 3, valves: [{ u: 0.12, kind: "check" }, { u: 0.8, kind: "gate" }] }); addLamp("BM01", -103, 3.2, 30); addLabel("BM01", -103, 4.7, 30, "BM01 · Bơm nước thải"); }
   { const g = newEq("TK01"); box(6.4, 3.6, 4.4, shellM(0xe7e9ec, { roughness: 0.7 }), -57, 1.9, 46, g); for (const z of [-1.2, 1.2]) { box(1.6, 1.2, 1.2, M(C.blue), -57.4, 1.0, 46 + z, g); const w = cyl(0.6, 0.6, 0.5, M(C.red), -56, 1.0, 46 + z, g, 16); w.rotation.z = Math.PI / 2; spinners.push({ m: w, axis: "y", k: 18, id: "TK01" }); }
-    pipe([[-60.2, 2, 46], [-62, 2, 46], [-62, 5.2, 46]], 0.3, M(C.dark), g); addLamp("TK01", -57, 5, 46); addLabel("TK01", -57, 6.5, 46, "TK01 · Máy thổi khí"); }
+    addLamp("TK01", -57, 5, 46); addLabel("TK01", -57, 6.5, 46, "TK01 · Máy thổi khí"); }
   { const g = newEq("DL01"); for (const [x, c] of [[-58, 0xf2c200], [-56, 0xffffff], [-54, 0x3fb6d8]]) cyl(0.9, 0.9, 2.6, M(c, { roughness: 0.6 }), x, 1.6, 28, g, 20); box(1.4, 1, 1, M(C.blue), -56, 0.7, 30.4, g);
     const bl = new THREE.MeshBasicMaterial({ color: 0x555555 }); sph(0.3, bl, -56, 3.5, 28, g); anims.push((dt, t, sim) => { bl.color.set(sim.eq.DL01.load > 0.5 && (t % 1.2) < 0.4 ? 0x35e08a : 0x555555); });
     addLamp("DL01", -56, 4.8, 28); addLabel("DL01", -56, 6.2, 28, "DL01 · Bơm định lượng"); }
+
+  // ═════ ĐƯỜNG ỐNG NƯỚC THẢI THU GOM VÀ KHÍ NÉN (vẽ nổi để dễ hình dung; thực tế chôn ngầm) ═════
+  { const wwG = sysGroups.ww, run = s => 0.35 + 0.4 * ((s.eq.LH01.load > 0.1 || s.eq.LH02.load > 0.1) ? 1 : 0) + 0.25 * (s.eq.SY01.load > 0.1 ? 1 : 0);
+    // Nước thải từ phân xưởng (sàn, tháp hấp thụ NH₃) + lò hơi → hố thu HTXLNT
+    sysPipe("ww", [[41.4, 0.45, -35.6], [41.4, 0.45, -6], [-23, 0.45, -6], [-23, 0.45, 8], [-93, 0.45, 8], [-93, 0.45, 24.4]], 0.28, { flow: run, gap: 6, noSupport: true, valves: [{ u: 0.4, kind: "gate" }, { u: 0.93, kind: "check" }] });
+    sysPipe("ww", [[-23, 0.45, 29.2], [-23, 0.45, 8]], 0.2, { flow: s => Math.max(s.eq.LH01.load, s.eq.LH02.load) * 0.8, gap: 5, noSupport: true, valves: [{ u: 0.1, kind: "gate" }] });
+    for (const [x, z] of [[41.4, -6], [-23, -6], [-23, 8], [-93, 8], [-58, 8]]) cyl(0.62, 0.62, 0.14, M(0x3a3f45), x, 0.5, z, wwG, 18);
+    ctxLabel(-58, 3.2, 8, "Thu gom nước thải nội bộ → hố thu HTXLNT (Ø300, ≈ 280 m — vẽ nổi)");
+    ctxLabel(41.4, 3.0, -6, "Nước thải sàn · xả đáy tháp NH₃"); ctxLabel(-23, 3.0, 20, "Nước thải HTXLKT lò hơi (≈ 7 m³/tuần)");
+    // Khí nén rũ bụi túi vải LB01: máy nén + bình tích + đường ống lên giàn xung
+    const g = infra; box(2.4, 1.6, 1.4, M(C.blue), 17.6, 1.25, -9, g); box(2.8, 0.2, 1.8, M(C.steel), 17.6, 0.55, -9, g);
+    for (const zz of [-9, -11.2]) { const tk = cyl(0.9, 0.9, 3.2, M(0xe7e9ec, { roughness: 0.4, metalness: 0.2 }), 22, 1.9, zz, g, 24); tk.rotation.z = Math.PI / 2; for (const dx of [-1.1, 1.1]) box(0.25, 1.0, 1.3, M(C.steel), 22 + dx, 0.95, zz, g); }
+    sysPipe("air", [[18.9, 1.3, -9], [20.4, 1.3, -9]], 0.1, { noSupport: true, flow: s => s.eq.LB01.load, gap: 1 });
+    sysPipe("air", [[22, 2.8, -9], [22, 11.4, -9], [22, 11.4, -39], [28.3, 11.4, -39], [28.3, 10.9, -39]], 0.16, { hang: 12.3, support: 6, flow: s => s.eq.LB01.load, valves: [{ u: 0.05, kind: "gate" }, { u: 0.12, kind: "check" }] });
+    ctxLabel(22, 4.8, -10, "Bình tích khí nén rũ bụi LB01 (vị trí giả định)"); }
 
   // ── Xe tải, cột gió ──
   { const t = new THREE.Group(); box(6, 2.4, 2.4, M(0xe9ebed), -1.6, 2.1, 0, t); box(2.2, 2.2, 2.4, M(C.blue), 2.7, 1.9, 0, t); for (const x of [-3.5, -1, 2.8]) for (const z of [-1.2, 1.2]) { const w = cyl(0.5, 0.5, 0.35, M(0x222629), x, 0.6, z, t, 14); w.rotation.x = Math.PI / 2; } t.position.set(-100, 0, 14); scene.add(t);
@@ -406,10 +497,10 @@ export function createPlantScene(container, hooks) {
   };
   const resize = () => { renderer.setSize(W(), H()); camera.aspect = W() / H(); camera.updateProjectionMatrix(); };
   const ro = new ResizeObserver(resize); ro.observe(container);
-  setFlags({}); frame();
+  finalizePipes(); setFlags({}); frame();
 
   return {
-    focus, select, setFlags, setPlume, resize, flagsRef: () => flags,
+    focus, select, setFlags, setPlume, resize, flagsRef: () => flags, setPipeVisible: (k, v) => { if (sysGroups[k]) sysGroups[k].visible = !!v; },
     zoomBy: f => { const d = camera.position.clone().sub(controls.target); d.multiplyScalar(f); camera.position.copy(controls.target).add(d); },
     dispose() { running = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp); renderer.domElement.removeEventListener("pointermove", onMove);
       controls.dispose(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); },

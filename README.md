@@ -108,3 +108,7 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 ## Tab "EPR Bao Bì · Đóng Quỹ"
 
 `src/epr/EprModule.tsx`, `src/lib/epr.ts`, `src/data/epr.ts`, `tests/epr.test.ts`. Từ Tờ trình Phòng KT-SX (11/2026) theo Nghị định 110/2026/NĐ-CP: 2 kỳ đã kê khai (F = V×R×Fs: 840.707.206 đ và 944.283.656 đ), bảng số lượng bao bì theo quy cách → V, so sánh đóng Quỹ BVMT Việt Nam với thuê đơn vị tái chế (báo giá Eco Revive), mốc thời gian, danh sách việc cần làm rõ. Khối lượng 1 bao mặc định là giả định.
+
+## Đường ống trong cảnh 3D (kiểu BIM phòng bơm)
+
+`src/sim/scene3d.ts` (`PIPE_SYSTEMS`, `sysPipe`, `addValve`): ống theo công chất có màu riêng — khí nóng/khí thải (bạc, đai cam), hơi nước (vàng, đai trắng), dung dịch hấp thụ NH₃ (vàng chanh), nước thải (nâu), nước thải sau xử lý (xanh lơ), bùn tuần hoàn, hóa chất (tím), khí nén/khí thổi (xanh dương) — kèm đai bảo ôn, mặt bích, gối đỡ/giá treo, van cổng/van một chiều/van bướm/bơm, mũi tên chiều dòng chạy theo trạng thái thiết bị. Chú giải và bật/tắt từng hệ trong khung "Đường ống · chú giải" ở góc phải 3D. Tuyến thu gom nước thải nội bộ (Ø300, ≈ 280 m) và bình khí nén rũ bụi LB01 là vị trí giả định, vẽ nổi để dễ hình dung.

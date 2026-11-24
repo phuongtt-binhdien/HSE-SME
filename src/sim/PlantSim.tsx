@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createSim, step, start, stop, emergencyStop, action, ack, injectFault, presetRunning, runSequence, nextHint, EQUIP, EQ, ZONES, LIMITS,
   FAULT_LABELS, EXERCISES, beginExercise, updateExercise } from "./plantSim.ts";
 import { computePlume, gridToImage, sourcesFromSim, POL_LABEL, POL_LIMIT } from "./plume.ts";
-import { createPlantScene, ZONE_VIEWS } from "./scene3d.ts";
+import { createPlantScene, ZONE_VIEWS, PIPE_SYSTEMS } from "./scene3d.ts";
 
 const K = { bg: "#0b1220", panel: "rgba(13,19,32,.93)", line: "#22314a", txt: "#e6edf7", dim: "#8fa3bf", green: "#35e08a", amber: "#f2c200", red: "#ef4444", blue: "#3b9eff" };
 const CSS = `
@@ -47,6 +47,8 @@ export default function PlantSim() {
   const wrap = useRef(null), host = useRef(null), sceneRef = useRef(null), simRef = useRef(createSim()), runRef = useRef({ speed: 1, paused: false });
   const exRef = useRef(null), plumeRef = useRef({ on: false, pol: "tsp", stab: "D", last: 0 }), sel = useRef(null);
   const [, setTick] = useState(0); const [narrow, setNarrow] = useState(false); const [webgl, setWebgl] = useState(true);
+  const [pipeOn, setPipeOn] = useState(() => Object.fromEntries(Object.keys(PIPE_SYSTEMS).map(k => [k, true])));
+  useEffect(() => { for (const k of Object.keys(pipeOn)) sceneRef.current?.setPipeVisible?.(k, pipeOn[k]); }, [pipeOn, webgl]);
   const [ui, setUi] = useState({ labels: true, xray: false, hints: true, shadows: true, plume: false, pol: "tsp", stab: "D", windFrom: 270, u10: 3, speed: 1, paused: false });
   const [zone, setZone] = useState(ZONE_VIEWS.all.name); const [selected, setSelected] = useState(null);
   const [show, setShow] = useState({ diag: true, info: true, alarm: false, ex: false, met: false });
@@ -202,6 +204,9 @@ export default function PlantSim() {
       {!webgl && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: K.amber }}>Trình duyệt không hỗ trợ WebGL — không dựng được cảnh 3D.</div>}
       {!narrow && toolbar}
       <div style={{ position: "absolute", right: 8, bottom: 8, display: "flex", flexDirection: "column", gap: 4, zIndex: 6, alignItems: "flex-end" }}>
+        <details className="sb" style={{ padding: "3px 8px", fontSize: 11, maxWidth: 270 }}><summary style={{ cursor: "pointer" }}>Đường ống · chú giải</summary>
+          {Object.entries(PIPE_SYSTEMS).map(([k, v]) => <label key={k} style={{ display: "flex", gap: 6, alignItems: "center", padding: "2px 0" }}><input type="checkbox" checked={!!pipeOn[k]} onChange={e => setPipeOn(o => ({ ...o, [k]: e.target.checked }))} /><span style={{ width: 22, height: 9, borderRadius: 3, flex: "none", background: `linear-gradient(90deg,#${v.color.toString(16).padStart(6, "0")} 70%,#${v.band.toString(16).padStart(6, "0")} 70%)`, border: "1px solid #0006" }} />{v.name}</label>)}
+          <div style={{ color: "#8fa0b4", marginTop: 3, lineHeight: 1.5 }}>Mũi tên trên ống chạy theo chiều dòng khi thiết bị đang chạy; đai trắng/màu = bảo ôn · mặt bích · van tay quay · gối đỡ.</div></details>
         {[["labels", "Nhãn"], ["xray", "Xuyên thấu"], ["hints", "Gợi ý"], ["shadows", "Bóng đổ"]].map(([k, l]) => <label key={k} className="sb" style={{ display: "flex", gap: 5, alignItems: "center", padding: "3px 8px", fontSize: 11 }}><input type="checkbox" checked={ui[k]} onChange={e => patch({ [k]: e.target.checked })} />{l}</label>)}
       </div>
       <div style={{ position: "absolute", left: "50%", bottom: 10, transform: "translateX(-50%)", zIndex: 6, background: "rgba(255,255,255,.92)", color: "#14202e", font: "700 12px system-ui", padding: "4px 14px", borderRadius: 14 }}>{zone}</div>
