@@ -116,3 +116,8 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 ## Quan trắc không khí xung quanh trong mô hình Gauss
 
 `src/data/ambient.ts`: số liệu KK1–KK2 (nhà máy), CCN Long Định – Long Cang và tỉnh Tây Ninh; các nút "Áp dụng nền" trong tab GPMT Nguồn 01 và gợi ý nền trong tab Lan Truyền Khí Thải; bảng đối chiếu đóng góp của ống khói S01 (số liệu quan trắc 2026) với giá trị đo ở hàng rào. Số liệu là bản tổng hợp chưa có phiếu gốc, các điểm không nhất quán nằm trong `AMBIENT_ISSUES`.
+
+## Tab "Văn Bản · Quy Định" và báo cáo HSE hằng tuần
+
+- Tab **Văn Bản · Quy Định** (`src/docs/DocsModule.tsx`, dữ liệu `src/data/documents.ts`, logic `src/lib/docs.ts`): 30 văn bản pháp luật (môi trường, PCCC, hóa chất, ATVSLĐ, năng lượng – KNK, xử phạt, QCVN) và 22 văn bản nội bộ (GPMT 2986, MT-QT/HD/QP, quyết định 2026, Sổ tay, ISO 14001). Tìm không dấu, lọc theo lĩnh vực, hạn soát xét (ISO 14001 hết hạn 24/12/2026), đánh dấu "đã đối chiếu". Mục ⚠ = chưa có bản gốc trong hồ sơ — đối chiếu số hiệu, ngày hiệu lực trước khi trích dẫn.
+- Báo cáo tuần: `python3 scripts/weekly/build_weekly.py [YYYY-MM-DD]` → `docs/bao-cao-tuan/BC_HSE_Tuan_<tuần>_<năm>_BinhDien_LongAn.docx`. Ô số liệu hiện trường để trống; mốc thời hạn tự tính theo ngày lập.
