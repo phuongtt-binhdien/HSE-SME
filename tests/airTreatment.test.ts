@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { stokesVelocity, nog, removalFromNog, cycloneSizing, cycloneDp, filtrationVelocity, bagDiameter, bagsArea, bagFilterArea, bagCount, stackExitVelocity, stackDiameterFor, stackMinHeight, towerDiameter, actualPlates, pa2mmH2O, BOOK, STACKS, BAG_G04, inRange } from "../src/lib/airTreatment.ts";
+import { stokesVelocity, nog, removalFromNog, cycloneSizing, cycloneDp, filtrationVelocity, bagDiameter, bagsArea, bagFilterArea, bagCount, stackExitVelocity, stackDiameterFor, stackMinHeight, towerDiameter, actualPlates, pa2mmH2O, BOOK, STACKS, BAG_G04, BAG_LB55, inRange } from "../src/lib/airTreatment.ts";
 
 test("Stokes: 10 µm, ρ = 1000 kg/m³ ≈ 0,30 cm/s (Bảng 3.1: 3,06·10⁻¹ cm/s)", () => {
   const v = stokesVelocity(10e-6, 1000) * 100; assert.ok(Math.abs(v - 0.306) / 0.306 < 0.03, String(v));
@@ -30,4 +30,9 @@ test("ống khói: D2 0,6 m → ≈ 47 m/s (G04 đo); D2 1,5 m → ≈ 7,5 m/s <
   assert.ok(Math.abs(stackDiameterFor(47965) - 0.921) < 0.005);
   assert.deepEqual(stackMinHeight(10), [20, 25]); assert.ok(inRange(12, BOOK.cycloneInlet));
   assert.equal(STACKS.length, 6); assert.equal(actualPlates(3), 6); assert.ok(towerDiameter(25000) > 2);
+});
+
+test("lọc bụi LB55 hoàn công (CME): 742 m² → 1,24 m/phút tại 55.000 m³/h, trong khoảng 0,5–1,5 của giáo trình", () => {
+  const v = filtrationVelocity(BAG_LB55.design, BAG_LB55.area); assert.ok(Math.abs(v - 1.235) < 0.005, String(v)); assert.ok(inRange(v, BOOK.bagFiltration));
+  assert.equal(STACKS.find(s => s.id === "G06")!.dAsBuilt, 2.2);
 });

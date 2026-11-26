@@ -75,15 +75,18 @@ export const stackDiameterFor = (QM3h: number, v = BOOK.stackExitMin) => Math.sq
 export const stackMinHeight = (hBuilding: number) => BOOK.stackHeightOverBuilding.map(k => k * hBuilding) as [number, number];
 
 /** Dữ liệu ống khói: đường kính miệng theo GPMT 2986 hiện hành; Q đo 2026 (m³/h thực tế) và Q thiết kế (GPMT). */
-export interface StackRow { id: string; name: string; hs: number; d: number; dProposed?: number; qMeasured: number; qDesign: number; tC: number }
+export interface StackRow { id: string; name: string; hs: number; d: number; dProposed?: number; dAsBuilt?: number; qMeasured: number; qDesign: number; tC: number }
 export const STACKS: StackRow[] = [
   { id: "G01", name: "Lò hơi 8 t/h", hs: 18, d: 0.7, qMeasured: 19000, qDesign: 25000, tC: 0 },
   { id: "G02", name: "Sấy nóng · TH1", hs: 22, d: 0.6, qMeasured: 50260, qDesign: 55000, tC: 50 },
   { id: "G03", name: "Sấy nguội · TH1", hs: 22, d: 0.6, qMeasured: 50901, qDesign: 55000, tC: 47 },
   { id: "G04", name: "Sấy nóng · TH2 (Nguồn 04)", hs: 22, d: 0.6, dProposed: 1.5, qMeasured: 47965, qDesign: 55000, tC: 57 },
   { id: "G05", name: "Sấy nguội · TH2", hs: 22, d: 0.6, qMeasured: 42725, qDesign: 55000, tC: 57 },
-  { id: "G06", name: "Sấy · TH3", hs: 22, d: 2.0, qMeasured: 79128, qDesign: 140000, tC: 71 },
+  { id: "G06", name: "Sấy · TH3", hs: 22, d: 2.0, dAsBuilt: 2.2, qMeasured: 79128, qDesign: 140000, tC: 71 },
 ];
 
 /** Hồ sơ lọc túi Nguồn 04 (BV CN-04-02; hồ sơ điều chỉnh GPMT 10/11/2026): 432 túi, 556 m²; chiều dài 3.360 mm (bản vẽ) hoặc 3.460 mm (chủ cơ sở xác nhận). */
+/** Lọc bụi lò sấy 55.000 m³/h theo Bản vẽ hoàn công LB55-00-00 (CME): 576 túi Ø130 × L4.200 (2 × 9 × 32 hàng), khung Ø115 × 3.350, ~742 m² vải lọc, 64 van điện từ, khí nén 6–10 kg/cm². */
+export const BAG_LB55 = { n: 576, area: 742, lengths: [4.2, 3.35], design: 55000 };
+/** Hồ sơ điều chỉnh GPMT / BV CN-04-02 (Nguồn 04): 432 túi, 556 m² — KHÁC bản vẽ hoàn công LB55. */
 export const BAG_G04 = { n: 432, area: 556, lengths: [3.36, 3.46], design: 55000 };
