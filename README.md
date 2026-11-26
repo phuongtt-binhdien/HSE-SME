@@ -125,3 +125,10 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 ## Kiểm tra thiết kế theo giáo trình (Chương 3–4)
 
 Tab **Màn Hình DCS Khí Thải → Kiểm tra thiết kế** (`src/sim/DesignChecks.tsx`, công thức ở `src/lib/airTreatment.ts`, test `tests/airTreatment.test.ts`) dùng Giáo trình *Kiểm soát ô nhiễm không khí* (Nguyễn Đình Tuấn chủ biên, ĐHQG TP.HCM, 2007): vận tốc thải ống khói ≥ 20 m/s (Ch.1), cỡ cyclone PT 3.5–3.8, tải trọng lọc túi vải PT 3.13–3.15 (0,5–1,5 m/phút; 2,5 với túi có khung đỡ), N_og = ln(y₁/y₂) và % hấp thụ (bảng trang 99), chiều cao – đường kính tháp. Chương 1 (Gauss, nguồn thấp – đường – mặt, hộp cố định) đã có sẵn ở các tab Lan truyền khí thải và Nguồn thấp. Kiểm tra sơ bộ, không thay thế thiết kế nhà cung cấp.
+
+## Thống kê sản xuất và ca chạy 2026 (tab "Sản Xuất · Ca Chạy 2026")
+
+Nạp từ 5 file `THONG_KE_NGUYEN_LIEU_THANG_04…08.2026.xls` của Phòng KT-SX. Quy trình cập nhật khi có tháng mới: đổi file sang `.xlsx` bằng LibreOffice (`soffice --headless --convert-to xlsx`), đặt tên `m09.xlsx`…, chạy `python3 scripts/stats/parse_stats.py <thư mục> out.json` rồi `python3 scripts/stats/gen_ts.py out.json` (sinh `src/data/production2026.ts`, không sửa tay); thêm tháng vào `PROD_MONTHS`, `monthsOf` (`src/lib/production.ts`) và `MNAME` trong `src/prod/ProductionModule.tsx`.
+- SẢN LƯỢNG trong sheet là **số bao**; khối lượng = số bao × khối lượng bao (cột LOẠI SP); nguyên liệu bao 50 kg → tấn. Tổng sản lượng tạo hạt tháng 4 (18.997,5 t) khớp tổng trên file gốc.
+- Máy 2 (TH2H) = tạo hạt 3 theo GPMT (xác nhận); máy 1 = tạo hạt 1 và máy 3 = tạo hạt 2 là suy ra.
+- Cột VỎ MẮC CA, VIÊN NÉN (BÀNH), VIÊN NÉN + THAN CỦI (KG) = chạy thử sinh khối (chủ yếu máy 3). Dòng công tơ điện thiếu/sai bị loại khỏi tổng điện (liệt kê trong tab).
