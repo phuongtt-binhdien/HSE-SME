@@ -53,7 +53,7 @@ for (const b of SITE_BUILDINGS as any[]) b.kind ??= "shed";
 
 /** Tháp nước 19 (trong khu xử lý nước cấp). */
 /** HTXLNT: nằm cạnh NM xi măng Hà Tiên (phía Bắc) theo người dùng; ô đất gần đúng ở góc Đông Bắc, gần điểm xả ra sông. */
-export const WWTP_SITE = { x0: 239, x1: 285, y0: 42, y1: 90, name: "Hệ thống xử lý nước thải (HTXLNT) — cạnh NM xi măng Hà Tiên" } as const;
+export const WWTP_SITE = { x0: 226, x1: 268, y0: 80, y1: 110, name: "Hệ thống xử lý nước thải (HTXLNT) — cạnh NM xi măng Hà Tiên" } as const;
 export const WATER_TOWER = { x: 214, y: 11, r: 3, h: 18 } as const;
 /** Đường nội bộ (dải) theo bản vẽ: 4B giữa cụm nhà 9 và nhà 28; 4A dọc phía Đông. Mỗi phần tử là hình chữ nhật (X_d, Y_d). */
 export const SITE_ROADS: { id: string; x0: number; x1: number; y0: number; y1: number }[] = [

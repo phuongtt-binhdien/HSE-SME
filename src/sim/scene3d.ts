@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { EQ } from "./plantSim";
 import { windVector } from "./plume";
 import { buildSite } from "./siteScene";
+import { toScene } from "../data/site";
 
 /** Khung tọa độ thiết bị (x dọc nhà 9A1) được xoay +90° quanh trục đứng và tịnh tiến để nhà 9A1 trùng vị trí trên mặt bằng hoàn công. */
 export const PLANT_ROT = Math.PI / 2, PLANT_ROT_DEG = 90;
@@ -23,7 +24,7 @@ export const ZONE_VIEWS = {
   air: { name: "XỬ LÝ BỤI, KHÍ THẢI", pos: [40,28,6], tgt: [40,5,-36] },
   boiler: { name: "KHU LÒ HƠI", pos: [10, 38, 72], tgt: [-23, 5, 34] },
   bag: { name: "LÀM NGUỘI – SÀNG – ĐÓNG BAO", pos: [56,22,6], tgt: [44,3,-30] },
-  wwtp: { name: "HỆ THỐNG XỬ LÝ NƯỚC THẢI (cạnh NM xi măng Hà Tiên)", pos: [237, 40, -24.8], tgt: [207, 2, -68.8] },
+  wwtp: { name: "HỆ THỐNG XỬ LÝ NƯỚC THẢI (cạnh NM xi măng Hà Tiên)", pos: [222, 30, -64], tgt: [194, 1, -92] },
   top: { name: "NHÌN TỪ TRÊN", pos: [20, 780, -20], tgt: [20, 0, -70], world: true },
 };
 
@@ -39,6 +40,7 @@ export const PIPE_SYSTEMS = {
   wwt:    { name: "Nước thải sau xử lý → sông Vàm Cỏ Đông", color: 0x2fa7cf, band: 0xf1f3f5, arrow: 0xffffff },
   sludge: { name: "Bùn tuần hoàn", color: 0x4a3b2c, band: 0xf2c200, arrow: 0xffd966 },
   chem:   { name: "Hóa chất định lượng (PAC · NaOH · axit)", color: 0x8b5cf6, band: 0xf1f3f5, arrow: 0xffffff },
+  rain:   { name: "Thoát nước mưa (theo bản vẽ TMB-02, vẽ nổi — thực tế ngầm)", color: 0x4a90c2, band: 0xf1f3f5, arrow: 0xffffff },
   air:    { name: "Khí nén · khí thổi", color: 0x2b6cb0, band: 0xf1f3f5, arrow: 0xffffff },
 };
 
@@ -88,7 +90,7 @@ export function createPlantScene(container, hooks) {
 
   // ── Hệ thống đường ống kiểu BIM: màu theo công chất, đai bảo ôn, mặt bích, gối đỡ, van tay quay, mũi tên chiều dòng ──
   const sysGroups = {}, sysInst = {}, sysArrows = [], bodyMats = {}, bandMats = {};
-  for (const k in PIPE_SYSTEMS) { sysGroups[k] = new THREE.Group(); scene.add(sysGroups[k]); sysInst[k] = { band: [], flange: [], steel: [], conc: [] }; }
+  for (const k in PIPE_SYSTEMS) { sysGroups[k] = new THREE.Group(); (k === "rain" ? world : scene).add(sysGroups[k]); sysInst[k] = { band: [], flange: [], steel: [], conc: [] }; }
   const sysM = k => (bodyMats[k] ||= M(PIPE_SYSTEMS[k].color, { roughness: 0.38, metalness: 0.15 }));
   const bandM = k => (bandMats[k] ||= M(PIPE_SYSTEMS[k].band, { roughness: 0.5 }));
   const flangeM = M(0x4d5560, { roughness: 0.45, metalness: 0.5 }), steelM = M(0x6d7782, { roughness: 0.5, metalness: 0.4 }), concM = M(0xb9bcc0, { roughness: 0.95, metalness: 0 });
@@ -316,36 +318,63 @@ export function createPlantScene(container, hooks) {
 
   // ═════ HTXLNT ═════ (đặt cạnh NM xi măng Hà Tiên, phía Bắc: dời +289 m theo trục x và −112,8 m theo z của khung thiết bị)
   OFF.x = 289; OFF.z = -112.8;
-  { const g = infra; box(46, 0.35, 48, M(0xd4d6d8), -81, 0.3, 42, g);
+  { const g = infra;
+    // HTXLNT theo Bản vẽ hoàn công Kinh Bố 29/09/2016 (cải tạo 120 m³/ngày): u = hướng ngang bản vẽ, v = hướng dọc xuống; kích thước m theo bản vẽ.
+    const bx = -108.4, bz = 15.3, cx = (u, w = 0) => bx + u + w / 2, cz = (v, d = 0) => bz + v + d / 2;
     const waterM = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.9 });
-    const tankR = (x, z, w, d, h, wc, name) => { box(w, h, d, shellM(0xb5bbc0, { roughness: 0.8 }), x, h / 2, z, g); const wt = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.8, d - 0.8), waterM(wc)); wt.rotation.x = -Math.PI / 2; wt.position.set(x + OFF.x, h + 0.02, z + OFF.z); g.add(wt);
-      box(w - 0.8, 0.3, d - 0.8, M(0x33383d), x, h - 0.9, z, g).visible = false; if (name) { addLabel(null, x, h + 2, z, name); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); } return wt; };
-    const tankC = (x, z, r, h, wc, name) => { cyl(r, r, h, shellM(0xb5bbc0, { roughness: 0.8 }), x, h / 2, z, g, 32); const wt = new THREE.Mesh(new THREE.CircleGeometry(r - 0.4, 32), waterM(wc)); wt.rotation.x = -Math.PI / 2; wt.position.set(x + OFF.x, h + 0.02, z + OFF.z); g.add(wt); if (name) { addLabel(null, x, h + 2, z, name); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); } return wt; };
-    tankR(-96, 28, 12, 7, 4, 0x8a7a55, "Bể điều hòa"); tankR(-85, 28, 6, 6, 3.6, 0x9a8a60, "Keo tụ – tạo bông"); tankC(-76, 28, 3.6, 4, 0x8a8a70, "Tuyển nổi (loại bỏ khi cải tạo)"); tankC(-66, 28, 4, 3.6, 0x7a8a78, "Lắng hóa lý");
-    tankR(-96, 46, 10, 7, 4.2, 0x6a7a5a, "Anoxic"); tankR(-84, 46, 10, 7, 4.2, 0x5a7a58, "MBBR"); const aeroW = tankR(-69, 46, 16, 8, 4.6, 0x4a7a55, "Aerotank"); tankC(-96, 60, 5, 3.6, 0x6a8a78, "Lắng sinh học"); tankR(-84, 60, 8, 6, 3.2, 0x7aaa9a, "Khử trùng – lọc");
-    const pond = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), waterM(0x5c6f5c)); pond.rotation.x = -Math.PI / 2; pond.position.set(-66 + OFF.x, 0.42, 60 + OFF.z); g.add(pond); box(21.5, 0.5, 13.5, M(0x6a6f55), -66, 0.2, 60, g).castShadow = false; addLabel(null, -66, 3, 60, "Hồ sự cố"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
+    const wallM = shellM(0xb5bbc0, { roughness: 0.8 });
+    box(40, 0.3, 40, M(0xd4d6d8), cx(14), 0.2, cz(5), g);
+    const names = [];
+    const tank = (u, v, w, d, h, wc, id, name, rect = true) => { const x = cx(u, w), z = cz(v, d); box(w, h, d, wallM, x, h / 2, z, g);
+      const wt = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.5, d - 0.5), waterM(wc)); wt.rotation.x = -Math.PI / 2; wt.position.set(x + OFF.x, h + 0.02, z + OFF.z); g.add(wt);
+      if (name) { addLabel(null, x, h + 1.8, z, name); const L = labels[labels.length - 1]; L.ctx = true; L.el.classList.add("s3l-ctx"); } return { x, z }; };
+    const round = (u, v, r, h, wc, name) => { const x = cx(u), z = cz(v); cyl(r, r, h, wallM, x, h / 2, z, g, 32); const wt = new THREE.Mesh(new THREE.CircleGeometry(r - 0.25, 32), waterM(wc)); wt.rotation.x = -Math.PI / 2; wt.position.set(x + OFF.x, h + 0.02, z + OFF.z); g.add(wt);
+      if (name) { addLabel(null, x, h + 1.8, z, name); const L = labels[labels.length - 1]; L.ctx = true; L.el.classList.add("s3l-ctx"); } return { x, z }; };
+    const H = 2.0;
+    const B06 = tank(0, 0, 2.0, 3.2, H, 0x6a7a5a, "B06", "B06 · Anoxic"), MB = tank(0, 3.5, 2.0, 2.0, H, 0x5a7a58, "MB", "Ngăn MBBR");
+    const B07 = tank(2.3, 0, 4.0, 5.5, H, 0x4a7a55, "B07", "B07 · Hiếu khí"), B11 = tank(6.6, 0, 2.5, 2.5, H, 0x6b5a45, "B11", "B11 · Chứa bùn");
+    const B10 = tank(9.4, 0, 1.3, 2.5, H, 0x7aa0a8, "B10", "B10 · Khử trùng"), B08 = tank(6.6, 3.0, 2.5, 2.5, H, 0x6a8a78, "B08", "B08 · Lắng hồi lưu");
+    tank(9.4, 3.0, 1.3, 2.5, H, 0x6a8a78, "x", null);
+    const B05 = tank(0, 5.9, 4.5, 3.85, H, 0x5f7a52, "B05", "B05 · Thiếu khí"), B04 = tank(4.8, 5.9, 2.3, 2.3, H, 0x8a8a70, "B04", "B04 · Lắng hóa lý");
+    const K1 = tank(4.8, 8.4, 1.15, 1.35, H, 0x9a8a60, "K1", null), K2 = tank(5.95, 8.4, 1.15, 1.35, H, 0x9a8a60, "K2", "Keo tụ – tạo bông");
+    const B02 = tank(7.4, 5.9, 3.0, 4.05, H, 0x8a7a55, "B02", "B02 · Điều hòa");
+    const LAP = round(11.6, 6.6, 0.6, 3.0, 0x7a8a78, "Lọc áp lực"), B03 = round(11.6, 8.9, 1.0, 2.6, 0x8a8a70, "B03 · Tuyển nổi");
+    const B01A = tank(14.8, 8.5, 1.2, 1.2, 1.2, 0x7a6a50, "B01A", "B01A · Hố bơm tổng hợp");
+    // cụm B01B/B01C và B02B (xây mới, theo tờ 5–6): bán chìm WL −0,5 / lắng hóa lý 2 nổi WL +2,5
+    const NL = tank(21, 0, 3.8, 3.6, 1.0, 0x6f6a55, "NL", "Ngăn lắng"), B01B = tank(24.8, 0, 2.0, 3.6, 1.0, 0x7a6a50, "B01B", "B01B · Hố bơm nước giặt túi lọc bụi");
+    tank(21, 3.6, 2.0, 1.5, 1.0, 0x6f6a55, "TD1", "Ngăn tách dầu"); tank(23, 3.6, 1.8, 1.5, 1.0, 0x6f6a55, "TD2", null); const B01C = tank(24.8, 3.6, 2.0, 1.5, 1.0, 0x7a6a50, "B01C", "B01C · Bơm XCK – XN");
+    const B02B = tank(21, 6.5, 3.8, 2.6, 3.2, 0x8a8a70, "B02B", "B02B · Lắng hóa lý 2");
+    // B09 bể sinh thái (≈ 19 × 9,5 m, phía bờ sông)
+    const pond = new THREE.Mesh(new THREE.PlaneGeometry(19, 9.5), waterM(0x5c6f5c)); pond.rotation.x = -Math.PI / 2; pond.position.set(cx(9.5) + OFF.x, 0.42, cz(-5.25) + OFF.z); g.add(pond); box(20.5, 0.5, 11, M(0x6a6f55), cx(9.5), 0.2, cz(-5.25), g);
+    addLabel(null, cx(9.5), 3.6, cz(-5.25), "B09 · Bể sinh thái"); { const L = labels[labels.length - 1]; L.ctx = true; L.el.classList.add("s3l-ctx"); }
+    addLabel(null, cx(9.5), 9.5, cz(4), "HTXLNT 120 m³/ngày đêm · bản vẽ hoàn công Kinh Bố 29/09/2016"); { const L = labels[labels.length - 1]; L.ctx = true; L.el.classList.add("s3l-ctx"); }
     const ww1 = s => 0.25 + 0.75 * s.eq.BM01.load, ww2 = s => (0.25 + 0.75 * s.eq.BM01.load) * (s.pv.DO > 0.5 ? 1 : 0.5); const outFlow = s => (s.pv.discharge ? 0.25 + 0.75 * s.eq.BM01.load : 0);
-    sysPipe("ww", [[-90, 1.5, 28], [-88.2, 1.5, 28]], 0.28, { flow: ww1, noSupport: true, valves: [{ u: 0.5, kind: "gate" }] }); sysPipe("ww", [[-82, 1.5, 28], [-79.6, 1.5, 28]], 0.28, { flow: ww1, noSupport: true }); sysPipe("ww", [[-72.4, 1.5, 28], [-70, 1.5, 28]], 0.28, { flow: ww1, noSupport: true });
-    sysPipe("ww", [[-62, 1.5, 28], [-60, 1.5, 28], [-60, 1.5, 36], [-104, 1.5, 36], [-104, 1.5, 46], [-101, 1.5, 46]], 0.28, { flow: ww1, support: 6, valves: [{ u: 0.03, kind: "gate" }, { u: 0.94, kind: "check" }] }); sysPipe("ww", [[-91, 1.5, 46], [-89, 1.5, 46]], 0.28, { flow: ww2, noSupport: true }); sysPipe("ww", [[-79, 1.5, 46], [-77, 1.5, 46]], 0.28, { flow: ww2, noSupport: true });
-    sysPipe("ww", [[-69, 1.2, 50.2], [-69, 1.2, 54], [-96, 1.2, 54], [-96, 1.2, 57.4]], 0.28, { flow: ww2, support: 6, valves: [{ u: 0.12, kind: "gate" }] }); sysPipe("wwt", [[-91, 1.2, 60], [-88, 1.2, 60]], 0.28, { flow: ww2, noSupport: true });
-    const valve = new THREE.MeshBasicMaterial({ color: 0x35e08a }); sysPipe("wwt", [[-88, 1.2, 66], [-88, 1.2, 66.6], [-112, 1.2, 66.6], [-112, 1.2, 2]], 0.3, { flow: outFlow, support: 7, valves: [{ u: 0.72, kind: "gate", wheel: valve }] });
-    addLabel(null, -112, 4.6, 30, "Van xả ra sông", false); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); labels[labels.length - 1].valve = true;
-    sysPipe("sludge", [[-99, 1.2, 55.2], [-99, 1.2, 49.8]], 0.2, { flow: ww2, noSupport: true, gap: 2, valves: [{ u: 0.3, kind: "pump" }, { u: 0.75, kind: "check" }] });
-    sysPipe("chem", [[-58, 2.9, 28], [-58, 5.4, 28], [-85, 5.4, 28], [-85, 4.3, 28]], 0.11, { noSupport: true, flow: s => s.eq.DL01.load, gap: 3, posts: [[-60.5, 5.4, 28], [-71.2, 5.4, 28], [-80.8, 5.4, 28]], valves: [{ u: 0.06, kind: "gate" }, { u: 0.2, kind: "check" }] });
-    sysPipe("air", [[-60.2, 2, 46], [-62, 2, 46], [-62, 5.4, 46], [-62, 5.4, 41], [-78, 5.4, 41]], 0.3, { flow: s => s.eq.TK01.load, support: 5, valves: [{ u: 0.12, kind: "gate" }, { u: 0.2, kind: "check" }] });
-    for (const dx of [-66, -70, -74]) sysPipe("air", [[dx, 5.4, 41], [dx, 5.4, 44], [dx, 3.2, 44]], 0.16, { noSupport: true, flow: s => s.eq.TK01.load, gap: 2 });
-    // bọt khí Aerotank
-    const bub = []; for (let i = 0; i < 90; i++) { const b = sph(0.12, M(0xdff3ff, { transparent: true, opacity: 0.7 }), -76 + Math.random() * 14, 0.5 + Math.random() * 3.6, 46 + (Math.random() - 0.5) * 6, g); b.castShadow = false; b.userData.sp = 0.7 + Math.random() * 0.8; bub.push(b); }
-    anims.push((dt, t, sim) => { const on = sim.eq.TK01.load > 0.3 && sim.pv.DO > 1; for (const b of bub) { b.visible = on; b.position.y += dt * b.userData.sp; if (b.position.y > 4.5) b.position.y = 0.6; } valve.color.set(sim.pv.discharge ? 0x35e08a : 0xe53935); aeroW.material.color.setHSL(0.33 - 0.04 * (1 - Math.min(1, sim.pv.DO / 3)), 0.35, 0.36); });
-    // cầu gạt bể lắng
-    const arm = box(9, 0.2, 0.3, M(C.steel), -96, 4.1, 60, g); anims.push((dt, t, sim) => { arm.rotation.y += dt * 0.3 * sim.eq.BM01.load; }); }
-  { const g = newEq("BM01"); box(2.6, 1.3, 1.4, M(C.blue), -104, 0.9, 30, g); const mt = cyl(0.6, 0.6, 1.8, M(C.light), -102, 0.95, 30, g, 16); mt.rotation.z = Math.PI / 2; const sh = cyl(0.25, 0.25, 0.9, M(C.red), -103.3, 0.95, 30, g, 10); sh.rotation.z = Math.PI / 2; spinners.push({ m: sh, axis: "y", k: 20, id: "BM01" });
-    sysPipe("ww", [[-104, 1.2, 30], [-104, 1.2, 25], [-97, 1.2, 25]], 0.2, { flow: s => s.eq.BM01.load, noSupport: true, gap: 3, valves: [{ u: 0.12, kind: "check" }, { u: 0.8, kind: "gate" }] }); addLamp("BM01", -103, 3.2, 30); addLabel("BM01", -103, 4.7, 30, "BM01 · Bơm nước thải"); }
-  { const g = newEq("TK01"); box(6.4, 3.6, 4.4, shellM(0xe7e9ec, { roughness: 0.7 }), -57, 1.9, 46, g); for (const z of [-1.2, 1.2]) { box(1.6, 1.2, 1.2, M(C.blue), -57.4, 1.0, 46 + z, g); const w = cyl(0.6, 0.6, 0.5, M(C.red), -56, 1.0, 46 + z, g, 16); w.rotation.z = Math.PI / 2; spinners.push({ m: w, axis: "y", k: 18, id: "TK01" }); }
-    addLamp("TK01", -57, 5, 46); addLabel("TK01", -57, 6.5, 46, "TK01 · Máy thổi khí"); }
-  { const g = newEq("DL01"); for (const [x, c] of [[-58, 0xf2c200], [-56, 0xffffff], [-54, 0x3fb6d8]]) cyl(0.9, 0.9, 2.6, M(c, { roughness: 0.6 }), x, 1.6, 28, g, 20); box(1.4, 1, 1, M(C.blue), -56, 0.7, 30.4, g);
-    const bl = new THREE.MeshBasicMaterial({ color: 0x555555 }); sph(0.3, bl, -56, 3.5, 28, g); anims.push((dt, t, sim) => { bl.color.set(sim.eq.DL01.load > 0.5 && (t % 1.2) < 0.4 ? 0x35e08a : 0x555555); });
-    addLamp("DL01", -56, 4.8, 28); addLabel("DL01", -56, 6.2, 28, "DL01 · Bơm định lượng"); }
+    // đường ống nổi giữa các bể (thực tế dẫn nước bằng lỗ thông/ống ngầm)
+    const run = (a, b, fn, o = {}, key = "ww") => sysPipe(key, [[a.x, 2.4, a.z], [a.x, 3.2, a.z], [b.x, 3.2, a.z], [b.x, 3.2, b.z], [b.x, 2.4, b.z]], o.r || 0.16, { flow: fn, noSupport: true, gap: 3, ...o });
+    run(B01A, B02, ww1, { valves: [{ u: 0.2, kind: "check" }] }); run(B02, B03, ww1); run(B03, K1, ww1); run(K1, K2, ww1); run(K2, B04, ww1);
+    run(B04, B05, ww1); run(B05, B06, ww2); run(B06, MB, ww2); run(MB, B07, ww2); run(B07, B08, ww2); run(B08, B10, ww2, { valves: [{ u: 0.5, kind: "gate" }] });
+    run(B01B, B02B, ww1); run(B01C, B02B, ww1, { r: 0.12 }); run(B02B, B01A, ww1);
+    run(B08, B11, ww2, { r: 0.12 }, "sludge"); run(B04, B11, ww2, { r: 0.12 }, "sludge");
+    // B10 → bể sinh thái → xả ra sông
+    sysPipe("ww", [[B10.x, 2.4, B10.z], [B10.x, 3.0, B10.z], [B10.x, 3.0, cz(-0.5)], [B10.x, 1.0, cz(-0.5)]], 0.16, { flow: ww2, noSupport: true, gap: 3 });
+    const valve = new THREE.MeshBasicMaterial({ color: 0x35e08a }); sysPipe("wwt", [[cx(9.5), 1.2, cz(-9.8)], [cx(9.5), 1.2, cz(-17.3)]], 0.3, { flow: outFlow, noSupport: true, gap: 2, valves: [{ u: 0.5, kind: "gate", wheel: valve }] });
+    addLabel(null, cx(9.5), 4.6, cz(-14), "Van xả ra sông", false); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); labels[labels.length - 1].valve = true;
+    // bọt khí B07 + cầu gạt B08
+    const bub = []; for (let i = 0; i < 70; i++) { const b = sph(0.1, M(0xdff3ff, { transparent: true, opacity: 0.7 }), cx(2.5) + Math.random() * 3.6, 0.5 + Math.random() * 1.4, cz(0.2) + Math.random() * 5.1, g); b.userData.sp = 0.3 + Math.random() * 0.5; bub.push(b); }
+    anims.push((dt, t, sim) => { const on = sim.eq.TK01.load > 0.3 && sim.pv.DO > 1; for (const b of bub) { b.visible = on; b.position.y += dt * b.userData.sp; if (b.position.y > 2.1) b.position.y = 0.6; } valve.color.set(sim.pv.discharge ? 0x35e08a : 0xe5484d); });
+    const arm = box(2.2, 0.1, 0.15, M(C.steel), B08.x, 2.25, B08.z, g); anims.push((dt, t, sim) => { arm.rotation.y += dt * 0.3 * sim.eq.BM01.load; });
+    // BM01 bơm nước thải (cạnh B01A), TK01 máy thổi khí, DL01 cụm châm hóa chất
+    { const q = newEq("BM01"); const px = cx(17.8), pz = cz(9.1); box(2.6, 1.3, 1.4, M(C.blue), px, 0.9, pz, q); const mt = cyl(0.6, 0.6, 1.8, M(C.light), px + 2, 0.95, pz, q, 16); mt.rotation.z = Math.PI / 2; const sh = cyl(0.25, 0.25, 0.9, M(C.red), px + 0.7, 0.95, pz, q, 10); sh.rotation.z = Math.PI / 2; spinners.push({ m: sh, axis: "y", k: 20, id: "BM01" });
+      sysPipe("ww", [[px - 1.3, 1.2, pz], [cx(16.4), 1.2, pz]], 0.15, { flow: s => s.eq.BM01.load, noSupport: true, gap: 3, valves: [{ u: 0.5, kind: "gate" }] }); addLamp("BM01", px, 3.2, pz); addLabel("BM01", px, 4.7, pz, "BM01 · Bơm nước thải"); }
+    const tkx = cx(-6), tkz = cz(2.8);
+    { const q = newEq("TK01"); box(6.4, 3.6, 4.4, shellM(0xe7e9ec, { roughness: 0.7 }), tkx, 1.9, tkz, q); for (const z of [-1.2, 1.2]) { box(1.6, 1.2, 1.2, M(C.blue), tkx - 0.4, 1.0, tkz + z, q); const w = cyl(0.6, 0.6, 0.5, M(C.red), tkx + 1, 1.0, tkz + z, q, 16); w.rotation.z = Math.PI / 2; spinners.push({ m: w, axis: "y", k: 18, id: "TK01" }); }
+      addLamp("TK01", tkx, 5, tkz); addLabel("TK01", tkx, 6.5, tkz, "TK01 · Máy thổi khí");
+      sysPipe("air", [[tkx + 3.2, 2.0, tkz], [tkx + 3.6, 2.0, tkz], [tkx + 3.6, 4.2, tkz], [B07.x, 4.2, tkz], [B07.x, 2.6, tkz]], 0.18, { flow: s => s.eq.TK01.load, support: 5, valves: [{ u: 0.12, kind: "gate" }, { u: 0.2, kind: "check" }] });
+      sysPipe("air", [[tkx + 3.6, 4.2, tkz], [tkx + 3.6, 4.2, B05.z], [B05.x, 4.2, B05.z], [B05.x, 2.2, B05.z]], 0.14, { flow: s => s.eq.TK01.load, noSupport: true, gap: 3 }); }
+    { const q = newEq("DL01"); const dz = cz(11.5); for (const [dx, c] of [[-4, 0xf2c200], [-2, 0xffffff], [0, 0x3fb6d8]]) cyl(0.9, 0.9, 2.6, M(c, { roughness: 0.6 }), cx(dx + 1), 1.6, dz, q, 20); box(1.4, 1, 1, M(C.blue), cx(-1), 0.7, dz + 2.4, q);
+      const bl = new THREE.MeshBasicMaterial({ color: 0x555555 }); sph(0.3, bl, cx(-1), 3.5, dz, q); anims.push((dt, t, sim) => { bl.color.set(sim.eq.DL01.load > 0.5 && (t % 1.2) < 0.4 ? 0x35e08a : 0x555555); });
+      addLamp("DL01", cx(-1), 4.8, dz); addLabel("DL01", cx(-1), 6.2, dz, "DL01 · Bơm định lượng");
+      sysPipe("chem", [[cx(-1), 3.0, dz], [cx(-1), 5.0, dz], [K2.x, 5.0, dz], [K2.x, 5.0, K2.z], [K2.x, 2.8, K2.z]], 0.1, { noSupport: true, flow: s => s.eq.DL01.load, gap: 3, valves: [{ u: 0.08, kind: "gate" }, { u: 0.2, kind: "check" }] }); } }
 
   OFF.x = 0; OFF.z = 0;
   // ═════ ĐƯỜNG ỐNG NƯỚC THẢI THU GOM VÀ KHÍ NÉN (vẽ nổi để dễ hình dung; thực tế chôn ngầm) ═════
@@ -362,6 +391,20 @@ export function createPlantScene(container, hooks) {
     sysPipe("air", [[18.9, 1.3, -9], [20.4, 1.3, -9]], 0.1, { noSupport: true, flow: s => s.eq.LB01.load, gap: 1 });
     sysPipe("air", [[22, 2.8, -9], [22, 11.4, -9], [22, 11.4, -39], [28.3, 11.4, -39], [28.3, 10.9, -39]], 0.16, { hang: 12.3, support: 6, flow: s => s.eq.LB01.load, valves: [{ u: 0.05, kind: "gate" }, { u: 0.12, kind: "check" }] });
     ctxLabel(22, 4.8, -10, "Bình tích khí nén rũ bụi LB01 (vị trí giả định)"); }
+
+
+  // ═════ THOÁT NƯỚC MƯA (tổng mặt bằng thoát nước TMB-02 / HC_TMB_TN1-A1): tuyến chính vẽ nổi trong hệ tọa độ bản vẽ (X ngang, Y dọc) ═════
+  { const RW = (X, Y, y = 0.55) => { const [x, z] = toScene(X, Y); return [x, y, z]; }; const rainFlow = () => 0.35;
+    const R = (pts, o = {}) => sysPipe("rain", pts.map(([X, Y]) => RW(X, Y, 1.4)), 1.2, { flow: rainFlow, noSupport: true, gap: 30, flange: 30, pitch: 14, ...o });   // bán kính phóng đại để nhìn thấy từ toàn cảnh
+    R([[172, -88], [-166, -88], [-166, 96], [-135, 96], [-135, 104]]);                       // trục Nam (đường −88) → cửa xả 3
+    R([[-8, -88], [-8, 90], [4, 96], [4, 104]]);                                             // trục giữa → cửa xả 2
+    R([[167, 96], [4, 96]]);                                                                 // trục sát bờ sông
+    R([[190, -166], [190, 108], [227, 108]]);                                                // trục Đông (dải 4A) → cửa xả 1
+    R([[110, -30], [110, 78], [0, 78]]); R([[0, -30], [0, 78]]); R([[55, 78], [55, 96]]);    // vòng quanh cụm nhà 9A1–9C1
+    const mh = (X, Y) => { const [x, z] = toScene(X, Y); const m = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 0.9, 14), new THREE.MeshStandardMaterial({ color: 0x3a3f45 })); m.position.set(x, 0.9, z); m.castShadow = true; world.add(m); };
+    for (const [X, Y] of [[172, -88], [110, -88], [55, -88], [0, -88], [-60, -88], [-120, -88], [-166, -88], [-166, 0], [-166, 60], [-166, 96], [-135, 96], [-8, 0], [-8, 60], [4, 96], [55, 96], [110, 96], [167, 96], [190, -100], [190, -20], [190, 60], [110, 30], [55, 78], [0, 30]]) mh(X, Y);
+    const lab = (X, Y, t) => { const [x, z] = toScene(X, Y); const el = document.createElement("div"); el.className = "s3l s3l-ctx"; el.style.cssText = "position:absolute;left:0;top:0;white-space:nowrap;pointer-events:none;will-change:transform;"; el.textContent = t; labelLayer.appendChild(el); labels.push({ el, pos: V(x, 5, z), id: null, text: t, ctx: true, world: true, last: t }); };
+    lab(-135, 104, "Cửa xả nước mưa 3"); lab(4, 104, "Cửa xả nước mưa 2"); lab(227, 108, "Cửa xả nước mưa 1 / điểm xả thải (TMB-02)"); }
 
   // ── Cột gió ──
   const sock = new THREE.Group(); cyl(0.12, 0.12, 8, M(C.steel), 0, 4, 0, sock, 8); const cone = new THREE.Mesh(new THREE.ConeGeometry(0.7, 3.4, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0xff7b2e, side: THREE.DoubleSide })); cone.rotation.z = -Math.PI / 2; cone.position.set(1.8, 8, 0); const sockArm = new THREE.Group(); sockArm.position.set(0, 0, 0); sockArm.add(cone); sock.add(sockArm); sock.position.set(36, 0, 10); scene.add(sock);
