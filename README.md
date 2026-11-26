@@ -142,3 +142,7 @@ Nạp từ 5 file `THONG_KE_NGUYEN_LIEU_THANG_04…08.2026.xls` của Phòng KT-
 
 - Khối HTXLNT trong `src/sim/scene3d.ts` dựng lại theo bản vẽ hoàn công Kinh Bố 29/09/2016 (cải tạo 120 m³/ngày): kích thước bể từ tờ 4/5/6/7; thứ tự dòng chảy B01A → B02 → B03 → keo tụ–tạo bông → B04 → B05 → B06 → MBBR → B07 → B08 → B10 → B09 → sông; hố bơm B01B/B01C và B02B (xây mới) nối vào B01A. Đặt cạnh NM xi măng Hà Tiên (theo người dùng). Vị trí tương đối các cụm riêng là giả định.
 - Thoát nước mưa (`PIPE_SYSTEMS.rain`) vẽ trong hệ tọa độ bản vẽ (tuyến chính, hố ga, 3 cửa xả); bán kính ống phóng đại để nhìn thấy khi xem toàn cảnh.
+
+## Tab "Báo Cáo BVMT 2024–2025"
+
+`src/data/bvmtReports.ts` (số liệu nhập tay từ hai báo cáo công tác BVMT năm 2024 — bản scan — và 2025), `src/lib/bvmt.ts` (kiểm tra tự động: tuân thủ QCVN, giá trị trùng giữa hai năm, lưu lượng vượt thiết kế, mức tăng đều +8.000 t, tổng cộng, cột "năm gần nhất"), `src/bvmt/BvmtModule.tsx`, `tests/bvmt.test.ts`. Các điểm đánh dấu chỉ là dấu hiệu cần đối chiếu chứng từ gốc, không phải kết luận số liệu sai.

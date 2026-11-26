@@ -20,6 +20,7 @@ import { GhgModule } from "../ghg/GhgModule.tsx";
 import { FeesModule } from "../fees/FeesModule.tsx";
 import { EprModule } from "../epr/EprModule.tsx";
 import { DocsModule } from "../docs/DocsModule.tsx";
+import { BvmtModule } from "../bvmt/BvmtModule.tsx";
 import { ProductionModule } from "../prod/ProductionModule.tsx";
 import { AMBIENT_POINTS, AMBIENT_LIMIT_1H, AMBIENT_ISSUES, backgroundPreset, KKXQ_SNN } from "../data/ambient";
 import { SESSIONS, TRAINEES } from "../data/training2026";
@@ -2694,6 +2695,7 @@ const NAV_GROUPS = [
       { id:"fees",       icon:"🧾", label:"Phí BVMT Khí & Nước Thải" },
       { id:"epr",        icon:"♻", label:"EPR Bao Bì · Đóng Quỹ" },
       { id:"prod",       icon:"📊", label:"Sản Xuất · Ca Chạy 2026" },
+      { id:"bvmt",       icon:"📝", label:"Báo Cáo BVMT 2024–2025" },
       { id:"docs",       icon:"📚", label:"Văn Bản · Quy Định" },
       { id:"waste",      icon:"🗑", label:"Chất Thải" },
       { id:"isoforms",   icon:"📋", label:"Biểu Mẫu ISO 14001" },
@@ -2832,6 +2834,7 @@ function AppInner() {
       case "fees":        return <FeesModule/>;
       case "epr":         return <EprModule/>;
       case "docs":        return <DocsModule/>;
+      case "bvmt":        return <BvmtModule/>;
       case "prod":        return <ProductionModule/>;
       case "wallet":      return <WalletModule setActive={setActive}/>;
       case "induction":   return <InductionModule setActive={setActive}/>;
