@@ -98,6 +98,7 @@ export const DATA_GAPS = [
   "Lưu lượng đo thực tế 2026 thấp hơn thiết kế: lò hơi 18,5–19,6 nghìn/25 nghìn m³/h; sấy 1, 2: 30,8–50,9 nghìn/55 nghìn; sấy 3: 77,6–79,1 nghìn/140 nghìn m³/h (≈ 56 %; thiết kế 140.000 m³/h đã được chủ cơ sở xác nhận) — cần xác nhận chế độ chạy khi lấy mẫu.",
   "Quan trắc 06/04/2026 tại G04: CO 172 mg/Nm³ (cao hơn nhiều lần so với các đợt còn lại 14–79; vẫn dưới giới hạn 800) — nên ghi nhận điều kiện đốt khi lấy mẫu.",
   "Phí BVMT khí thải khai theo lưu lượng thiết kế × 1.152 giờ/quý (không theo lưu lượng đo thực tế); phí nước thải Quý I tờ khai ghi TSS = 0 trong khi kết quả \"< 4 mg/L\" nên bị thẩm định lại 3,9 mg/L (+49.140 đ). Dây chuyền phối trộn hữu cơ (G07) hiện không vận hành nên không có phiếu quan trắc.",
+  "Kiểm tra theo Giáo trình Kiểm soát ô nhiễm không khí (tab DCS Khí thải → Kiểm tra thiết kế): vận tốc thải ống khói lò sấy theo GPMT (D2 0,6 m) ≈ 40–55 m/s, theo đề nghị điều chỉnh (D2 1,5 m) ≈ 7,5 m/s, đều lệch khoảng ≥ 20 m/s của giáo trình; tải trọng lọc túi Nguồn 04 ≈ 1,65 m/phút (556 m² ở Q 55.000 m³/h) cao hơn mức 0,5–1,5 m/phút, chỉ chấp nhận cho túi thổi xung có khung đỡ (≤ 2,5) — cần số liệu nhà cung cấp.",
   "Danh sách huấn luyện nhóm 3 (an toàn điện, 28/09/2026) chưa có bản PDF — chưa nạp vào app.",
 ] as const;
 

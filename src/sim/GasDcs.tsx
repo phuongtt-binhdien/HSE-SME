@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createGas, stepGas, ph, UNITS, FAULTS, CHALLENGES, startChallenge, tickChallenge, setFeed, fan, pulse, replaceBags, restoreAir, clearJam, primeNaoh, pumpStart, inject, ack, DP_H, DP_HH, PH_SP } from "./gas.ts";
 import { K, fmt, Trend, DCS_CSS } from "./DcsScreen.tsx";
+import DesignChecks from "./DesignChecks.tsx";
 
 const mm = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const COLS = [10, 150, 292, 434, 566];
@@ -89,9 +90,10 @@ export default function GasDcs() {
         {ui.fault && <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>{Object.keys(FAULTS).filter(f => (def.kind === "boiler") === ["naohLost", "pumpFail"].includes(f) || (f === "fanTrip")).map(f => <button key={f} className="dc-b" style={{ fontSize: 10 }} onClick={() => op(() => inject(g, sel, f))}>{FAULTS[f]}</button>)}</div>}</div>
     </div>
 
-    <div className="dc-card"><div style={{ display: "flex", gap: 6, marginBottom: 8 }}>{[["alarms", `Báo động (${al.length})`], ["journal", "Nhật ký"], ["trends", "Xu hướng " + sel]].map(([k, l]) => <button key={k} className={`dc-b ${tab === k ? "on" : ""}`} onClick={() => setTab(k)}>{l}</button>)}</div>
+    <div className="dc-card"><div style={{ display: "flex", gap: 6, marginBottom: 8 }}>{[["alarms", `Báo động (${al.length})`], ["journal", "Nhật ký"], ["trends", "Xu hướng " + sel], ["design", "Kiểm tra thiết kế"]].map(([k, l]) => <button key={k} className={`dc-b ${tab === k ? "on" : ""}`} onClick={() => setTab(k)}>{l}</button>)}</div>
       {tab === "alarms" && <div style={{ overflowX: "auto" }}><table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse", minWidth: 480 }}><thead><tr style={{ color: K.dim, textAlign: "left" }}><th>Ưu tiên</th><th>Nội dung</th><th>Từ</th><th></th></tr></thead><tbody>{al.length === 0 && <tr><td colSpan="4" style={{ color: K.dim, padding: 8 }}>Không có báo động.</td></tr>}{al.map(a => <tr key={a.id} className={a.acked ? "" : "dc-blink"} style={{ borderTop: `1px solid ${K.line}`, color: a.pri === 1 ? "#ff9a9d" : "#f5c451" }}><td>P{a.pri}</td><td>{a.text}</td><td>{mm(a.since)}</td><td>{a.acked ? "✔" : ""}</td></tr>)}</tbody></table></div>}
       {tab === "journal" && <div style={{ maxHeight: 260, overflowY: "auto", fontSize: 11 }}>{g.log.length === 0 && <div style={{ color: K.dim }}>Chưa có sự kiện.</div>}{g.log.slice(0, 80).map((l, i) => <div key={i} style={{ padding: "2px 0", color: /BÁO ĐỘNG|SỰ CỐ|KHÔNG ĐẠT/.test(l.text) ? "#ff9a9d" : /Trở về|ĐẠT/.test(l.text) ? K.ok : K.txt }}><span style={{ color: K.dim }}>{mm(l.t)}</span> {l.text}</div>)}</div>}
+      {tab === "design" && <DesignChecks />}
       {tab === "trends" && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 8 }}>
         <Trend title={`${sel} bụi ống khói (mg/Nm³)`} data={H} series={Object.assign([{ key: "dust", label: "bụi", color: "#e0a526", d: 0 }], { refs: [{ v: def.lim.dust, c: K.crit }] })} />
         {def.kind !== "boiler" ? <Trend title={`${sel} ΔP túi lọc (mmH₂O)`} data={H} series={Object.assign([{ key: "dp", label: "ΔP", color: "#4c9be8", d: 0 }], { refs: [{ v: DP_H, c: K.warn }, { v: DP_HH, c: K.crit }] })} /> : <><Trend title="SO₂ ống khói (mg/Nm³)" data={H} series={Object.assign([{ key: "so2", label: "SO₂", color: "#e5484d", d: 0 }], { refs: [{ v: def.lim.so2, c: K.crit }] })} /><Trend title="pH dung dịch hấp thụ" data={H} series={Object.assign([{ key: "ph", label: "pH", color: "#3fb6d8", d: 2 }], { refs: [{ v: PH_SP, c: K.ok }, { v: 6, c: K.warn }] })} /></>}

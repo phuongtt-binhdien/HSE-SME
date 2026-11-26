@@ -121,3 +121,7 @@ Trạng thái nền của mô hình khí thải được hiệu chỉnh theo 6 p
 
 - Tab **Văn Bản · Quy Định** (`src/docs/DocsModule.tsx`, dữ liệu `src/data/documents.ts`, logic `src/lib/docs.ts`): 30 văn bản pháp luật (môi trường, PCCC, hóa chất, ATVSLĐ, năng lượng – KNK, xử phạt, QCVN) và 22 văn bản nội bộ (GPMT 2986, MT-QT/HD/QP, quyết định 2026, Sổ tay, ISO 14001). Tìm không dấu, lọc theo lĩnh vực, hạn soát xét (ISO 14001 hết hạn 24/12/2026), đánh dấu "đã đối chiếu". Mục ⚠ = chưa có bản gốc trong hồ sơ — đối chiếu số hiệu, ngày hiệu lực trước khi trích dẫn.
 - Báo cáo tuần: `python3 scripts/weekly/build_weekly.py [YYYY-MM-DD]` → `docs/bao-cao-tuan/BC_HSE_Tuan_<tuần>_<năm>_BinhDien_LongAn.docx`. Ô số liệu hiện trường để trống; mốc thời hạn tự tính theo ngày lập.
+
+## Kiểm tra thiết kế theo giáo trình (Chương 3–4)
+
+Tab **Màn Hình DCS Khí Thải → Kiểm tra thiết kế** (`src/sim/DesignChecks.tsx`, công thức ở `src/lib/airTreatment.ts`, test `tests/airTreatment.test.ts`) dùng Giáo trình *Kiểm soát ô nhiễm không khí* (Nguyễn Đình Tuấn chủ biên, ĐHQG TP.HCM, 2007): vận tốc thải ống khói ≥ 20 m/s (Ch.1), cỡ cyclone PT 3.5–3.8, tải trọng lọc túi vải PT 3.13–3.15 (0,5–1,5 m/phút; 2,5 với túi có khung đỡ), N_og = ln(y₁/y₂) và % hấp thụ (bảng trang 99), chiều cao – đường kính tháp. Chương 1 (Gauss, nguồn thấp – đường – mặt, hộp cố định) đã có sẵn ở các tab Lan truyền khí thải và Nguồn thấp. Kiểm tra sơ bộ, không thay thế thiết kế nhà cung cấp.
