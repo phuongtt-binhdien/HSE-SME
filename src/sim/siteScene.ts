@@ -2,7 +2,7 @@
 // Dựng mặt bằng nhà máy theo bản vẽ hoàn công (data/site.ts): nền, ranh giới, sông, bến tàu, đường, nhà xưởng, khu phụ trợ, bối cảnh xung quanh.
 // Hệ tọa độ cảnh: x Đông, z Nam (Bắc = −z), y lên, 1 đơn vị = 1 m. Bản vẽ: X_d Bắc, Y_d Tây → x = −Y_d, z = −X_d.
 import * as THREE from "three";
-import { SITE_BOUNDARY, SITE_BUILDINGS, SITE_ROADS, WHARF, PORT_YARD, WATER_TOWER, MAIN_GATE, toScene, sceneBox } from "../data/site";
+import { SITE_BOUNDARY, SITE_BUILDINGS, SITE_ROADS, WHARF, PORT_YARD, WATER_TOWER, WWTP_SITE, MAIN_GATE, toScene, sceneBox } from "../data/site";
 
 export function buildSite({ world, M, tex, anims, label }) {
   const mesh = (geo, mat, x, y, z, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; world.add(m); return m; };
@@ -65,7 +65,7 @@ export function buildSite({ world, M, tex, anims, label }) {
   const ghostWall = new THREE.MeshStandardMaterial({ color: 0x8fb4d6, transparent: true, opacity: 0.32, roughness: 0.8, depthWrite: false });
   const edgeM = new THREE.LineBasicMaterial({ color: 0x4d7fb0 });
   // Nhà hiện hữu trùng vị trí với mô hình HTXLNT tạm (vị trí thật của HTXLNT chưa có trong TMB-00): vẽ trong suốt để nhìn thấy bể bên dưới
-  const OVERLAP = new Set(["39", "26", "38"]);
+  const OVERLAP = new Set<string>();
   const seeThrough = new THREE.MeshStandardMaterial({ color: 0xd7dade, transparent: true, opacity: 0.28, roughness: 0.8, depthWrite: false });
   const BIGLABEL = new Set(["9B1", "9C1", "28", "26", "27", "37", "39", "38", "30", "29", "40", "36", "8", "11", "33", "34", "23", "41", "42", "43", "44", "1-5"]);
   const FARLABEL = new Set(["9B1", "9C1", "28", "26", "27", "37"]);
@@ -96,12 +96,15 @@ export function buildSite({ world, M, tex, anims, label }) {
     for (let X = -265; X <= 225; X += 11) { const [x, z] = toScene(X, 96 - Math.max(0, (X + 100) * 0.0)); tree(x, z, 1 + (k++ % 3) * 0.15); } }
   
 
+  // ── Nền HTXLNT (ô đất cạnh NM xi măng Hà Tiên) ──
+  { const w = sceneBox(WWTP_SITE); box(w.w + 6, 0.2, w.d + 6, M(0xc9cdd1), w.cx, 0.16, w.cz, false); label(WWTP_SITE.name, w.cx, 12, w.cz, true); }
+
   // ── Bối cảnh xung quanh (vị trí gần đúng): nhà dân phía Đông, NM xi măng Hà Tiên phía Bắc, kho Gas Thành Tài phía Nam ──
   const house = (x, z, c) => { box(8, 4.5, 7, M(c, { roughness: 0.9, metalness: 0 }), x, 2.4, z); const r = new THREE.Mesh(new THREE.ConeGeometry(6.4, 2.8, 4), M(0xa85a3c, { roughness: 0.9, metalness: 0 })); r.position.set(x, 5.9, z); r.rotation.y = Math.PI / 4; r.castShadow = true; world.add(r); };
   { const cols = [0xe8d9c0, 0xd9e3c8, 0xf0e1d0, 0xdcd0e0]; let k = 0;
     for (let X = -330; X <= 280; X += 22) for (const dy of [-215, -236]) { const [x, z] = toScene(X + (k % 3) * 3, dy - ((X + 330) % 44 === 0 ? 0 : 6) - (k % 2) * 4); house(x, z, cols[k++ % 4]); }
     label("Khu dân cư dọc đường Trung Trực (phía Đông)", ...(() => { const [x, z] = toScene(80, -228); return [x, 9, z]; })(), true); }
-  { const sx = toScene(380, 40); for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 38, 24), M(0xd8d8d4, { roughness: 0.9 })); c.position.set(sx[0] + i * 20, 19, sx[1]); c.castShadow = true; world.add(c); }
+  { const sx = toScene(390, 40); for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 38, 24), M(0xd8d8d4, { roughness: 0.9 })); c.position.set(sx[0] + i * 20, 19, sx[1]); c.castShadow = true; world.add(c); }
     box(60, 14, 26, M(0xbfc3c6), sx[0] + 30, 7, sx[1] - 40); label("NM xi măng Hà Tiên (phía Bắc, vị trí gần đúng)", sx[0] + 30, 42, sx[1]); }
   { const sx = toScene(-420, 40); for (let i = 0; i < 3; i++) { const s = new THREE.Mesh(new THREE.SphereGeometry(9, 18, 14), M(0xe6e8ea, { roughness: 0.4 })); s.position.set(sx[0] + i * 28, 10, sx[1]); s.castShadow = true; world.add(s); }
     label("Cty Gas Thành Tài (phía Nam, vị trí gần đúng)", sx[0] + 28, 24, sx[1]); }
