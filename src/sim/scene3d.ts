@@ -5,13 +5,18 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { EQ } from "./plantSim";
 import { windVector } from "./plume";
+import { buildSite } from "./siteScene";
+
+/** Khung tọa độ thiết bị (x dọc nhà 9A1) được xoay +90° quanh trục đứng và tịnh tiến để nhà 9A1 trùng vị trí trên mặt bằng hoàn công. */
+export const PLANT_ROT = Math.PI / 2, PLANT_ROT_DEG = 90;
+export const PLANT_T = { x: 4.8, z: -54 };   // tịnh tiến (m): tâm nhà 9A1 (cảnh: x = −23,2; z = −54)
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const C = { steel: 0x8e969e, light: 0xd9dde1, white: 0xf1f3f5, blue: 0x2b6cb0, navy: 0x1f4e8c, orange: 0xe08a1e, yellow: 0xf2c200, red: 0xc0392b,
   green: 0x3a8f5c, concrete: 0xc4c6c8, dark: 0x2e3338, cyan: 0x3fb6d8, brick: 0x8b3a2f, sky: 0xdfe7ef };
 
 export const ZONE_VIEWS = {
-  all: { name: "TOÀN CẢNH NHÀ MÁY", pos: [135, 115, 130], tgt: [0, 0, -14] },
+  all: { name: "TOÀN CẢNH MẶT BẰNG NHÀ MÁY", pos: [330, 330, 330], tgt: [30, 0, 10], world: true },
   raw: { name: "ĐỊNH LƯỢNG – NGHIỀN – SÀNG", pos: [-46,26,6], tgt: [-30,3,-26] },
   gran: { name: "TRỘN – TẠO HẠT", pos: [-4,26,6], tgt: [-8,3,-26] },
   dry: { name: "LÒ ĐỐT – SẤY (NGUỒN 04)", pos: [12,30,6], tgt: [10,3,-39] },
@@ -19,7 +24,7 @@ export const ZONE_VIEWS = {
   boiler: { name: "KHU LÒ HƠI", pos: [10, 38, 72], tgt: [-23, 5, 34] },
   bag: { name: "LÀM NGUỘI – SÀNG – ĐÓNG BAO", pos: [56,22,6], tgt: [44,3,-30] },
   wwtp: { name: "HỆ THỐNG XỬ LÝ NƯỚC THẢI", pos: [-52, 40, 88], tgt: [-82, 2, 44] },
-  top: { name: "NHÌN TỪ TRÊN", pos: [0, 270, 1], tgt: [0, 0, -10] },
+  top: { name: "NHÌN TỪ TRÊN", pos: [30, 640, 24], tgt: [30, 0, 10], world: true },
 };
 
 const tex = (w, h, draw, repeat) => { const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); draw(g, w, h);
@@ -49,21 +54,22 @@ export function createPlantScene(container, hooks) {
   labelLayer.style.cssText = "position:absolute;inset:0;overflow:hidden;pointer-events:none;";
   container.appendChild(labelLayer);
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(C.sky); scene.fog = new THREE.Fog(C.sky, 380, 1100);
-  const camera = new THREE.PerspectiveCamera(45, W() / H(), 1, 3000);
+  const world = new THREE.Scene();
+  world.background = new THREE.Color(C.sky); world.fog = new THREE.Fog(C.sky, 800, 3200);
+  const scene = new THREE.Group(); scene.rotation.y = PLANT_ROT; scene.position.set(PLANT_T.x, 0, PLANT_T.z); world.add(scene); scene.updateMatrixWorld(true);
+  const camera = new THREE.PerspectiveCamera(45, W() / H(), 1, 7000);
   camera.position.set(...ZONE_VIEWS.all.pos);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(...ZONE_VIEWS.all.tgt); controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = Math.PI / 2 - 0.03; controls.minDistance = 12; controls.maxDistance = 650;
+  controls.maxPolarAngle = Math.PI / 2 - 0.03; controls.minDistance = 12; controls.maxDistance = 1400;
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8b97a3, 1.05));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+  world.add(new THREE.HemisphereLight(0xffffff, 0x8b97a3, 1.05));
+  world.add(new THREE.AmbientLight(0xffffff, 0.25));
   const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-  sun.position.set(130, 210, 90); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, near: 10, far: 520 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.6;
-  scene.add(sun);
+  sun.position.set(-23 + 130, 210, -54 + 90); sun.target.position.set(-23, 0, -54); sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096);
+  Object.assign(sun.shadow.camera, { left: -240, right: 240, top: 240, bottom: -240, near: 10, far: 620 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.6;
+  world.add(sun); world.add(sun.target);
 
   // ── Registry ──
   const eqRoot = {}, anims = [], shells = [], labels = [], lamps = {}, spinners = [];
@@ -143,39 +149,9 @@ export function createPlantScene(container, hooks) {
     labels.push({ el, pos: V(x, y, z), id, text, always, last: "" });
   };
 
-  // ── Ground, roads, river ──
-  const gravel = tex(256, 256, (g, w, h) => { g.fillStyle = "#c8cbce"; g.fillRect(0, 0, w, h); for (let i = 0; i < 3500; i++) { const v = 150 + Math.random() * 90; g.fillStyle = `rgb(${v},${v},${v + 4})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } }, [60, 40]);
-  box(224, 0.3, 144, M(0xffffff, { map: gravel, roughness: 1, metalness: 0 }), 0, 0.15, 0, scene).castShadow = false;
-  const outside = tex(128, 128, (g, w, h) => { g.fillStyle = "#b6c4b0"; g.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { const v = 150 + Math.random() * 60; g.fillStyle = `rgb(${v - 30},${v},${v - 40})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); } }, [80, 80]);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ map: outside, roughness: 1, metalness: 0 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true; scene.add(ground);
-  const road = (x, z, w, d) => { box(w, 0.35, d, M(0x474c52, { roughness: 0.95, metalness: 0 }), x, 0.2, z, scene).castShadow = false;
-    const horiz = w > d; const n = Math.floor((horiz ? w : d) / 9);
-    for (let i = 0; i < n; i++) { const o = -(horiz ? w : d) / 2 + 5 + i * 9; box(horiz ? 4 : 0.35, 0.05, horiz ? 0.35 : 4, M(0xf4f4f4), x + (horiz ? o : 0), 0.4, z + (horiz ? 0 : o), scene).castShadow = false; } };
-  road(0, 14, 216, 7); road(104, -10, 7, 116); road(-104, 8, 7, 120);
-  const riverTex = tex(128, 128, (g, w, h) => { g.fillStyle = "#4f93b8"; g.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { g.strokeStyle = `rgba(255,255,255,${0.1 + Math.random() * 0.15})`; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + 6, w * 0.6, y - 6, w, y); g.stroke(); } }, [6, 40]);
-  const river = new THREE.Mesh(new THREE.PlaneGeometry(150, 700), new THREE.MeshStandardMaterial({ map: riverTex, roughness: 0.25, metalness: 0.1 }));
-  river.rotation.x = -Math.PI / 2; river.position.set(-190, 0.08, 0); river.receiveShadow = true; scene.add(river);
-  anims.push(dt => { riverTex.offset.y -= dt * 0.03; });
-  const bank = M(0x8a7a5c, { roughness: 1 }); box(6, 0.6, 700, bank, -114, 0.2, 0, scene);
-  labels.push({ el: (() => { const e = document.createElement("div"); e.className = "s3l s3l-ctx"; e.textContent = "Sông Vàm Cỏ Đông"; labelLayer.appendChild(e); return e; })(), pos: V(-150, 3, -20), id: null, text: "Sông Vàm Cỏ Đông", ctx: true, last: "" });
-
-  // Hàng rào
-  const fenceM = M(0x9aa3ab, { transparent: true, opacity: 0.55 });
-  for (const [x, z, w, d] of [[0, -70, 224, 0.2], [0, 70, 224, 0.2], [-112, 0, 0.2, 140], [112, 0, 0.2, 140]]) { box(w, 2.4, d, fenceM, x, 1.4, z, scene).castShadow = false;
-    const n = Math.floor((w > d ? w : d) / 8); for (let i = 0; i <= n; i++) { const o = -(w > d ? w : d) / 2 + i * 8; box(0.25, 2.8, 0.25, M(C.steel), x + (w > d ? o : 0), 1.4, z + (w > d ? 0 : o), scene); } }
-
-  // ── Bối cảnh ──
-  const house = (x, z, c) => { box(8, 4.5, 7, M(c, { roughness: 0.9, metalness: 0 }), x, 2.4, z, scene); const r = new THREE.Mesh(new THREE.ConeGeometry(6.4, 2.8, 4), M(0xa85a3c, { roughness: 0.9, metalness: 0 })); r.position.set(x, 5.9, z); r.rotation.y = Math.PI / 4; r.castShadow = true; scene.add(r); };
-  [-44, -30, -16, -2, 12, 26, 40, 54].forEach((z, i) => house(128 + (i % 2) * 6, z, [0xe8d9c0, 0xd9e3c8, 0xf0e1d0, 0xdcd0e0][i % 4]));
-  addLabel(null, 128, 9, -8, "Khu dân cư (phía Đông)"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
-  for (let i = 0; i < 4; i++) { cyl(7, 7, 38, M(0xd8d8d4, { roughness: 0.9 }), -50 + i * 20, 19, -108, scene, 24); cyl(7.2, 7, 3, M(C.steel), -50 + i * 20, 39, -108, scene); }
-  box(60, 14, 26, M(0xbfc3c6), 20, 7, -118, scene); addLabel(null, -10, 42, -108, "NM xi măng Hà Tiên (phía Bắc)"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
-  for (let i = 0; i < 3; i++) sph(9, M(0xe6e8ea, { roughness: 0.4 }), -40 + i * 28, 10, 118, scene).scale.set(1, 1, 1);
-  addLabel(null, -12, 24, 118, "Cty Gas Thành Tài (phía Nam)"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx");
-  const tree = (x, z, s = 1) => { cyl(0.35 * s, 0.45 * s, 3 * s, M(0x6b4a2f), x, 1.5 * s, z, scene, 8); const f = new THREE.Mesh(new THREE.SphereGeometry(2.6 * s, 10, 8), M(0x4f8f47, { roughness: 1, metalness: 0 })); f.position.set(x, 4.4 * s, z); f.castShadow = true; scene.add(f); };
-  for (let i = 0; i < 26; i++) tree(-100 + i * 8, 76 + (i % 3) * 3, 1 + (i % 4) * 0.12);
-  for (let i = 0; i < 16; i++) tree(118 + (i % 3) * 5, -66 + i * 8.5, 1);
+  // ── Mặt bằng nhà máy theo bản vẽ hoàn công (nền, ranh, sông, bến, đường, nhà xưởng, bối cảnh) ──
+  const worldLabel = (text, x, y, z, far = false) => { const el = document.createElement("div"); el.className = "s3l s3l-ctx"; el.style.cssText = "position:absolute;left:0;top:0;white-space:nowrap;pointer-events:none;will-change:transform;"; el.textContent = text; labelLayer.appendChild(el); labels.push({ el, pos: V(x, y, z), id: null, text, ctx: true, world: true, far, last: text }); };
+  buildSite({ world, M, tex, anims, label: worldLabel });
 
   // ── Băng tải ──
   const stripeTex = (base, bar) => tex(16, 32, (g, w, h) => { g.fillStyle = base; g.fillRect(0, 0, w, h); g.fillStyle = bar; g.fillRect(0, 0, w, h / 4); }, null);
@@ -208,16 +184,6 @@ export function createPlantScene(container, hooks) {
     if (opt.incl) g.rotation.z = opt.incl;
     return g;
   }
-
-  // ═════ KHO NGUYÊN LIỆU ═════
-  { const g = infra; const wall = shellM(0xd7dade, { roughness: 0.8 }), roof = shellM(0x9aa7b3, { roughness: 0.6 });
-    box(44, 0.35, 28, M(C.concrete), -80, 0.3, -40, g);
-    box(44, 8, 0.6, wall, -80, 4.2, -54, g); box(0.6, 8, 28, wall, -102, 4.2, -40, g); box(0.6, 4, 28, wall, -58, 2.4, -40, g);
-    for (let i = 0; i <= 6; i++) { box(0.7, 10, 0.7, M(C.steel), -102 + i * 7.3, 5.2, -54, g); box(0.7, 10, 0.7, M(C.steel), -102 + i * 7.3, 5.2, -26, g); }
-    const rf = box(46, 0.5, 30, roof, -80, 10.4, -40, g); rf.rotation.x = 0; rf.position.y = 10.4;
-    const piles = [[-94, -46, 0xf3f1ea, "Urê"], [-84, -48, 0x5a4535, "DAP"], [-72, -45, 0xc0504d, "KCl"], [-92, -34, 0xe9e4c8, "SA"], [-78, -33, 0xf3f1ea, "Urê"]];
-    for (const [x, z, c, n] of piles) { const p = new THREE.Mesh(new THREE.ConeGeometry(6.5, 5.5, 20), M(c, { roughness: 1, metalness: 0 })); p.position.set(x, 3.2, z); p.castShadow = true; p.receiveShadow = true; g.add(p); void n; }
-    addLabel(null, -80, 12, -40, "Kho nguyên liệu: urê · DAP · KCl · SA"); labels[labels.length - 1].ctx = true; labels[labels.length - 1].el.classList.add("s3l-ctx"); }
 
   // ═════ PHÂN XƯỞNG DÂY CHUYỀN TẠO HẠT SỐ 2 (mặt bằng tổng thể thiết bị – lưới trục 1–19, ước 6 m/nhịp ⇒ ≈108 × 48 m) ═════
   // Tọa độ phân xưởng (hx, hy) tính từ trục 1 và tường phía Bắc → cảnh: x = hx − 54, z = hy − 52.
@@ -326,12 +292,6 @@ export function createPlantScene(container, hooks) {
     const bags = []; for (let i = 0; i < 9; i++) { const b = box(0.9, 0.3, 0.6, M(0xf5f5f0), x + 3 + i * 1.7, 1.65, z, g); bags.push(b); }
     anims.push((dt, t, sim) => { const l = sim.eq.DB01.load; for (const b of bags) { b.position.x += dt * 1.1 * l; if (b.position.x > x + 18) b.position.x = x + 3; } });
     addLamp("DB01", x, 10.4, z); addLabel("DB01", x, 11.8, z, "DB01 · Máy đóng bao"); }
-  { const g = infra; box(36, 0.35, 28, M(C.concrete), 90, 0.3, -30, g);
-    box(36, 7.5, 0.6, shellM(0xd7dade), 90, 4, -44, g); box(0.6, 7.5, 28, shellM(0xd7dade), 72, 4, -30, g); box(0.6, 7.5, 28, shellM(0xd7dade), 108, 4, -30, g);
-    box(38, 0.5, 30, shellM(0x9aa7b3), 90, 8.2, -30, g);
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) for (let h = 0; h < 4; h++) box(2.3, 0.45, 1.6, M(0xf1f0ea), 78 + c * 5, 1 + h * 0.5, -40 + r * 4.4, g).castShadow = false;
-    ctxLabel(90, 11.2, -30, "Kho thành phẩm NPK"); }
-
   // ═════ LÒ HƠI ═════
   const boiler = (id, cx, cz, col, coal) => { const g = newEq(id);
     box(12, 7.4, 8.4, shellM(col, { roughness: 0.55 }), cx, 3.7, cz, g); const drm = cyl(1.2, 1.2, 10.5, M(0xaeb4ba), cx, 8.6, cz, g, 24); drm.rotation.z = Math.PI / 2;
@@ -399,9 +359,7 @@ export function createPlantScene(container, hooks) {
     sysPipe("air", [[22, 2.8, -9], [22, 11.4, -9], [22, 11.4, -39], [28.3, 11.4, -39], [28.3, 10.9, -39]], 0.16, { hang: 12.3, support: 6, flow: s => s.eq.LB01.load, valves: [{ u: 0.05, kind: "gate" }, { u: 0.12, kind: "check" }] });
     ctxLabel(22, 4.8, -10, "Bình tích khí nén rũ bụi LB01 (vị trí giả định)"); }
 
-  // ── Xe tải, cột gió ──
-  { const t = new THREE.Group(); box(6, 2.4, 2.4, M(0xe9ebed), -1.6, 2.1, 0, t); box(2.2, 2.2, 2.4, M(C.blue), 2.7, 1.9, 0, t); for (const x of [-3.5, -1, 2.8]) for (const z of [-1.2, 1.2]) { const w = cyl(0.5, 0.5, 0.35, M(0x222629), x, 0.6, z, t, 14); w.rotation.x = Math.PI / 2; } t.position.set(-100, 0, 14); scene.add(t);
-    let dir = 1; anims.push(dt => { t.position.x += dir * dt * 6; if (t.position.x > 100) { dir = -1; t.rotation.y = Math.PI; } if (t.position.x < -100) { dir = 1; t.rotation.y = 0; } }); }
+  // ── Cột gió ──
   const sock = new THREE.Group(); cyl(0.12, 0.12, 8, M(C.steel), 0, 4, 0, sock, 8); const cone = new THREE.Mesh(new THREE.ConeGeometry(0.7, 3.4, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0xff7b2e, side: THREE.DoubleSide })); cone.rotation.z = -Math.PI / 2; cone.position.set(1.8, 8, 0); const sockArm = new THREE.Group(); sockArm.position.set(0, 0, 0); sockArm.add(cone); sock.add(sockArm); sock.position.set(36, 0, 10); scene.add(sock);
 
   // ── Khói ống khói ──
@@ -429,8 +387,8 @@ export function createPlantScene(container, hooks) {
     const d = plumeTex.image.data; for (let j = 0; j < n; j++) d.set(rgba.subarray((n - 1 - j) * n * 4, (n - j) * n * 4), j * n * 4); plumeTex.needsUpdate = true; };
 
   // ── Gợi ý, chọn thiết bị ──
-  const hintMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.6, 4), new THREE.MeshBasicMaterial({ color: 0xffc400 })); hintMesh.rotation.x = Math.PI; hintMesh.visible = false; scene.add(hintMesh);
-  let selectedId = null; const selBox = new THREE.BoxHelper(new THREE.Object3D(), 0xffc400); selBox.visible = false; scene.add(selBox);
+  const hintMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2.6, 4), new THREE.MeshBasicMaterial({ color: 0xffc400 })); hintMesh.rotation.x = Math.PI; hintMesh.visible = false; world.add(hintMesh);
+  let selectedId = null; const selBox = new THREE.BoxHelper(new THREE.Object3D(), 0xffc400); selBox.visible = false; world.add(selBox);
   const flags = { labels: true, xray: false, hints: true, plume: false, shadows: true, windFrom: 270, u10: 3, hintId: null };
   const select = id => { selectedId = id; if (id && eqRoot[id]) { selBox.setFromObject(eqRoot[id]); selBox.visible = true; } else selBox.visible = false; };
   const setFlags = f => { Object.assign(flags, f); renderer.shadowMap.enabled = flags.shadows; sun.castShadow = flags.shadows;
@@ -448,10 +406,10 @@ export function createPlantScene(container, hooks) {
 
   // ── Camera theo khu vực ──
   let tween = null;
-  const focus = key => { const v = ZONE_VIEWS[key]; if (!v) return; tween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: V(...v.pos), t1: V(...v.tgt) }; hooks.onZone(v.name); };
+  const focus = key => { const v = ZONE_VIEWS[key]; if (!v) return; scene.updateMatrixWorld(true); const cv = a => (v.world ? V(...a) : scene.localToWorld(V(...a))); tween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: cv(v.pos), t1: cv(v.tgt) }; hooks.onZone(v.name); };
 
   // ── Vòng lặp ──
-  const clock = new THREE.Clock(); let raf = 0, tAcc = 0, running = true; const tmp = V(0, 0, 0);
+  const clock = new THREE.Clock(); let raf = 0, tAcc = 0, running = true; const tmp = V(0, 0, 0), wp = V(0, 0, 0);
   const frame = () => {
     if (!running) return; raf = requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.1); tAcc += dt; const sim = hooks.getSim();
@@ -460,24 +418,25 @@ export function createPlantScene(container, hooks) {
     for (const s of spinners) { const l = sim.eq[s.id]?.load ?? 1; if (s.axis === "x") s.m.rotation.x += dt * s.k * l; else if (s.axis === "y") s.m.rotation.y += dt * s.k * l; else s.m.rotation.z += dt * s.k * l; }
     for (const a of anims) a(dt, tAcc, sim);
     for (const id in lamps) { const st = sim.eq[id]; const c = !st ? 0x888888 : st.tripped ? 0xe53935 : st.on ? (st.load > 0.5 ? 0x35e08a : 0xf2c200) : 0x8c9399; lamps[id].color.set(c); }
-    const w = windVector(flags.windFrom);
+    const w = windVector(flags.windFrom + PLANT_ROT_DEG);   // khung nhà máy xoay +90°
     smokeS01.update(dt, Math.max(sim.eq.LH01.load, sim.eq.LH02.load), w, flags.u10);
     smokeS02.update(dt, sim.eq.QH01.load * (sim.eq.SY01.load > 0.2 ? 1 : 0.35), w, flags.u10);
     smokeMat.uniforms.uScale.value = 1;
     sockArm.rotation.y = Math.atan2(-w.wz, w.wx) + 0; sockArm.rotation.y = -Math.atan2(w.wz, w.wx);
     if (flags.hints && flags.hintId && eqRoot[flags.hintId]) { const b = new THREE.Box3().setFromObject(eqRoot[flags.hintId]); b.getCenter(tmp); hintMesh.position.set(tmp.x, b.max.y + 4.2 + Math.sin(tAcc * 4) * 0.5, tmp.z); hintMesh.visible = true; hintMesh.rotation.y += dt * 2; } else hintMesh.visible = false;
     if (selectedId && selBox.visible) selBox.setFromObject(eqRoot[selectedId]);
-    renderer.render(scene, camera);
+    scene.updateMatrixWorld(true); renderer.render(world, camera);
     // Nhãn
     const rw = W(), rh = H();
     for (const L of labels) {
       const show = L.ctx ? flags.labels : (flags.labels || (!!L.id && L.id === selectedId));
       if (!show) { L.el.style.display = "none"; continue; }
-      tmp.copy(L.pos).project(camera);
+      wp.copy(L.pos); if (!L.world) scene.localToWorld(wp);
+      tmp.copy(wp).project(camera);
       if (tmp.z > 1 || tmp.z < -1 || Math.abs(tmp.x) > 1.1 || Math.abs(tmp.y) > 1.1) { L.el.style.display = "none"; continue; }
-      const d = camera.position.distanceTo(L.pos); if (d > (L.ctx ? 400 : 175)) { L.el.style.display = "none"; continue; }
+      const d = camera.position.distanceTo(wp); if (d > (L.world ? (L.far ? 1100 : 340) : L.ctx ? 400 : 175)) { L.el.style.display = "none"; continue; }
       L.el.style.display = "block"; L.el.style.transform = `translate(${((tmp.x + 1) / 2) * rw}px, ${((1 - tmp.y) / 2) * rh}px) translate(-50%, -100%)`;
-      L.el.style.opacity = String(Math.max(0.35, Math.min(1, 1.6 - d / 260)));
+      L.el.style.opacity = String(Math.max(0.35, Math.min(1, 1.6 - d / (L.world ? 600 : 260))));
       const txt = L.valve ? (sim.pv.discharge ? "Van xả ra sông: MỞ" : "Van xả ra sông: ĐÓNG") : (L.id ? labelText(L, sim) : L.text);
       if (txt !== L.last) { L.el.textContent = txt; L.last = txt; }
       L.el.classList.toggle("s3l-sel", !!L.id && L.id === selectedId); L.el.classList.toggle("s3l-trip", !!(L.id && sim.eq[L.id]?.tripped));
@@ -503,7 +462,7 @@ export function createPlantScene(container, hooks) {
     focus, select, setFlags, setPlume, resize, flagsRef: () => flags, setPipeVisible: (k, v) => { if (sysGroups[k]) sysGroups[k].visible = !!v; },
     zoomBy: f => { const d = camera.position.clone().sub(controls.target); d.multiplyScalar(f); camera.position.copy(controls.target).add(d); },
     dispose() { running = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.domElement.removeEventListener("pointerdown", onDown); renderer.domElement.removeEventListener("pointerup", onUp); renderer.domElement.removeEventListener("pointermove", onMove);
-      controls.dispose(); scene.traverse(o => { if (o.geometry) o.geometry.dispose(); }); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); },
+      controls.dispose(); world.traverse(o => { if (o.geometry) o.geometry.dispose(); }); renderer.dispose(); renderer.domElement.remove(); labelLayer.remove(); },
     screenshot: () => renderer.domElement.toDataURL("image/png"),
     canvas: renderer.domElement,
   };

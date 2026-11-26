@@ -16,3 +16,11 @@ test("ống khói S01 (quan trắc 2026) đóng góp bụi mặt đất < 5 % b�
   const w = screenWorstCase(src, 1.5).worst, Q = emissionRateFromStack(19, normalFlow(flowA, tC, 25)), c = Q * w.cPerQ;
   assert.ok(c > 1 && c < 8, String(c)); assert.ok(c / 401 < 0.05);
 });
+
+import { KKXQ_SNN } from "../src/data/ambient.ts";
+test("Sở NN&MT đo cách ≈ 2 km: 3 điểm, TSP 101–132, gió 0,9–1,3; nền SNN chỉ có bụi", () => {
+  assert.equal(KKXQ_SNN.stations.length, 3);
+  assert.deepEqual(KKXQ_SNN.stations.map(s => s.tsp), [132, 120, 101]); assert.deepEqual(KKXQ_SNN.stations.map(s => s.wind), [0.9, 1.3, 1.2]);
+  assert.ok(KKXQ_SNN.stations.every(s => s.tsp < KKXQ_SNN.limits.tsp24h)); assert.ok(KKXQ_SNN.stations[0].laeq > KKXQ_SNN.limits.noiseDay);
+  assert.deepEqual(backgroundPreset("SNN", "hi"), { tsp: 132, so2: null, nox: null, co: null, nh3: null }); assert.equal(backgroundPreset("SNN", "lo").tsp, 101);
+});

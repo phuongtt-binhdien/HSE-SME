@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createSim, step, start, stop, emergencyStop, action, ack, injectFault, presetRunning, runSequence, nextHint, EQUIP, EQ, ZONES, LIMITS,
   FAULT_LABELS, EXERCISES, beginExercise, updateExercise } from "./plantSim.ts";
 import { computePlume, gridToImage, sourcesFromSim, POL_LABEL, POL_LIMIT } from "./plume.ts";
-import { createPlantScene, ZONE_VIEWS, PIPE_SYSTEMS } from "./scene3d.ts";
+import { createPlantScene, ZONE_VIEWS, PIPE_SYSTEMS, PLANT_ROT_DEG } from "./scene3d.ts";
 
 const K = { bg: "#0b1220", panel: "rgba(13,19,32,.93)", line: "#22314a", txt: "#e6edf7", dim: "#8fa3bf", green: "#35e08a", amber: "#f2c200", red: "#ef4444", blue: "#3b9eff" };
 const CSS = `
@@ -72,7 +72,7 @@ export default function PlantSim() {
       const pl = plumeRef.current;
       if (pl.on && sceneRef.current && Date.now() - pl.last > 1500) {
         pl.last = Date.now(); const f = sceneRef.current.flagsRef();
-        const g = computePlume({ sources: sourcesFromSim(simRef.current.eq, simRef.current.pv), pol: pl.pol, u10: f.u10, stability: pl.stab, windFromDeg: f.windFrom }, 128, 450, 0, 0);
+        const g = computePlume({ sources: sourcesFromSim(simRef.current.eq, simRef.current.pv), pol: pl.pol, u10: f.u10, stability: pl.stab, windFromDeg: f.windFrom + PLANT_ROT_DEG }, 128, 450, 0, 0);
         const img = gridToImage(g, Math.max(g.max, 1e-6), POL_LIMIT[pl.pol]); sceneRef.current.setPlume(img.data || img, g.n, g.half, 0, 0, true);
         pl.max = g.max; pl.maxX = g.maxX; pl.maxZ = g.maxZ;
       }

@@ -132,3 +132,8 @@ Nạp từ 5 file `THONG_KE_NGUYEN_LIEU_THANG_04…08.2026.xls` của Phòng KT-
 - SẢN LƯỢNG trong sheet là **số bao**; khối lượng = số bao × khối lượng bao (cột LOẠI SP); nguyên liệu bao 50 kg → tấn. Tổng sản lượng tạo hạt tháng 4 (18.997,5 t) khớp tổng trên file gốc.
 - Máy 2 (TH2H) = tạo hạt 3 theo GPMT (xác nhận); máy 1 = tạo hạt 1 và máy 3 = tạo hạt 2 là suy ra.
 - Cột VỎ MẮC CA, VIÊN NÉN (BÀNH), VIÊN NÉN + THAN CỦI (KG) = chạy thử sinh khối (chủ yếu máy 3). Dòng công tơ điện thiếu/sai bị loại khỏi tổng điện (liệt kê trong tab).
+
+## Mặt bằng 3D theo bản vẽ hoàn công và số liệu KKXQ của Sở NN&MT
+
+- `src/data/site.ts`: ranh đất, 26 hạng mục (vị trí/kích thước từ Bản vẽ hoàn công TMB-01), bến tàu, đường nội bộ; `src/sim/siteScene.ts` dựng nền, sông Vàm Cỏ Đông (phía Tây), bến tàu 3000 DWT, nhà xưởng (đã có: đặc; xin phép/mở rộng: trong suốt), cổng chính, đường Trung Trực, bối cảnh. Hệ bản vẽ: X hướng Bắc, Y hướng Tây → cảnh: x(Đông) = −Y, z(Nam) = −X. Khung thiết bị trong `scene3d.ts` được xoay 90° và tịnh tiến (`PLANT_ROT`, `PLANT_T`) để nhà 9A1 trùng vị trí; gió trong khung thiết bị = gió la bàn + 90°. Kiểm tra: diện tích ranh 141.085 m² (bảng 140.110), xây dựng 42.924 m² (bảng 42.844) — `tests/site.test.ts`.
+- `KKXQ_SNN` (`src/data/ambient.ts`): 3 điểm Sở NN&MT đo cách nhà máy ≈ 2 km (TSP 101–132 μg/m³, LAeq 63,7–75,9 dBA, gió 0,9–1,3 m/s). Hướng/khoảng cách là ước lượng, bảng gốc không ghi ngày lấy mẫu. Hiển thị trong tab GPMT Nguồn 01 và nút gió trong tab Lan truyền khí thải.
