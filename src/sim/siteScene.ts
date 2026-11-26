@@ -64,7 +64,10 @@ export function buildSite({ world, M, tex, anims, label }) {
   const wallM = M(0xd7dade, { roughness: 0.8 }), roofM = M(0x9aa7b3, { roughness: 0.6 }), officeM = M(0xe8d9c0, { roughness: 0.9 }), utilM = M(0xc9d2d9, { roughness: 0.8 });
   const ghostWall = new THREE.MeshStandardMaterial({ color: 0x8fb4d6, transparent: true, opacity: 0.32, roughness: 0.8, depthWrite: false });
   const edgeM = new THREE.LineBasicMaterial({ color: 0x4d7fb0 });
-  const BIGLABEL = new Set(["9B1", "9C1", "28", "26", "27", "37", "39", "38", "30", "29", "40", "36", "8", "11", "33", "34", "23"]);
+  // Nhà hiện hữu trùng vị trí với mô hình HTXLNT tạm (vị trí thật của HTXLNT chưa có trong TMB-00): vẽ trong suốt để nhìn thấy bể bên dưới
+  const OVERLAP = new Set(["39", "26", "38"]);
+  const seeThrough = new THREE.MeshStandardMaterial({ color: 0xd7dade, transparent: true, opacity: 0.28, roughness: 0.8, depthWrite: false });
+  const BIGLABEL = new Set(["9B1", "9C1", "28", "26", "27", "37", "39", "38", "30", "29", "40", "36", "8", "11", "33", "34", "23", "41", "42", "43", "44", "1-5"]);
   const FARLABEL = new Set(["9B1", "9C1", "28", "26", "27", "37"]);
   const shortName = n => n.split(" (")[0].split(" — ")[0];
   for (const b of SITE_BUILDINGS) {
@@ -72,15 +75,15 @@ export function buildSite({ world, M, tex, anims, label }) {
     if (b.id === "9A1") { label("9A1 · Nhà sản xuất 9A1 (tạo hạt)", q.cx, b.h + 9, q.cz, true); continue; }
     if (b.kind === "shed") {
       const geo = new THREE.BoxGeometry(q.w, b.h, q.d);
-      const mat = planned ? ghostWall : wallM; const w = new THREE.Mesh(geo, mat); w.position.set(q.cx, b.h / 2, q.cz); w.castShadow = !planned; w.receiveShadow = true; world.add(w);
+      const mat = planned ? ghostWall : OVERLAP.has(b.id) ? seeThrough : wallM; const w = new THREE.Mesh(geo, mat); w.position.set(q.cx, b.h / 2, q.cz); w.castShadow = !planned; w.receiveShadow = true; world.add(w);
       if (planned) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeM); e.position.copy(w.position); world.add(e); }
-      else { const rf = new THREE.Mesh(new THREE.BoxGeometry(q.w + 1.2, 0.5, q.d + 1.2), roofM); rf.position.set(q.cx, b.h + 0.3, q.cz); rf.castShadow = true; world.add(rf); }
+      else if (!OVERLAP.has(b.id)) { const rf = new THREE.Mesh(new THREE.BoxGeometry(q.w + 1.2, 0.5, q.d + 1.2), roofM); rf.position.set(q.cx, b.h + 0.3, q.cz); rf.castShadow = true; world.add(rf); }
     } else {
       const mat = b.kind === "office" ? officeM : utilM; const w = box(q.w, b.h, q.d, planned ? ghostWall : mat, q.cx, b.h / 2, q.cz, !planned);
       if (planned) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(w.geometry), edgeM); e.position.copy(w.position); world.add(e); }
-      box(q.w + 0.8, 0.4, q.d + 0.8, planned ? ghostWall : M(0xa85a3c, { roughness: 0.9 }), q.cx, b.h + 0.2, q.cz, false);
+      box(q.w + 0.8, 0.4, q.d + 0.8, planned ? ghostWall : M(b.kind === "office" ? 0xa85a3c : 0xb8bdc2, { roughness: 0.9 }), q.cx, b.h + 0.2, q.cz, false);
     }
-    if (BIGLABEL.has(b.id)) label(`${b.id} · ${shortName(b.name)}${planned ? " [dự kiến]" : ""}`, q.cx, b.h + 5, q.cz, FARLABEL.has(b.id));
+    if (BIGLABEL.has(b.id)) label(`${b.id} · ${shortName(b.name)}${planned ? " [xin phép xây mới]" : ""}${OVERLAP.has(b.id) ? " · HTXLNT (mô hình tạm) nằm trong ô này" : ""}`, q.cx, b.h + 5, q.cz, FARLABEL.has(b.id));
   }
   { const [tx, tz] = toScene(WATER_TOWER.x, WATER_TOWER.y); const c = new THREE.Mesh(new THREE.CylinderGeometry(WATER_TOWER.r, WATER_TOWER.r * 0.7, 4, 20), new THREE.MeshStandardMaterial({ color: 0xdfe6ec })); c.position.set(tx, WATER_TOWER.h, tz); c.castShadow = true; world.add(c);
     for (const [dx, dz] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) box(0.3, WATER_TOWER.h - 2, 0.3, postM, tx + dx, (WATER_TOWER.h - 2) / 2, tz + dz); label("Tháp nước (19)", tx, WATER_TOWER.h + 4, tz); }
