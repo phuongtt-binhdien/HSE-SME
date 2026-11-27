@@ -164,3 +164,9 @@ Thêm vào `src/data/ktmt.ts` / `src/lib/ktmt.ts` / `KtmtModule.tsx`: Phụ lụ
 - **Báo cáo đã lập**: kiểm tra số học báo cáo KTMT 2024 (cân bằng vật chất cộng đúng; dòng khí thải 4.665.600 t suy ra từ 360.000 m³/h × 8.640 h × 1,5 kg/m³, trong khi Báo cáo BVMT dùng ≈ 4.522 giờ); so giải pháp 2024 với kế hoạch 2025.
 - **Mâu thuẫn hồ sơ**: 9 nội dung bốn hồ sơ ghi khác nhau (KNK, quan trắc nước thải, phí nước thải, CEMS, diễn tập, hiệu lực GPMT, sản lượng và nước thải 2023, khí thải).
 - **Phụ lục 1 (2023)**: số liệu theo quy trình; KNK bản nháp lệch bản chính thức 12,74 tCO₂e; chất lượng nước thải đầu vào 4 đợt so với mô hình hiệu suất (TN, TP đợt 2 và 4 dự báo vượt cột A); cân bằng nguyên tố N + P có dòng bù 75,5 %.
+
+### Cập nhật tab Kiểm Toán Môi Trường (KTMT 2023, 2025, giáo trình Võ Đình Long)
+
+- **KTMT 2023 · 2025**: kiểm tra số học và đơn vị trong báo cáo KTMT 2023 (số liệu 01–10/2023, nguồn của các số 2023 trong kế hoạch dự báo) và 2025; 15 mâu thuẫn bổ sung (nước thải “Đạt” nhưng vượt, TOE, STH, giải pháp tuần hoàn nước, thanh tra 2025…). Hóa chất xử lý nước thải xác nhận đơn vị kg.
+- **Giáo trình Võ Đình Long**: chương dùng cho NM, 5 bước kiểm toán chính, 6 phương pháp, kiểm toán CTR–CTNH, độ phủ cấu trúc báo cáo theo chương 10 (chấm 3 báo cáo của NM).
+- **Auth**: màn “Đang tải…” có timeout 12 giây (hiện thông báo + Thử lại/Đăng xuất) và tắt khóa Web Locks của Supabase để tránh treo. Bản demo mở bằng `?demo=1`.

@@ -1,5 +1,5 @@
 // Tính toán cho tab Kiểm toán môi trường: đối chiếu số liệu giữa các nguồn, dự báo vs thực tế, cân bằng vật chất, giải pháp.
-import { FORECAST, BALANCE, SOLUTIONS, SOLUTIONS_STATED, KNK, POINT_TOLERANCE, STAGES, PL1_2023, AUDIT2024 } from "../data/ktmt.ts";
+import { FORECAST, BALANCE, SOLUTIONS, SOLUTIONS_STATED, KNK, POINT_TOLERANCE, STAGES, PL1_2023, AUDIT2024, REPORT_2023, REPORT_2025, VDL } from "../data/ktmt.ts";
 import type { Key } from "../data/ktmt.ts";
 import { UTILITIES, PRODUCT_TOTAL, CTRSH, CTRCNTT, CTNH_TOTAL } from "../data/bvmtReports.ts";
 
@@ -143,4 +143,60 @@ export function pl1Check() {
     design, nIn, pIn, elIn: el.nIn + el.pIn, elOut, elClosed: Math.abs(elOut - el.totalIn) < 1e-9, plugPct: (el.out[2] / el.totalIn) * 100,
     bodLimitExpected: 30 * 1.2 * 1.1,
   };
+}
+
+/** Kiểm tra số học và đơn vị trong KTMT 2023 [J]. */
+export function report2023Check() {
+  const r = REPORT_2023;
+  const kwh = sum([...r.kWh]), prod = sum([...r.product]);
+  const dryer = sum([...r.coalDryerT]), boiler = sum([...r.coalBoilerT]);
+  const gran = sum([...r.granulated]), water = sum([...r.waterM3]);
+  const toeCoalExpected = r.toeTable.than.qty * 0.7; // 0,70 TOE/tấn than antraxit (hồ sơ KTNL của NM)
+  const co2Per = (k: number) => k;
+  const s2 = r.solutions[1], s8 = r.solutions[7];
+  const chemPerM3 = r.chemicalsKg.map(([n, kg]) => [n, kg / r.flowM3] as [string, number]);
+  return {
+    kwh, kwhDiff: kwh - r.kWhStatedTotal, prod, prodDiff: prod - r.productStatedTotal,
+    sthTrue: kwh / prod, sthStatedAvg: r.sthStatedAvg,
+    dryer, boiler, coalSum: dryer + boiler, coalDryerDiff: dryer - r.coalDryerStatedTotal, coalVsStated: dryer + boiler - r.coalStatedTotal,
+    gran, granDiff: gran - r.granulatedStated, water, waterDiff: water - r.waterStated, waterPerGranulated: water / gran, waterPerAll: water / prod,
+    toe: { coalExpected: toeCoalExpected, swapped: r.toeTable.do.toe > 1000 && r.toeTable.than.toe < 100, totalStated: r.toeTable.total, totalSum: r.toeTable.dien.toe + r.toeTable.do.toe + r.toeTable.than.toe },
+    price: { coalPerT: (r.costs.coal.vnd1000 * 1000) / r.toeTable.than.qty, doPerL: (r.costs.do.vnd1000 * 1000) / r.toeTable.do.qty, kWh: (r.costs.kWh.vnd1000 * 1000) / r.toeTable.dien.qty },
+    s2KgPerM3: s2.kgCo2 / ((500 * 12)), planAnnualised: (s2.kgCo2 * 12) / 1000, // tCO₂e nếu nhân thêm 12 lần
+    s8PerDay: s8.m3PerMonth / 30, s8VsDesign: s8.m3PerMonth / 30 / r.wwDesignM3PerDay, s8PerYear: s8.m3PerMonth * 12,
+    chemPerM3, co2Per,
+  };
+}
+
+/** Kiểm tra KTMT 2025 [K]. */
+export function report2025Check() {
+  const r = REPORT_2025;
+  const prod = sum([...r.production]), kwh = sum([...r.kWh]);
+  const sthOk = r.production.every((p, i) => Math.abs(r.kWh[i] / p - r.sthMonthly[i]) < 0.011);
+  const coalToe = r.energy.than.qty * 0.7, toeDien = r.energy.dien.qty * 0.0001543, doToeFactor = r.energy.do.toe / r.energy.do.qty;
+  const toeRecomputed = r.energy.dien.toe + r.energy.do.toe + coalToe;
+  const ww = r.ww.map(([k, u, q1, q2, q3, lim]) => ({ k, u, vals: [q1, q2, q3], lim, over: [q1, q2, q3].filter(v => v > lim).length }));
+  const wwOver = sum(ww.map(x => x.over)), wwTotal = ww.length * 3;
+  const wwParamsOver = ww.filter(x => x.over > 0).map(x => x.k);
+  const g = r.ghg;
+  const s1 = sum(g.rows.map(x => x[1])), total = s1 + g.scope2;
+  const co2dev = (g.rows[0][1] / g.coalT);
+  return {
+    prod, prodDiff: prod - r.productionStated, kwh, kwhDiff: kwh - r.kWhStated, sthOk,
+    toe: { coalExpected: coalToe, dien: toeDien, doFactor: doToeFactor, recomputed: toeRecomputed, stated: r.energy.totalStated, understate: toeRecomputed - r.energy.totalStated },
+    doSum: r.doBreakdown.forklift + r.doBreakdown.shuttle, doDiff: r.doBreakdown.forklift + r.doBreakdown.shuttle - r.energy.do.qty,
+    price: { coalPerT: (r.energy.than.costK * 1000) / r.energy.than.qty, doPerL: (r.energy.do.costK * 1000) / r.energy.do.qty, kWh: (r.energy.dien.costK * 1000) / r.energy.dien.qty },
+    coalKgPerT: (r.energy.than.qty * 1000) / prod, waterM3PerT: 76679 / prod,
+    ww, wwOver, wwTotal, wwParamsOver,
+    ghg: { s1, s1Diff: s1 - g.scope1Stated, scope2Calc: g.mwh * g.ef, scope2Diff: g.mwh * g.ef - g.scope2, total, totalDiff: total - g.totalStated, coalFactor: co2dev, doFactor: (g.rows[1][1] * 1000) / g.doL, growth: (g.totalStated / g.y2024 - 1) * 100, int2025: (g.totalStated / prod) * 1000, int2024Used: (g.y2024 / g.prod2024Used) * 1000, int2024True: (g.y2024 / 411773) * 1000 },
+    wwPerDay: r.stated.wwM3 / 365,
+    pacPerM3: REPORT_2025.chemicalsKg[0][1] / r.stated.wwM3,
+  };
+}
+
+/** Độ phủ cấu trúc báo cáo theo giáo trình VĐL (chương 10). */
+export function coverage() {
+  const parts = VDL.reportParts;
+  const rows = Object.entries(VDL.reportCoverage).map(([name, m]) => ({ name, score: sum(parts.map(p => m[p.id] ?? 0)), max: parts.length, missing: parts.filter(p => (m[p.id] ?? 0) === 0).map(p => p.name) }));
+  return { rows, parts };
 }

@@ -2,8 +2,8 @@
 // @ts-nocheck
 // Kiểm toán môi trường: quy trình (giáo trình), dự báo 2025 vs thực tế, đối chiếu nguồn số liệu, cân bằng vật chất, giải pháp, đề cương 688/KH-ĐGS.
 import { useState, useEffect } from "react";
-import { SUBMITTED, AUDIT2024, PL1_2023, INCONSISTENCIES, KTMT_SOURCES, STAGES, WASTE_AUDIT_STEPS, PLAN, BALANCE, DATA_CHECKLIST, OUTLINE_688, LEGAL_NOTES, WASTE_SOURCES, KNK } from "../data/ktmt.ts";
-import { crossCheck, forecastVsActual, balanceCheck, impliedFactors, solutionsSummary, progress, audit2024Check, pl1Check } from "../lib/ktmt.ts";
+import { SUBMITTED, AUDIT2024, REPORT_2023, REPORT_2025, INCONSISTENCIES2, VDL, PL1_2023, INCONSISTENCIES, KTMT_SOURCES, STAGES, WASTE_AUDIT_STEPS, PLAN, BALANCE, DATA_CHECKLIST, OUTLINE_688, LEGAL_NOTES, WASTE_SOURCES, KNK } from "../data/ktmt.ts";
+import { crossCheck, forecastVsActual, balanceCheck, impliedFactors, solutionsSummary, progress, audit2024Check, pl1Check, report2023Check, report2025Check, coverage } from "../lib/ktmt.ts";
 
 const C = { card: "#0d1320", line: "#1d2d40", txt: "#e6edf7", sub: "#9fb0c6", dim: "#6b7f99", green: "#00e5a0", amber: "#ffb020", red: "#ff3860" };
 const card = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16, minWidth: 0 };
@@ -18,7 +18,7 @@ const Wrap = ({ children, min = 640 }) => <div style={{ overflowX: "auto" }}><ta
 const Note = ({ c = C.amber, children }) => <div style={{ borderLeft: `3px solid ${c}`, padding: "6px 10px", color: C.sub, fontSize: 12, background: c + "10", borderRadius: 6 }}>{children}</div>;
 const STATUS = { in: ["Trong khoảng", C.green], below: ["Thấp hơn dự báo", C.amber], above: ["Cao hơn dự báo", C.red], na: ["Chưa có số liệu", C.dim] };
 const OUT = { ok: ["Đã có", C.green], part: ["Một phần", C.amber], gap: ["Chưa có", C.red] };
-const TABS = [["tq", "Quy trình"], ["bc", "Báo cáo đã lập"], ["mt", "Mâu thuẫn hồ sơ"], ["p1", "Phụ lục 1 (2023)"], ["dub", "Dự báo – thực tế"], ["cb", "Cân bằng vật chất"], ["gp", "Giải pháp"], ["dc", "Đề cương 688/KH-ĐGS"], ["hs", "Hồ sơ dữ liệu"], ["ln", "Lưu ý nguồn"]];
+const TABS = [["tq", "Quy trình"], ["bc", "Báo cáo đã lập"], ["mt", "Mâu thuẫn hồ sơ"], ["p1", "Phụ lục 1 (2023)"], ["r2", "KTMT 2023 · 2025"], ["vd", "Giáo trình Võ Đình Long"], ["dub", "Dự báo – thực tế"], ["cb", "Cân bằng vật chất"], ["gp", "Giải pháp"], ["dc", "Đề cương 688/KH-ĐGS"], ["hs", "Hồ sơ dữ liệu"], ["ln", "Lưu ý nguồn"]];
 const KEY = "hse_ktmt_done_v1";
 
 export function KtmtModule() {
@@ -27,13 +27,13 @@ export function KtmtModule() {
   const [price, setPrice] = useState("");
   useEffect(() => { try { const v = JSON.parse(localStorage.getItem(KEY) || "{}"); if (v && typeof v === "object") setDone(v); } catch (e) {} }, []);
   const toggle = id => setDone(d => { const n = { ...d, [id]: !d[id] }; try { localStorage.setItem(KEY, JSON.stringify(n)); } catch (e) {} return n; });
-  const au = audit2024Check(), p1 = pl1Check(), pr = progress(done), cross = crossCheck(), fc = forecastVsActual(), bal = balanceCheck(), fac = impliedFactors();
+  const r23 = report2023Check(), r25 = report2025Check(), cov = coverage(), au = audit2024Check(), p1 = pl1Check(), pr = progress(done), cross = crossCheck(), fc = forecastVsActual(), bal = balanceCheck(), fac = impliedFactors();
   const sol = solutionsSummary(Number(String(price).replace(/\D/g, "")) || 0);
   const nIn = fc.filter(x => x.status === "in").length, nOut = fc.filter(x => x.status === "below" || x.status === "above").length;
 
   return <div style={{ display: "grid", gap: 14 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
-      {[["Kế hoạch dự báo KTMT 2025", PLAN.window, "Phòng KT-SX · 5 tài liệu nguồn"], ["Dự báo 2025 vs thực tế", `${nIn} trong khoảng · ${nOut} lệch`, "so với Báo cáo BVMT 2025 (12/01/2026)"], ["Mâu thuẫn giữa các hồ sơ KTMT", `${INCONSISTENCIES.filter(x => x.sev === "red").length} nghiêm trọng · ${INCONSISTENCIES.filter(x => x.sev === "amber").length} cần rà`, "4 báo cáo/phụ lục đã lập + kế hoạch 2025"], ["Giải pháp dự kiến", `${f(sol.costM)} triệu · ${f(sol.co2e, 1)} tCO₂e/năm`, "5 giải pháp, chưa có đơn giá tiết kiệm"]].map(([a, b, c], i) =>
+      {[["Kế hoạch dự báo KTMT 2025", PLAN.window, "Phòng KT-SX · 5 tài liệu nguồn"], ["Dự báo 2025 vs thực tế", `${nIn} trong khoảng · ${nOut} lệch`, "so với Báo cáo BVMT 2025 (12/01/2026)"], ["Mâu thuẫn giữa các hồ sơ KTMT", `${[...INCONSISTENCIES, ...INCONSISTENCIES2].filter(x => x.sev === "red").length} nghiêm trọng · ${[...INCONSISTENCIES, ...INCONSISTENCIES2].filter(x => x.sev === "amber").length} cần rà`, "báo cáo 2023, 2024, 2025, 2 phụ lục, kế hoạch 2025"], ["Giải pháp dự kiến", `${f(sol.costM)} triệu · ${f(sol.co2e, 1)} tCO₂e/năm`, "5 giải pháp, chưa có đơn giá tiết kiệm"]].map(([a, b, c], i) =>
         <div key={i} style={card}><div style={{ color: C.dim, fontSize: 11 }}>{a}</div><div style={{ font: "700 17px 'Syne',system-ui", color: i === 0 ? C.txt : C.amber, margin: "4px 0" }}>{b}</div><div style={{ color: C.sub, fontSize: 11 }}>{c}</div></div>)}
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{TABS.map(([id, l]) => <span key={id} style={chip(tab === id)} onClick={() => setTab(id)}>{l}</span>)}</div>
@@ -112,6 +112,79 @@ export function KtmtModule() {
         </div></div>
     </div>}
 
+    {tab === "r2" && <div style={{ display: "grid", gap: 14 }}>
+      <Note c={C.dim}>[J] Báo cáo KTMT 2023 (11/2023, số liệu 01–10/2023) là nguồn của các số “2023” trong kế hoạch dự báo [B]; [K] Báo cáo KTMT 2025 (bìa ghi “NĂM 2026”). Các phép tính dưới đây là kiểm tra lại số học và đơn vị trong chính hai báo cáo.</Note>
+      <div style={card}><div style={h}>[J] KTMT 2023 — kiểm tra bảng số liệu</div>
+        <Wrap min={720}><thead><tr><th style={{ ...th, textAlign: "left" }}>Chỉ tiêu</th><th style={th}>Báo cáo ghi</th><th style={th}>Tính lại</th><th style={th}>Chênh</th></tr></thead><tbody>
+          <tr><td style={tdl}>Điện 10 tháng (kWh)</td><td style={td}>{f(REPORT_2023.kWhStatedTotal)}</td><td style={{ ...td, color: C.amber }}>{f(r23.kwh)}</td><td style={td}>{f(-r23.kwhDiff)} (đảo số)</td></tr>
+          <tr><td style={tdl}>Sản lượng 10 tháng (t)</td><td style={td}>{f(REPORT_2023.productStatedTotal)}</td><td style={td}>{f(r23.prod)}</td><td style={td}>0</td></tr>
+          <tr><td style={tdl}>STH điện (kWh/t)</td><td style={td}>{f(REPORT_2023.sthStatedAvg, 2)}</td><td style={{ ...td, color: C.amber }}>{f(r23.sthTrue, 2)}</td><td style={td}>trung bình các tháng ≠ tỷ số tổng</td></tr>
+          <tr><td style={tdl}>Than lò sấy (t)</td><td style={td}>{f(REPORT_2023.coalDryerStatedTotal)}</td><td style={{ ...td, color: C.amber }}>{f(r23.dryer, 1)}</td><td style={td}>lò hơi {f(r23.boiler, 2)} khớp</td></tr>
+          <tr><td style={tdl}>Than hai lò (t)</td><td style={td}>{f(REPORT_2023.coalStatedTotal)}</td><td style={td}>{f(r23.coalSum, 2)}</td><td style={td}>{f(r23.coalSum - REPORT_2023.coalStatedTotal, 2)}</td></tr>
+          <tr><td style={tdl}>Nước (đơn vị ghi “lít”)</td><td style={td}>{f(REPORT_2023.waterStated)}</td><td style={td}>{f(r23.water)} m³</td><td style={td}>{f(r23.waterPerGranulated, 2)} m³/t tạo hạt (ghi 0,43)</td></tr>
+          <tr><td style={tdl}>TOE: dầu DO / than</td><td style={td}>{f(REPORT_2023.toeTable.do.toe)} / {f(REPORT_2023.toeTable.than.toe)}</td><td style={{ ...td, color: C.red }}>than ≈ {f(r23.toe.coalExpected)} TOE</td><td style={td}>hai ô đổi chỗ; tổng {f(r23.toe.totalSum)} khớp</td></tr>
+          <tr><td style={tdl}>Đơn giá suy ra: than · dầu · điện</td><td style={td} colSpan={2}>{f(r23.price.coalPerT / 1e6, 2)} triệu đ/t · {f(r23.price.doPerL)} đ/L · {f(r23.price.kWh)} đ/kWh</td><td style={td}>kiểm tra lại số tiền</td></tr>
+        </tbody></Wrap>
+        <div style={{ color: C.dim, fontSize: 11, marginTop: 8 }}>Hóa chất xử lý nước thải 10 tháng 2023 (đơn vị kg — báo cáo ghi rõ): {REPORT_2023.chemicalsKg.map(([n, v]) => `${n} ${f(v, 1)}`).join(" · ")}. Đơn vị này xác nhận kg cho cùng danh mục ở Phụ lục 1 (2023) và [K] (2025). PAC trên lưu lượng ghi: 2023 (10 tháng) {f(r23.chemPerM3[0][1], 2)} kg/m³ (thiết kế 0,2), 2025 {f(r25.pacPerM3, 3)} kg/m³ — định lượng hóa chất tính theo lưu lượng khác nhau gấp ≈ {f(r23.chemPerM3[0][1] / r25.pacPerM3, 1)} lần giữa hai năm.</div></div>
+      <div style={card}><div style={h}>[J] 9 giải pháp đầu tiên (kgCO₂/năm, chi phí nghìn đồng) — nguồn của giải pháp trong [I], [B]</div>
+        <Wrap min={720}><thead><tr><th style={th}>#</th><th style={{ ...th, textAlign: "left" }}>Giải pháp</th><th style={{ ...th, textAlign: "left" }}>Hiệu quả</th><th style={th}>kgCO₂/năm</th><th style={th}>Chi phí (nghìn đ)</th></tr></thead>
+          <tbody>{REPORT_2023.solutions.map(x => <tr key={x.n}><td style={td}>{x.n}</td><td style={tdl}>{x.what}</td><td style={tdl}>{x.effect}</td><td style={{ ...td, color: x.n === 2 || x.n === 8 ? C.amber : C.sub }}>{f(x.kgCo2)}</td><td style={td}>{f(x.costK)}</td></tr>)}</tbody></Wrap>
+        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+          <Note c={C.red}>Giải pháp 2 là 2.634 kgCO₂/năm (≈ 0,44 kg/m³). 12 × 2,634 = {f(r23.planAnnualised, 3)} tCO₂e — đúng số 31,6 tCO₂e của kế hoạch 2025 [B] cho 6.000 m³: số này nhân thêm 12 lần so với đơn vị “/năm”; tính lại cho 6.000 m³ ≈ 2,6 tCO₂e, và tổng giảm của 5 giải pháp [B] giảm từ 790,6 xuống ≈ {f(790.6 - 31.6 + 2.634, 1)} tCO₂e.</Note>
+          <Note c={C.red}>Giải pháp 8 (tuần hoàn nước thải sau xử lý): {f(REPORT_2023.solutions[7].m3PerMonth)} m³/tháng = {f(r23.s8PerDay)} m³/ngày — gấp {f(r23.s8VsDesign, 1)} lần công suất HTXLNT 120 m³/ngày đêm; cả năm {f(r23.s8PerYear)} m³ so với 6.240–18.000 m³/năm nước thải ghi trong các báo cáo.</Note>
+        </div></div>
+      <div style={card}><div style={h}>[K] KTMT 2025 — kiểm tra</div>
+        <Wrap min={720}><thead><tr><th style={{ ...th, textAlign: "left" }}>Chỉ tiêu</th><th style={th}>Báo cáo ghi</th><th style={th}>Tính lại</th><th style={{ ...th, textAlign: "left" }}>Nhận xét</th></tr></thead><tbody>
+          <tr><td style={tdl}>Sản lượng 12 tháng (t)</td><td style={td}>{f(REPORT_2025.productionStated)}</td><td style={td}>{f(r25.prod)}</td><td style={tdl}>khớp Báo cáo BVMT 2025</td></tr>
+          <tr><td style={tdl}>Điện 12 tháng (kWh)</td><td style={td}>{f(REPORT_2025.kWhStated)}</td><td style={td}>{f(r25.kwh)}</td><td style={tdl}>STH 12 tháng đều khớp</td></tr>
+          <tr><td style={tdl}>Dầu DO: xe nâng + xe đưa rước (L)</td><td style={td}>{f(REPORT_2025.energy.do.qty)}</td><td style={td}>{f(r25.doSum)}</td><td style={tdl}>Báo cáo BVMT 2025 chỉ có phần xe nâng (104.020)</td></tr>
+          <tr><td style={tdl}>Tổng năng lượng quy đổi (TOE)</td><td style={td}>{f(REPORT_2025.energy.totalStated)}</td><td style={{ ...td, color: C.red }}>{f(r25.toe.recomputed)}</td><td style={tdl}>than 4.594 t ghi 93 TOE, phải ≈ {f(r25.toe.coalExpected)} (hệ số 0,70 TOE/t); thiếu ≈ {f(r25.toe.understate)} TOE</td></tr>
+          <tr><td style={tdl}>STH than (kg/t)</td><td style={td}>~3,7</td><td style={{ ...td, color: C.amber }}>{f(r25.coalKgPerT, 2)}</td><td style={tdl}>3,7 là của riêng lò hơi năm 2023</td></tr>
+          <tr><td style={tdl}>Nước (m³/t)</td><td style={td}>“0,43 lít/tấn”</td><td style={{ ...td, color: C.amber }}>{f(r25.waterM3PerT, 2)}</td><td style={tdl}>theo 76.679 m³ (Báo cáo BVMT)</td></tr>
+          <tr><td style={tdl}>Đơn giá suy ra: than · dầu · điện</td><td style={td} colSpan={2}>{f(r25.price.coalPerT / 1e6, 2)} triệu đ/t · {f(r25.price.doPerL)} đ/L · {f(r25.price.kWh)} đ/kWh</td><td style={tdl}>than, dầu cao bất thường</td></tr>
+          <tr><td style={tdl}>Nước thải 2025 (m³)</td><td style={td}>{f(REPORT_2025.stated.wwM3)}</td><td style={td}>{f(r25.wwPerDay, 1)} m³/ngày</td><td style={tdl}>Báo cáo BVMT: 18.000; 2023: 6.240 / 14.400 / 18.000</td></tr>
+        </tbody></Wrap></div>
+      <div style={card}><div style={h}>[K] Quan trắc nước thải Q1–Q3/2025 — báo cáo ghi “Đạt” cho mọi chỉ tiêu</div>
+        <Wrap min={640}><thead><tr><th style={{ ...th, textAlign: "left" }}>Chỉ tiêu</th><th style={th}>Q1</th><th style={th}>Q2</th><th style={th}>Q3</th><th style={th}>Giới hạn trong bảng</th><th style={{ ...th, textAlign: "left" }}>Số lần vượt</th></tr></thead>
+          <tbody>{r25.ww.map(x => <tr key={x.k}><td style={tdl}>{x.k} ({x.u})</td>{x.vals.map((v, i) => <td key={i} style={{ ...td, color: v > x.lim ? C.red : C.sub }}>{f(v, 1)}</td>)}<td style={td}>{f(x.lim)}</td><td style={{ ...tdl, color: x.over ? C.red : C.green }}>{x.over}/3</td></tr>)}</tbody></Wrap>
+        <div style={{ color: C.red, fontSize: 12, marginTop: 8 }}>{r25.wwOver}/{r25.wwTotal} giá trị vượt giới hạn in trong chính bảng ({r25.wwParamsOver.join(", ")}), nhưng cột đánh giá ghi “Đạt”. Cần đối chiếu phiếu kết quả để biết đây là mẫu đầu vào hay nước sau xử lý; không dùng bảng này làm hồ sơ nộp khi chưa xác minh.</div></div>
+      <div style={card}><div style={h}>[K] Kiểm kê KNK 2025 (kiểm tra phép tính)</div>
+        <Wrap min={560}><tbody>{REPORT_2025.ghg.rows.map(([n, v]) => <tr key={n}><td style={tdl}>{n}</td><td style={td}>{f(v, 2)} tCO₂e</td></tr>)}
+          <tr><td style={{ ...tdl, color: C.txt }}>Phạm vi 1 (cộng lại · ghi {f(REPORT_2025.ghg.scope1Stated, 2)})</td><td style={{ ...td, color: C.txt }}>{f(r25.ghg.s1, 2)}</td></tr>
+          <tr><td style={tdl}>Phạm vi 2: {f(REPORT_2025.ghg.mwh, 3)} MWh × {f(REPORT_2025.ghg.ef, 4)}</td><td style={td}>{f(r25.ghg.scope2Calc, 2)} (ghi {f(REPORT_2025.ghg.scope2, 2)})</td></tr>
+          <tr><td style={{ ...tdl, color: C.txt }}>Tổng (ghi {f(REPORT_2025.ghg.totalStated, 2)})</td><td style={{ ...td, color: C.txt }}>{f(r25.ghg.total, 2)}</td></tr></tbody></Wrap>
+        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+          <Note c={C.green}>Các phép cộng khớp; tăng {f(r25.ghg.growth, 1)} % so với 2024 (17.655,89 tCO₂e — đúng số trong tab Kiểm Kê KNK). Hệ số than {f(r25.ghg.coalFactor, 3)} tCO₂/t (kiểm kê 2023 ≈ 2,625; kế hoạch [B] và KTMT 2024 dùng 2,97); DO {f(r25.ghg.doFactor, 0)} kgCO₂e/1.000 L.</Note>
+          <Note>Cường độ 2024 (44,8 kgCO₂e/t) tính trên 394.000 t; Báo cáo BVMT 2024 ghi 411.773 t → {f(r25.ghg.int2024True, 1)}. Mức giảm 2025 ({f(r25.ghg.int2025, 1)}) chỉ ≈ {f((1 - r25.ghg.int2025 / r25.ghg.int2024True) * 100, 1)} % thay vì 6 %.</Note>
+        </div></div>
+      <div style={card}><div style={h}>[K] Kế hoạch hành động 2026</div>
+        <Wrap min={420}><tbody>{REPORT_2025.actions2026.map((a, i) => <tr key={i}><td style={{ ...td, width: 30 }}>{i + 1}</td><td style={tdl}>{a}</td></tr>)}</tbody></Wrap>
+        <div style={{ color: C.dim, fontSize: 11, marginTop: 8 }}>Không có người phụ trách, hạn hoàn thành, kinh phí; mục 8 trùng với kiến nghị diễn tập nêu từ 2024 chưa được xác nhận hoàn thành.</div></div>
+      <div style={card}><div style={h}>Mâu thuẫn bổ sung rút ra từ KTMT 2023 và 2025</div>
+        <Wrap min={900}><thead><tr><th style={{ ...th, textAlign: "left" }}>Nội dung</th><th style={{ ...th, textAlign: "left" }}>Nguồn</th><th style={{ ...th, textAlign: "left" }}>Nhận định</th></tr></thead>
+          <tbody>{INCONSISTENCIES2.map(x => <tr key={x.topic}><td style={{ ...tdl, color: x.sev === "red" ? C.red : C.amber, verticalAlign: "top" }}>{x.topic}</td><td style={{ ...tdl, verticalAlign: "top" }}>{x.src}</td><td style={{ ...tdl, verticalAlign: "top", color: C.txt }}>{x.note}</td></tr>)}</tbody></Wrap></div>
+    </div>}
+
+    {tab === "vd" && <div style={{ display: "grid", gap: 14 }}>
+      <Note c={C.dim}>Giáo trình KTMT — Võ Đình Long (10 chương). Các chương 4 (ĐTM), 8 (đa dạng sinh học) không áp dụng trực tiếp cho NM; dưới đây là các phần dùng được và cách áp vào nhà máy.</Note>
+      <div style={card}><div style={h}>Chương dùng cho NM</div>
+        <Wrap min={640}><tbody>{VDL.chapters.map(c => <tr key={c.n}><td style={{ ...td, width: 40 }}>Ch.{c.n}</td><td style={tdl}>{c.name}</td><td style={tdl}>{c.use}</td></tr>)}</tbody></Wrap></div>
+      <div style={card}><div style={h}>Giai đoạn kiểm toán chính (Ch.2) — 5 bước</div>
+        <Wrap min={640}><tbody>{VDL.mainSteps.map(m => <tr key={m.n}><td style={{ ...td, width: 30 }}>{m.n}</td><td style={tdl}>{m.name}</td><td style={tdl}>{m.plant}</td></tr>)}</tbody></Wrap></div>
+      <div style={card}><div style={h}>Phương pháp và kỹ thuật (Ch.3)</div>
+        <Wrap min={720}><thead><tr><th style={{ ...th, textAlign: "left" }}>Phương pháp</th><th style={{ ...th, textAlign: "left" }}>Nội dung</th><th style={{ ...th, textAlign: "left" }}>Áp dụng tại NM</th></tr></thead>
+          <tbody>{VDL.methods.map(([a, b, c]) => <tr key={a}><td style={tdl}>{a}</td><td style={tdl}>{b}</td><td style={tdl}>{c}</td></tr>)}</tbody></Wrap>
+        <div style={{ color: C.dim, fontSize: 12, marginTop: 8 }}>Kỹ thuật: {VDL.techniques.join(" · ")}.</div></div>
+      <div style={card}><div style={h}>Kiểm toán quản lý CTR – CTNH (Ch.5)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 }}>
+          {VDL.wasteStages.map(w => <div key={w.stage}><div style={{ color: C.green, fontSize: 12, marginBottom: 4 }}>{w.stage}</div>{w.steps.map((t, i) => <div key={i} style={{ fontSize: 12, color: C.sub, padding: "4px 0", borderTop: `1px solid ${C.line}` }}>{i + 1}. {t}</div>)}</div>)}</div></div>
+      <div style={card}><div style={h}>Độ phủ cấu trúc báo cáo theo Ch.10 — báo cáo KTMT 2023, 2024, 2025 của NM</div>
+        <Wrap min={640}><thead><tr><th style={{ ...th, textAlign: "left" }}>Nội dung theo giáo trình</th>{cov.rows.map(r => <th key={r.name} style={th}>{r.name}</th>)}</tr></thead>
+          <tbody>{cov.parts.map(p => <tr key={p.id}><td style={tdl}>{p.name}</td>{cov.rows.map(r => { const v = VDL.reportCoverage[r.name][p.id] ?? 0; return <td key={r.name} style={{ ...td, color: v === 1 ? C.green : v === 0.5 ? C.amber : C.red }}>{v === 1 ? "Có" : v === 0.5 ? "Một phần" : "Chưa"}</td>; })}</tr>)}
+            <tr><td style={{ ...tdl, color: C.txt }}>Điểm</td>{cov.rows.map(r => <td key={r.name} style={{ ...td, color: C.txt }}>{f(r.score, 1)}/{r.max}</td>)}</tr></tbody></Wrap>
+        <div style={{ color: C.dim, fontSize: 11, marginTop: 8 }}>{VDL.coverageNote}</div></div>
+    </div>}
+
     {tab === "dub" && <div style={{ display: "grid", gap: 14 }}>
       <div style={card}><div style={h}>Dự báo 2025 [B] so với thực tế 2025 (Báo cáo BVMT 12/01/2026)</div>
         <Wrap><thead><tr><th style={{ ...th, textAlign: "left" }}>Chỉ tiêu</th><th style={th}>Dự báo thấp</th><th style={th}>Dự báo cao</th><th style={th}>Thực tế 2025</th><th style={th}>Lệch so với giữa khoảng</th><th style={{ ...th, textAlign: "left" }}>Đánh giá</th></tr></thead>
@@ -151,7 +224,8 @@ export function KtmtModule() {
         <Wrap min={760}><thead><tr><th style={{ ...th, textAlign: "left" }}>Đối tượng</th><th style={{ ...th, textAlign: "left" }}>Giải pháp</th><th style={{ ...th, textAlign: "left" }}>Hiệu quả</th><th style={th}>Giảm tCO₂e/năm</th><th style={th}>Chi phí (triệu đ)</th><th style={th}>Hệ số ngầm định</th></tr></thead>
           <tbody>{sol.rows.map(s => <tr key={s.id}><td style={tdl}>{s.target}</td><td style={tdl}>{s.action}</td><td style={tdl}>{s.effect}</td><td style={td}>{s.co2e ? f(s.co2e, 1) : "—"}</td><td style={td}>{f(s.costM)}</td><td style={{ ...td, color: s.id === "s1" ? C.amber : C.sub }}>{s.kgPerUnit != null ? `${f(s.kgPerUnit, s.kgPerUnit < 100 ? 2 : 0)} kg CO₂e/${s.qtyUnit}` : "—"}</td></tr>)}
             <tr><td style={{ ...tdl, color: C.txt }} colSpan={3}>Tổng</td><td style={{ ...td, color: C.txt }}>{f(sol.co2e, 1)}</td><td style={{ ...td, color: C.txt }}>{f(sol.costM)}</td><td style={td}></td></tr></tbody></Wrap></div>
-      <Note>Tuần hoàn 6.000 m³ nước quy ra 31,6 tCO₂e (≈ 5,3 kg/m³) — cao so với phần điện bơm/xử lý nước nên cần kiểm tra phương pháp quy đổi. Giải pháp giảm than 250 t khớp hệ số 2,97 t CO₂/t trong [B]; nếu dùng hệ số KNK ≈ 2,62 thì giảm ≈ {f(250 * fac.coalKnk2023, 1)} tCO₂e. Giải pháp lắp hệ thống đo KNK không giảm phát thải trực tiếp.</Note>
+      <Note c={C.red}>Tuần hoàn 6.000 m³ nước quy ra 31,6 tCO₂e (≈ 5,3 kg/m³) — nguyên nhân: KTMT 2023 [J] ghi 2.634 kgCO₂/năm cho 500 m³/tháng (≈ 0,44 kg/m³) và 12 × 2,634 = 31,6; con số bị nhân 12 lần. Tính lại ≈ 2,6 tCO₂e (xem mục “KTMT 2023 · 2025”).</Note>
+      <Note> Giải pháp giảm than 250 t khớp hệ số 2,97 t CO₂/t trong [B]; nếu dùng hệ số KNK ≈ 2,62 thì giảm ≈ {f(250 * fac.coalKnk2023, 1)} tCO₂e. Giải pháp lắp hệ thống đo KNK không giảm phát thải trực tiếp.</Note>
       <div style={card}><div style={h}>Hoàn vốn giải pháp giảm than (nhập đơn giá thực tế)</div>
         <label style={{ fontSize: 12, color: C.sub }}>Đơn giá than (VNĐ/tấn): <input value={price} onChange={e => setPrice(e.target.value)} placeholder="nhập theo hóa đơn" style={{ marginLeft: 8, background: "#0a0f1a", border: `1px solid ${C.line}`, color: C.txt, borderRadius: 8, padding: "5px 8px", width: 160 }} /></label>
         <div style={{ color: C.sub, fontSize: 12, marginTop: 8 }}>{sol.coalSavingM != null ? <>Tiết kiệm {f(sol.coalSavingM, 1)} triệu đ/năm (250 t) → hoàn vốn chi phí 120 triệu đ sau <b style={{ color: C.green }}>{f(sol.coalPaybackYears, 2)} năm</b>. Chưa tính chi phí vận hành thêm.</> : "Kế hoạch [B] không nêu đơn giá — app không tự giả định. Nhập đơn giá để tính."}</div></div>

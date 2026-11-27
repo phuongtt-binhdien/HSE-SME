@@ -10,16 +10,25 @@ export const useAuth = () => useContext(Ctx);
 export function AuthProvider({ children }) {
   const [st, setSt] = useState({ loading: true, user: null, me: null, catalog: null, backendError: false, recovery: false });
   const apiRef = useRef(null);
+  const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("Kết nối máy chủ tài khoản quá chậm — thử tải lại trang hoặc mở bản demo (?demo=1).")), ms))]);
   const load = useCallback(async () => {
     try {
-      const api = (apiRef.current ??= await getApi()); const u = await api.getUser();
+      const api = (apiRef.current ??= await withTimeout(getApi(), 12000)); const u = await withTimeout(api.getUser(), 12000);
       if (!u) { setSt(s => ({ ...s, loading: false, user: null, me: null })); return; }
-      const me = await api.ensureProfile({ full_name: u.meta?.full_name, phone: u.meta?.phone, company: u.meta?.company });
-      const catalog = await api.catalog();
+      const me = await withTimeout(api.ensureProfile({ full_name: u.meta?.full_name, phone: u.meta?.phone, company: u.meta?.company }), 12000);
+      const catalog = await withTimeout(api.catalog(), 12000);
       setSt(s => ({ loading: false, user: u, me, catalog, backendError: false, recovery: s.recovery }));
     } catch (e) { const t = errText(e); setSt(s => ({ ...s, loading: false, backendError: t === "BACKEND_NOT_READY" ? true : t, user: s.user })); }
   }, []);
-  useEffect(() => { let off = () => {}, off2 = () => {}; (async () => { const api = (apiRef.current ??= await getApi()); off = api.onAuth(load); off2 = api.onRecovery(() => setSt(s => ({ ...s, recovery: true }))); load(); })(); return () => { off(); off2(); }; }, [load]);
+  useEffect(() => {
+    let off = () => {}, off2 = () => {};
+    (async () => {
+      try { const api = (apiRef.current ??= await withTimeout(getApi(), 12000)); off = api.onAuth(load); off2 = api.onRecovery(() => setSt(s => ({ ...s, recovery: true }))); }
+      catch (e) { setSt(s => ({ ...s, loading: false, backendError: errText(e) })); return; }
+      load();
+    })();
+    return () => { off(); off2(); };
+  }, [load]);
   const endRecovery = useCallback(() => setSt(s => ({ ...s, recovery: false })), []);
   const refreshMe = useCallback(async () => { const api = apiRef.current; if (!api) return; try { const me = await api.me(); setSt(s => ({ ...s, me })); } catch {} }, []);
   const refreshCatalog = useCallback(async () => { const api = apiRef.current; if (!api) return; try { const catalog = await api.catalog(); setSt(s => ({ ...s, catalog })); } catch {} }, []);

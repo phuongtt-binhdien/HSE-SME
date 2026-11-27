@@ -134,6 +134,60 @@ test("đối chiếu có thêm cột Phụ lục 1; danh sách tài liệu và m
   assert.equal(r.water.pl12023, 86748);
   assert.equal(r.ww.pl12023, 14400);
   assert.equal(r.coal.pl12023, 3563);
-  assert.equal(SUBMITTED.length, 4);
+  assert.equal(SUBMITTED.length, 7);
   assert.ok(INCONSISTENCIES.length >= 8 && INCONSISTENCIES.every(i => ["red", "amber"].includes(i.sev)));
+});
+
+import { report2023Check, report2025Check, coverage } from "../src/lib/ktmt.ts";
+import { INCONSISTENCIES2 } from "../src/data/ktmt.ts";
+
+test("KTMT 2023 [J]: tổng điện đảo số, sản lượng khớp, TOE đổi chỗ, giải pháp 8 vượt công suất", () => {
+  const r = report2023Check();
+  assert.equal(r.kwh, 6821667);
+  assert.equal(r.kwhDiff, 9900);                  // ghi 6.811.767
+  assert.equal(r.prodDiff, 0);
+  assert.ok(Math.abs(r.sthTrue - 26.04) < 0.01);  // ghi 28,13
+  assert.ok(Math.abs(r.dryer - 2451.9) < 1e-9);   // ghi 741
+  assert.ok(Math.abs(r.boiler - 511.85) < 1e-9);
+  assert.ok(Math.abs(r.coalSum - 2963.75) < 1e-9);
+  assert.equal(r.gran, 142722);
+  assert.equal(r.water, 54523);
+  assert.ok(Math.abs(r.waterPerGranulated - 0.382) < 0.001);
+  assert.equal(r.toe.swapped, true);
+  assert.ok(Math.abs(r.toe.coalExpected - 2079.7) < 0.01);
+  assert.equal(r.toe.totalSum, r.toe.totalStated);   // 1.051 + 2.080 + 64 = 3.195
+  assert.ok(Math.abs(r.price.coalPerT - 8078000) < 1000);
+  assert.ok(Math.abs(r.s2KgPerM3 - 0.439) < 0.001);
+  assert.ok(Math.abs(r.planAnnualised - 31.608) < 1e-9);   // 12 × 2,634 = 31,6 tCO₂e như [B]
+  assert.ok(Math.abs(r.s8PerDay - 624) < 1e-9 && r.s8VsDesign > 5);
+  assert.ok(Math.abs(r.chemPerM3[0][1] - 0.262) < 0.001);   // PAC 1.636 kg / 6.240 m³ ≈ 0,26 vs thiết kế 0,2
+});
+
+test("KTMT 2025 [K]: số học khớp; bảng nước thải 'Đạt' nhưng 18/24 giá trị vượt; TOE than thiếu; KNK", () => {
+  const r = report2025Check();
+  assert.equal(r.prodDiff, 0); assert.equal(r.kwhDiff, 0); assert.equal(r.sthOk, true);
+  assert.equal(r.wwTotal, 24); assert.equal(r.wwOver, 18);
+  assert.deepEqual(r.wwParamsOver, ["TSS", "Tổng N", "Amoni", "Tổng P", "Clo dư", "Coliform"]);
+  assert.ok(Math.abs(r.toe.coalExpected - 3215.8) < 0.01);
+  assert.ok(Math.abs(r.toe.dien - 1529.6) < 0.1);
+  assert.ok(r.toe.recomputed > 4800 && r.toe.recomputed < 4900);
+  assert.ok(r.toe.understate > 3100);
+  assert.equal(r.doDiff, 0);
+  assert.ok(Math.abs(r.coalKgPerT - 10.19) < 0.01);        // ghi ~3,7
+  assert.ok(Math.abs(r.waterM3PerT - 0.170) < 0.001);      // ghi 0,43 lít/t
+  assert.ok(Math.abs(r.price.coalPerT - 13_060_000) < 10_000);
+  assert.ok(Math.abs(r.ghg.s1 - 12443.33) < 0.01 && Math.abs(r.ghg.s1Diff) < 0.01);
+  assert.ok(Math.abs(r.ghg.scope2Diff) < 0.05);            // 9.913,473 × 0,6592 = 6.535,0
+  assert.ok(Math.abs(r.ghg.totalDiff) < 0.01);
+  assert.ok(Math.abs(r.ghg.coalFactor - 2.636) < 0.001);   // khác 2,97 trong [B], gần 2,625 KNK 2023
+  assert.ok(Math.abs(r.ghg.growth - 7.49) < 0.01);
+  assert.ok(Math.abs(r.ghg.int2025 - 42.08) < 0.01 && Math.abs(r.ghg.int2024Used - 44.81) < 0.01 && Math.abs(r.ghg.int2024True - 42.88) < 0.01);
+});
+
+test("độ phủ cấu trúc báo cáo theo giáo trình; mâu thuẫn bổ sung", () => {
+  const c = coverage();
+  assert.equal(c.rows.length, 3);
+  assert.ok(c.rows.every(r => r.max === 9 && r.score > 3 && r.score < 9));
+  assert.ok(c.rows.every(r => r.missing.includes("Tóm tắt kết quả chính và tình trạng tuân thủ (đầu báo cáo)")));
+  assert.ok(INCONSISTENCIES2.length >= 14 && INCONSISTENCIES2.filter(x => x.sev === "red").length >= 6);
 });

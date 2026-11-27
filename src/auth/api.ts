@@ -68,7 +68,7 @@ const appUrl = () => { try { return location.protocol.startsWith("http") ? locat
 // ───────────────────────── Supabase ─────────────────────────
 async function makeSupabase(): Promise<Api> {
   const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(BACKEND.url, BACKEND.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "hse-binhdien-auth" } });
+  const sb = createClient(BACKEND.url, BACKEND.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "hse-binhdien-auth", lock: async (_name: string, _timeout: number, fn: () => Promise<any>) => await fn() } });
   const rpc = async (fn: string, args?: any) => { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; };
   const q = async (p: any) => { const { data, error } = await p; if (error) throw error; return data; };
   const emailOf = async (rows: any[]) => rows; // email chỉ có ở hse_admin_users; danh sách duyệt nạp tiền hiển thị theo user_id rút gọn
