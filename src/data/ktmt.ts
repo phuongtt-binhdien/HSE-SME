@@ -147,6 +147,8 @@ export const LEGAL_NOTES = [
   "[C] nêu QCVN 14:2008/BTNMT hoặc QCVN 40:2011/BTNMT cho nước thải; quy chuẩn áp dụng của NM theo GPMT 2986 là QCVN 40:2011/BTNMT cột A (Kq 1,2; Kf 1,1).",
   "[C] soạn “báo cáo kiểm toán năng lượng năm 2025”: KTNL gần nhất do ECC Bách Khoa thực hiện 06–08/2024; chu kỳ 3 năm → kỳ tới 2027 (cơ sở sử dụng năng lượng trọng điểm). Số liệu cân bằng vật chất 2025 dùng được cho cả hai.",
   "KTMT là hoạt động khuyến khích, không bắt buộc (Điều 74 Luật BVMT 2020); Tập đoàn yêu cầu theo công văn nội bộ — văn bản nộp lên cần ghi rõ tính chất tự nguyện.",
+  "[F] Phụ lục 2 (19/07/2024) còn dẫn TT 36/2015/TT-BTNMT (giấy phép xử lý CTNH), NĐ 38/2015/NĐ-CP (giấy phép xả khí thải), “QCVN 40:2021/BTNMT” (đúng là QCVN 40:2011/BTNMT) và Luật Tài nguyên nước 2012 — cần thay bằng văn bản hiện hành (TT 02/2022/TT-BTNMT, Luật Tài nguyên nước 2023) khi lập kỳ kiểm toán mới.",
+  "[G] ghi giới hạn BOD₅ 24 mg/L; QCVN 40:2011 cột A (30 mg/L) × Kq 1,2 × Kf 1,1 = 39,6 mg/L. Các giới hạn COD 99, TSS 66, TN 26,4, TP 5,28 đúng công thức này; riêng BOD₅ cần kiểm tra lại.",
   "Thời gian thực hiện dự kiến của [B] (01–30/11/2025) đã qua; báo cáo công tác BVMT năm 2025 (12/01/2026) đã có số liệu thực tế để đối chiếu với dự báo.",
 ] as const;
 
@@ -158,4 +160,80 @@ export const WASTE_SOURCES = [
   { src: "HTXLNT 120 m³/ngày đêm", waste: "Nước thải sinh hoạt + nước rửa; bùn", control: "Anoxic – MBBR – Aerotank; xả sông Vàm Cỏ Đông (QCVN 40 cột A)" },
   { src: "Cơ điện, bảo trì", waste: "Dầu nhớt thải, giẻ lau dính dầu, bóng đèn (CTNH)", control: "Kho CTNH 75 m²; chuyển giao Cao Gia Quý" },
   { src: "Văn phòng, nhà ăn", waste: "CTRSH (45 thùng phân loại)", control: "Thu gom theo hợp đồng" },
+] as const;
+
+// ======================================================================
+// Bổ sung 4 tài liệu KTMT đã lập (người dùng gửi 27/11/2026)
+//  [F] Phụ lục 2 (19/07/2024) — danh sách kiểm tra tuân thủ theo Luật BVMT 2020 (mẫu Tập đoàn)
+//  [G] Phụ lục 1 (22/07/2024) — số liệu đầu vào/ra năm 2023, kiểm kê KNK phạm vi 1–2, cân bằng vật chất HTXLNT 120 m³/ngày đêm
+//  [H] Báo cáo KTMT lập 30/10/2024, ký PTGĐ Võ Văn Phu, số liệu năm 2023 (tên file "Baocao_KTMT_2023", tiêu đề "KTMT năm 2024"), kèm [F], [G]
+//  [I] Báo cáo KTMT năm 2024 (nội bộ, thực hiện 01–30/11/2024; Phòng KT-SX)
+// ======================================================================
+export const SUBMITTED = [
+  { id: "F", name: "Phụ lục 2 — Danh sách kiểm tra tuân thủ (Luật BVMT 2020)", date: "19/07/2024", note: "Mẫu Tập đoàn, đã đánh dấu; nhiều dòng dẫn văn bản hết hiệu lực" },
+  { id: "G", name: "Phụ lục 1 — Số liệu đầu vào/ra năm 2023, KNK, cân bằng HTXLNT", date: "22/07/2024", note: "Điện, than, nước, hóa chất, KNK phạm vi 1–2, chất lượng nước thải trước xử lý" },
+  { id: "H", name: "Báo cáo KTMT gửi Tập đoàn (số liệu 2023)", date: "30/10/2024", note: "Ký PTGĐ Võ Văn Phu; số văn bản để trống; 28 mục hồ sơ môi trường; thanh tra 2023" },
+  { id: "I", name: "Báo cáo KTMT năm 2024 (nội bộ)", date: "11/2024", note: "Nhóm: Võ Anh Tuấn, Trình Thiên Phương, Nguyễn Hữu Thông; cân bằng vật chất 2024; 7 chương" },
+] as const;
+
+/** [G] Bảng 01–06: số liệu 2023 theo quy trình (A = tạo hạt, B = trộn). */
+export const PL1_2023 = {
+  kWhA: 6674212, kWhB: 1668553, coalT: 3563, waterM3: 86748,
+  materialsA: 120000, materialsB: 240000, productA: 120000, productB: 240000,
+  wastewaterM3: 14400,
+  chemicals: [["PAC", 1717.8], ["Polymer", 121.2], ["NaOH", 2134.8], ["Clorine", 192.6], ["Đường", 1385.3], ["Vi sinh", 158.4], ["Zeolit", 1695]] as [string, number][],
+  chemUnitNote: "Phụ lục không ghi đơn vị (giả định kg/năm — cần xác nhận)",
+  // Chất lượng nước thải trước xử lý, 4 đợt (mg/L)
+  influent: { dot: ["Đợt 1", "Đợt 2", "Đợt 3", "Đợt 4"], COD: [64, 84, 84, 134], BOD: [23, 37, 7, 39], TSS: [135, 31, 59, 242], TN: [68, 350, 67.2, 537.6], TP: [23.4, 153.26, 16.25, 130.75], NH4: [37, 327, 65.7, 480.5] },
+  // Mô hình hiệu suất từng bể (đợt 1) và giới hạn QCVN 40 cột A theo [G]
+  modelOut: { TN: 20, TP: 2.9, COD: 5, BOD: 1, TSS: 8 }, modelIn: { TN: 68, TP: 23.4, COD: 64, BOD: 23, TSS: 135 },
+  limitsA: { COD: 99, BOD: 24, TSS: 66, TN: 26.4, TP: 5.28 },
+  // Bảng 11: cân bằng nguyên tố N + P (kg)
+  elementBal: { totalIn: 1315, nIn: 979, pIn: 336, out: [255, 67, 993], outLabels: ["Chất ô nhiễm (ô gốc không rõ nhãn)", "Sau xử lý", "Có trong khí thải / bay hơi"] },
+  // Kiểm kê KNK phạm vi 1 trong [G] (bản nháp 07/2024)
+  ghgDraft: [["Than", 9352.3627], ["DO xe nâng", 239.8746], ["DO máy phát", 7.3275], ["Môi chất lạnh", 23.7801], ["Bình cứu hỏa", 0.6328], ["Nước thải sinh hoạt", 26.2942]] as [string, number][],
+  ghgDraftTotalStated: 9650.2719, scope2: 5622.61,
+} as const;
+
+/** [I] Báo cáo KTMT 2024: hiện trạng, cân bằng vật chất, giải pháp. */
+export const AUDIT2024 = {
+  production: 411773, coalT: 4178.3, oilL: 81780, oilT: 69.51, gasM3: 6, waterM3: 90982, kWh: 9455800,
+  sec: { kWhPerT: 22.96, coalKgPerT: 10.14, oilLPerT: 0.17, waterM3PerT: 0.22 },
+  balanceIn: [["Nguyên liệu (ước tính, hao hụt 1 %)", 415000], ["Nước", 90982], ["Than", 4178.3], ["Dầu", 69.51], ["Không khí đốt cháy", 43000]] as [string, number][],
+  balanceInStated: 553229.81,
+  airParts: { coal: 41783, oil: 834 },
+  balanceOut: [["Sản phẩm", 411773], ["Nước thải", 18000], ["Khí thải (lò hơi 259.200 + lò sấy 4.406.400)", 4665600], ["CTR (CTRSH 75,19 + CTRCNTT 7.346,43 + CTNH 0,84)", 7422.46]] as [string, number][],
+  balanceOutStated: 5102795.46, gapStated: 4549565.65,
+  flueParts: { boiler: 259200, dryer: 4406400 },
+  designFlowM3h: 360000, hoursImplied: 8640, densityImplied: 1.5,
+  co2: { coal: 12409.55, oil: 181.70, total: 12591.25 },
+  efficiencyStated: 99.2, fluePctStated: 91.5,
+  ctrsh: { tpd: 0.26, days: 289, stated: 75.19 }, ctnh: { kgPerMonth: 71.5, stated: 0.84 },
+  ctrcntt: { reuse: 5294, transfer: 2052.43, stated: 7346.43, reusePctStated: 72 },
+  solutions: [
+    { target: "Nước thải", action: "Tuần hoàn nước xử lý khí thải", effect: "Giảm 5.000 m³/năm", co2e: 26, costM: 50 },
+    { target: "Khí thải", action: "Tối ưu hóa lò hơi", effect: "Giảm 200 tấn than/năm", co2e: 594, costM: 100 },
+    { target: "CTRSH", action: "Phân loại tại nguồn", effect: "Giảm 15 tấn/năm", co2e: 5, costM: 10 },
+  ],
+  wasteSolutions: [
+    { target: "CTRSH", action: "Phân loại tại nguồn, tái chế", effect: "Giảm 20 % (15 tấn/năm)", costM: 10 },
+    { target: "CTRCNTT", action: "Tăng tái sử dụng bao bì", effect: "Giảm 5 % (367 tấn/năm)", costM: 15 },
+    { target: "CTNH", action: "Giảm sử dụng bóng đèn huỳnh quang", effect: "Giảm 10 % (0,08 tấn/năm)", costM: 5 },
+  ],
+  recommendCostStated: 170, recommendCo2eStated: 625,
+  findings: ["Chưa tổ chức diễn tập ứng phó sự cố (Khoản 7 Điều 124 Luật BVMT 2020)", "Chưa kiểm kê khí nhà kính “không bắt buộc trong 2024”", "CTRSH chưa phân loại tại nguồn"],
+  permitExpiryStated: "28/4/2030",
+} as const;
+
+/** Cùng một nội dung nhưng 4 tài liệu ghi khác nhau. Dòng cuối của mỗi hàng = nhận định của app. */
+export const INCONSISTENCIES = [
+  { topic: "Kiểm kê khí nhà kính", f: "“x” (tuân thủ) — ghi chú “Năm 2023”", h: "Mục 20: đánh dấu cột “Chưa thực hiện” nhưng bằng chứng ghi “Đã thực hiện”", i: "“Chưa thực hiện trong 2024 — không bắt buộc”; kiến nghị kiểm kê trước 31/12/2025", note: "NM đã có báo cáo kiểm kê năm 2023 (ECC Bách Khoa, ký 29/07/2024). Cần thống nhất: đã kiểm kê 2023; kỳ sau theo NĐ 119/2025, QĐ 42/2026.", sev: "red" },
+  { topic: "Quan trắc nước thải định kỳ", f: "“x” — đã thực hiện", h: "Mục 23: thực hiện theo tần suất, thông số, vị trí trong GPMT", i: "Bằng chứng: “Không bắt buộc quan trắc định kỳ”, đánh dấu tuân thủ", note: "Báo cáo BVMT 2024/2025 có 4 đợt nhưng chỉ 6 thông số (COD, TSS, Pb, Cd, Hg, As). Nếu GPMT có quy định thì không thể ghi “không bắt buộc”.", sev: "red" },
+  { topic: "Phí BVMT đối với nước thải", f: "“Không yêu cầu”", h: "Mục 19: “Kê khai và nộp phí nước thải Quý 1, 2” — thực hiện", i: "—", note: "Trái nhau: một bản ghi không yêu cầu, một bản ghi đã kê khai và nộp. Đối chiếu tab Phí BVMT.", sev: "amber" },
+  { topic: "Quan trắc khí thải tự động (CEMS)", f: "“x” (đáp ứng yêu cầu kỹ thuật, truyền dữ liệu)", h: "Mục 18: 1 hệ tạo hạt 140.000 m³/h — “Không yêu cầu bắt buộc”", i: "“Không bắt buộc, chỉ lắp đặt để theo dõi nội bộ”", note: "Nhất quán là CEMS lắp tự nguyện; riêng PL2 tick “đáp ứng quy định về truyền dữ liệu” như thể bắt buộc — nên sửa thành “Không áp dụng”.", sev: "amber" },
+  { topic: "Diễn tập ứng phó sự cố", f: "“Chưa tổ chức”", h: "Mục 25–27 (chất thải, hóa chất, tràn dầu): chưa thực hiện; mục 13: chưa có biện pháp ứng phó tràn dầu", i: "Chưa tổ chức; kiến nghị Quý 1/2025", note: "Nhất quán qua 3 bản; chưa có bằng chứng đã khắc phục. Hồ sơ ứng phó tràn dầu: báo giá BG TV.MT2411.23 (23/11/2024) đã hết hiệu lực, mới có 1 báo giá.", sev: "red" },
+  { topic: "Hiệu lực giấy phép môi trường 2986/GPMT-STNMT", f: "“Còn hiệu lực”", h: "Số 2986 ngày 28/04/2023", i: "“Có hiệu lực đến 28/4/2030”", note: "Hồ sơ nội bộ (tab Văn bản) ghi thời hạn 10 năm, đến 27/04/2033. Sửa lại thời hạn trong báo cáo nếu dùng làm hồ sơ nộp.", sev: "red" },
+  { topic: "Sản lượng, nguyên liệu 2023", f: "—", h: "[G] Bảng 03, 06: tạo hạt 120.000 + trộn 240.000 = 360.000 t (nguyên liệu = sản phẩm)", i: "[I] 333.675 t (2023) → 411.773 t (2024)", note: "360.000 t lệch +7,9 % so với 333.675 t trong Báo cáo BVMT 2024; số tròn, nguyên liệu bằng đúng sản phẩm (không hao hụt) — giống số công suất, không phải số thực.", sev: "amber" },
+  { topic: "Nước thải 2023", f: "—", h: "[G]: 14.400 m³ (= 120 m³/ngày × 120 ngày)", i: "[I]: 18.000 m³ (2024); Báo cáo BVMT: 18.000 m³ cả 3 năm; kế hoạch 2025: 6.240 m³ (2023)", note: "Ba con số khác nhau cho nước thải 2023 (14.400 / 18.000 / 6.240). Chưa có đồng hồ/nhật ký lưu lượng làm gốc.", sev: "amber" },
+  { topic: "Khí thải 2024 (khối lượng)", f: "—", h: "—", i: "[I]: 4.665.600 t = 360.000 m³/h × 8.640 h × 1,5 kg/m³ (suy ra)", note: "Báo cáo BVMT 2024/2025 ghi 1.628.000.000 m³ cùng lưu lượng 360.000 m³/h (≈ 4.522 giờ). Hai báo cáo dùng số giờ khác nhau cho cùng lưu lượng; mật độ 1,5 kg/m³ cao hơn không khí nóng.", sev: "amber" },
 ] as const;

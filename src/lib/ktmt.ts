@@ -1,5 +1,5 @@
 // Tính toán cho tab Kiểm toán môi trường: đối chiếu số liệu giữa các nguồn, dự báo vs thực tế, cân bằng vật chất, giải pháp.
-import { FORECAST, BALANCE, SOLUTIONS, SOLUTIONS_STATED, KNK, POINT_TOLERANCE, STAGES } from "../data/ktmt.ts";
+import { FORECAST, BALANCE, SOLUTIONS, SOLUTIONS_STATED, KNK, POINT_TOLERANCE, STAGES, PL1_2023, AUDIT2024 } from "../data/ktmt.ts";
 import type { Key } from "../data/ktmt.ts";
 import { UTILITIES, PRODUCT_TOTAL, CTRSH, CTRCNTT, CTNH_TOTAL } from "../data/bvmtReports.ts";
 
@@ -26,14 +26,15 @@ export function bcActual(key: Key, y: "y2023" | "y2024" | "y2025"): number | nul
   }
 }
 
-export type CrossRow = { key: Key; label: string; unit: string; plan2023: number; bc2023: number | null; knk2023: number | null; plan2024: number; bc2024: number | null; knk2024: number | null; d2023: number | null; d2024: number | null; flag: boolean };
+export type CrossRow = { key: Key; label: string; unit: string; plan2023: number; bc2023: number | null; knk2023: number | null; pl12023: number | null; plan2024: number; bc2024: number | null; knk2024: number | null; d2023: number | null; d2024: number | null; flag: boolean };
 /** Đối chiếu số liệu cơ sở trong [B] với báo cáo BVMT (và kiểm kê KNK nếu có). flag = lệch > ngưỡng ở ít nhất một năm. */
 export function crossCheck(threshold = 2): CrossRow[] {
   const knk = (k: Key, y: "y2023" | "y2024"): number | null => (k === "coal" ? KNK[y].coalT : k === "kwh" ? KNK[y].kWh : null);
+  const pl1 = (k: Key): number | null => (k === "kwh" ? PL1_2023.kWhA + PL1_2023.kWhB : k === "coal" ? PL1_2023.coalT : k === "water" ? PL1_2023.waterM3 : k === "ww" ? PL1_2023.wastewaterM3 : k === "prod" ? PL1_2023.productA + PL1_2023.productB : null);
   return FORECAST.map(f => {
     const bc23 = bcActual(f.key, "y2023"), bc24 = bcActual(f.key, "y2024");
     const d23 = diffPct(f.p2023, bc23), d24 = diffPct(f.p2024, bc24);
-    return { key: f.key, label: f.label, unit: f.unit, plan2023: f.p2023, bc2023: bc23, knk2023: knk(f.key, "y2023"), plan2024: f.p2024, bc2024: bc24, knk2024: knk(f.key, "y2024"), d2023: d23, d2024: d24, flag: [d23, d24].some(d => d != null && Math.abs(d) > threshold) };
+    return { key: f.key, label: f.label, unit: f.unit, plan2023: f.p2023, bc2023: bc23, knk2023: knk(f.key, "y2023"), pl12023: pl1(f.key), plan2024: f.p2024, bc2024: bc24, knk2024: knk(f.key, "y2024"), d2023: d23, d2024: d24, flag: [d23, d24].some(d => d != null && Math.abs(d) > threshold) };
   });
 }
 
@@ -88,4 +89,58 @@ export function solutionsSummary(coalPriceVndPerT = 0) {
 /** Tiến độ checklist quy trình (done: map stepId → boolean). */
 export function progress(done: Record<string, boolean>) {
   return STAGES.map(st => ({ id: st.id, total: st.steps.length, done: st.steps.filter(s => done[s.id]).length }));
+}
+
+/** Kiểm tra số học và nhất quán trong Báo cáo KTMT 2024 [I]. */
+export function audit2024Check() {
+  const a = AUDIT2024;
+  const inSum = sum(a.balanceIn.map(x => x[1])), outSum = sum(a.balanceOut.map(x => x[1]));
+  const airSum = a.airParts.coal + a.airParts.oil;
+  const flueSum = a.flueParts.boiler + a.flueParts.dryer;
+  const flueRebuilt = (a.designFlowM3h * a.hoursImplied * a.densityImplied) / 1000; // tấn
+  const bcAirM3 = 1_628_000_000; // báo cáo BVMT 2024/2025
+  const bcHours = bcAirM3 / a.designFlowM3h;
+  const solutionsCost = sum(a.solutions.map(x => x.costM)), solutionsCo2e = sum(a.solutions.map(x => x.co2e));
+  return {
+    inSum, inDiff: inSum - a.balanceInStated, outSum, outDiff: outSum - a.balanceOutStated, gap: outSum - inSum, gapDiff: outSum - inSum - a.gapStated,
+    airSum, airDiff: airSum - 43000, flueSum, flueDiff: flueSum - 4665600, flueRebuilt, bcHours, bcKgPerM3: (4665600 * 1000) / bcAirM3,
+    efficiency: (a.production / a.balanceIn[0][1]) * 100, fluePct: (4665600 / outSum) * 100,
+    sec: { kWhPerT: a.kWh / a.production, coalKgPerT: (a.coalT * 1000) / a.production, waterM3PerT: a.waterM3 / a.production },
+    ctrsh: a.ctrsh.tpd * a.ctrsh.days, ctrshDiff: a.ctrsh.tpd * a.ctrsh.days - a.ctrsh.stated,
+    ctnh: (a.ctnh.kgPerMonth * 12) / 1000, ctnhDiff: (a.ctnh.kgPerMonth * 12) / 1000 - a.ctnh.stated,
+    ctrcntt: a.ctrcntt.reuse + a.ctrcntt.transfer, reusePct: (a.ctrcntt.reuse / a.ctrcntt.stated) * 100,
+    coalCo2: a.coalT * (a.co2.coal / a.coalT), coalFactor: a.co2.coal / a.coalT, oilFactor: a.co2.oil / a.oilT,
+    co2Sum: a.co2.coal + a.co2.oil, co2Diff: a.co2.coal + a.co2.oil - a.co2.total,
+    solutionsCost, solutionsCo2e, costVsRecommend: solutionsCost - a.recommendCostStated, co2eVsRecommend: solutionsCo2e - a.recommendCo2eStated,
+  };
+}
+
+/** Kiểm tra Phụ lục 1 [G]: điện theo quy trình, KNK bản nháp so với báo cáo kiểm kê, nước thải đầu vào so với mô hình hiệu suất, cân bằng nguyên tố. */
+export function pl1Check() {
+  const g = PL1_2023;
+  const kwh = g.kWhA + g.kWhB;
+  const ghgSum = sum(g.ghgDraft.map(x => x[1]));
+  const ghgFinal = KNK.y2023.scope1;
+  const ghgDiffRows = g.ghgDraft.map(([n, v]) => ({ name: n, draft: v }));
+  // Hiệu suất ngầm định của mô hình hạ lưu: out/in (đợt 1)
+  const factor = (k: "TN" | "TP" | "COD" | "BOD" | "TSS") => g.modelOut[k] / g.modelIn[k];
+  const params = ["COD", "BOD", "TSS", "TN", "TP"] as const;
+  const design = params.map(k => {
+    const inf = g.influent[k] as readonly number[];
+    const predicted = inf.map(v => v * factor(k));
+    const limit = g.limitsA[k];
+    const exceed = predicted.map((v, i) => (v > limit ? g.influent.dot[i] : null)).filter(Boolean) as string[];
+    const worstIn = Math.max(...inf);
+    return { k, factor: factor(k), removalModelPct: (1 - factor(k)) * 100, limit, predicted, exceed, worstIn, removalNeededPct: Math.max(0, (1 - limit / worstIn) * 100) };
+  });
+  const el = g.elementBal;
+  const elOut = sum([...el.out]);
+  const nIn = g.influent.TN[0] * g.wastewaterM3 / 1000, pIn = g.influent.TP[0] * g.wastewaterM3 / 1000;
+  return {
+    kwh, kwhDiffBc: diffPct(kwh, UTILITIES.kWh.y2023), kwhDiffKnk: diffPct(kwh, KNK.y2023.kWh),
+    products: g.productA + g.productB, productDiffBc: diffPct(g.productA + g.productB, PRODUCT_TOTAL.y2023),
+    ghgSum, ghgDiffStated: ghgSum - g.ghgDraftTotalStated, ghgFinal, ghgDiffFinal: ghgSum - ghgFinal, ghgDiffRows,
+    design, nIn, pIn, elIn: el.nIn + el.pIn, elOut, elClosed: Math.abs(elOut - el.totalIn) < 1e-9, plugPct: (el.out[2] / el.totalIn) * 100,
+    bodLimitExpected: 30 * 1.2 * 1.1,
+  };
 }

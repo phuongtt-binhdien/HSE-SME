@@ -81,3 +81,59 @@ test("tiến độ checklist & đề cương 688", () => {
   assert.ok(OUTLINE_688.every(o => ["ok", "part", "gap"].includes(o.status)));
   assert.ok(OUTLINE_688.some(o => o.status === "gap"));
 });
+
+import { audit2024Check, pl1Check } from "../src/lib/ktmt.ts";
+import { SUBMITTED, INCONSISTENCIES } from "../src/data/ktmt.ts";
+
+test("Báo cáo KTMT 2024 [I]: số học cân bằng khớp, dòng khí thải suy ra 360.000 m³/h × 8.640 h × 1,5", () => {
+  const a = audit2024Check();
+  assert.ok(Math.abs(a.inSum - 553229.81) < 1e-6 && Math.abs(a.inDiff) < 1e-6);
+  assert.ok(Math.abs(a.outSum - 5102795.46) < 1e-6 && Math.abs(a.outDiff) < 1e-6);
+  assert.ok(Math.abs(a.gapDiff) < 1e-6);                  // chênh lệch 4.549.565,65 đúng
+  assert.equal(a.flueSum, 4665600);
+  assert.equal(a.flueRebuilt, 4665600);
+  assert.ok(Math.abs(a.bcHours - 4522.2) < 0.1);          // BC BVMT dùng ~4.522 giờ cho cùng lưu lượng
+  assert.ok(Math.abs(a.efficiency - 99.22) < 0.01);
+  assert.ok(Math.abs(a.fluePct - 91.43) < 0.01);          // báo cáo ghi 91,5
+  assert.ok(Math.abs(a.sec.kWhPerT - 22.96) < 0.01);
+  assert.ok(Math.abs(a.coalFactor - 2.97) < 1e-5);
+  assert.ok(Math.abs(a.oilFactor - 2.614) < 0.001);
+  assert.ok(Math.abs(a.airDiff + 383) < 1e-9);            // 41.783 + 834 = 42.617 (ghi 43.000)
+  assert.ok(Math.abs(a.ctrcntt - 7346.43) < 1e-6);
+  assert.ok(Math.abs(a.reusePct - 72.06) < 0.01);
+  assert.ok(Math.abs(a.ctrshDiff + 0.05) < 1e-9);         // 260 kg × 289 = 75,14 t (ghi 75,19)
+  assert.ok(Math.abs(a.ctnh - 0.858) < 1e-9);             // 71,5 × 12 = 858 kg (ghi 840 kg)
+  assert.equal(a.solutionsCost, 160);                      // kiến nghị ghi 170 triệu
+  assert.equal(a.costVsRecommend, -10);
+  assert.equal(a.solutionsCo2e, 625);                      // khớp
+});
+
+test("Phụ lục 1 [G]: điện 2023 sát BC BVMT và KNK; KNK nháp lệch bản chính thức; nước thải đầu vào vượt mô hình", () => {
+  const p = pl1Check();
+  assert.equal(p.kwh, 8342765);
+  assert.ok(Math.abs(p.kwhDiffBc! - 1.1) < 0.05);
+  assert.ok(Math.abs(p.kwhDiffKnk! - 0.4) < 0.05);
+  assert.equal(p.products, 360000);
+  assert.ok(p.productDiffBc! > 7.8 && p.productDiffBc! < 8);
+  assert.ok(Math.abs(p.ghgSum - 9650.2719) < 1e-3 && Math.abs(p.ghgDiffStated) < 1e-3);
+  assert.ok(Math.abs(p.ghgDiffFinal - 12.7439) < 1e-3);    // 9.650,27 − 9.637,53
+  const tn = p.design.find(d => d.k === "TN")!, tp = p.design.find(d => d.k === "TP")!, cod = p.design.find(d => d.k === "COD")!;
+  assert.deepEqual(tn.exceed, ["Đợt 2", "Đợt 4"]);
+  assert.deepEqual(tp.exceed, ["Đợt 2", "Đợt 4"]);
+  assert.deepEqual(cod.exceed, []);
+  assert.ok(Math.abs(tn.removalNeededPct - 95.09) < 0.01);
+  assert.ok(Math.abs(tn.removalModelPct - 70.59) < 0.01);
+  assert.equal(p.elClosed, true);                          // 255 + 67 + 993 = 1.315
+  assert.ok(Math.abs(p.plugPct - 75.5) < 0.1);
+  assert.ok(Math.abs(p.nIn - 979.2) < 1e-9);
+  assert.ok(Math.abs(p.bodLimitExpected - 39.6) < 1e-9);
+});
+
+test("đối chiếu có thêm cột Phụ lục 1; danh sách tài liệu và mâu thuẫn", () => {
+  const r = Object.fromEntries(crossCheck().map(x => [x.key, x]));
+  assert.equal(r.water.pl12023, 86748);
+  assert.equal(r.ww.pl12023, 14400);
+  assert.equal(r.coal.pl12023, 3563);
+  assert.equal(SUBMITTED.length, 4);
+  assert.ok(INCONSISTENCIES.length >= 8 && INCONSISTENCIES.every(i => ["red", "amber"].includes(i.sev)));
+});

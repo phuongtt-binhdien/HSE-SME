@@ -156,3 +156,11 @@ Nạp từ 5 file `THONG_KE_NGUYEN_LIEU_THANG_04…08.2026.xls` của Phòng KT-
 - **Cân bằng vật chất / Giải pháp**: tổng đầu vào cộng lại lệch 50 t so với số ghi; đầu ra gấp ~9 lần đầu vào (khí thải); hệ số CO₂ than 2,97 so với ≈ 2,62 của kiểm kê KNK 2023; hoàn vốn giải pháp giảm than theo đơn giá người dùng nhập (không tự giả định giá).
 - **Đề cương 688/KH-ĐGS**: bảng đối chiếu từng mục với dữ liệu đã có và phần còn thiếu.
 - KTMT là hoạt động khuyến khích (Điều 74 Luật BVMT 2020); mục "Lưu ý nguồn" liệt kê các căn cứ trong tài liệu cần cập nhật.
+
+### Cập nhật tab Kiểm Toán Môi Trường (4 văn bản KTMT đã lập)
+
+Thêm vào `src/data/ktmt.ts` / `src/lib/ktmt.ts` / `KtmtModule.tsx`: Phụ lục 2 (19/07/2024), Phụ lục 1 (22/07/2024), báo cáo gửi Tập đoàn (30/10/2024), báo cáo KTMT 2024.
+
+- **Báo cáo đã lập**: kiểm tra số học báo cáo KTMT 2024 (cân bằng vật chất cộng đúng; dòng khí thải 4.665.600 t suy ra từ 360.000 m³/h × 8.640 h × 1,5 kg/m³, trong khi Báo cáo BVMT dùng ≈ 4.522 giờ); so giải pháp 2024 với kế hoạch 2025.
+- **Mâu thuẫn hồ sơ**: 9 nội dung bốn hồ sơ ghi khác nhau (KNK, quan trắc nước thải, phí nước thải, CEMS, diễn tập, hiệu lực GPMT, sản lượng và nước thải 2023, khí thải).
+- **Phụ lục 1 (2023)**: số liệu theo quy trình; KNK bản nháp lệch bản chính thức 12,74 tCO₂e; chất lượng nước thải đầu vào 4 đợt so với mô hình hiệu suất (TN, TP đợt 2 và 4 dự báo vượt cột A); cân bằng nguyên tố N + P có dòng bù 75,5 %.
