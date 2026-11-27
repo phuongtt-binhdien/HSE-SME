@@ -87,6 +87,8 @@ export const SAFETY_RULES = [
 
 /** Điểm số liệu chưa thống nhất giữa các tài liệu — cần đối chiếu trước khi đưa vào hồ sơ. */
 export const DATA_GAPS = [
+  "Kiểm toán môi trường (tab ktmt): Kế hoạch dự báo KTMT 2025 ghi số liệu 2023 thấp hơn Báo cáo BVMT và Kiểm kê KNK (điện 6,81 triệu kWh so với 8,25–8,31 triệu; than 2.971 t so với 3.539–3.563 t; sản lượng 2023 chỉ 10 tháng), CTRCNTT 2024 7.346 t so với 5.444 t (cộng bảng báo cáo), tổng đầu vào cân bằng vật chất cộng ra 650.741,5 t (ghi 650.691,5). Căn cứ pháp lý của kế hoạch (KNK “trước 31/3/2025”, địa chỉ Long An, QCVN 14:2008) cần cập nhật trước khi dùng làm hồ sơ nộp.",
+  "Đề cương 688/KH-ĐGS (Đoàn giám sát Quốc hội): chưa có trong app số liệu đầu tư BVMT 2016–2021 và 2022–2024, chi thường xuyên hằng năm, sơ đồ tổ chức/nhân lực BVMT, dự án tín chỉ các-bon — cần Kế toán/Tổ chức nhân sự cung cấp.",
   "Quy chuẩn nước thải: GPMT 2986 áp dụng QCVN 40:2011/BTNMT cột A (× Kq, Kf); báo cáo khảo sát cải tạo (Global Green, 14/10/2026) so với QCVN 14:2025/BTNMT Bảng 2 cột A (BOD₅ 30, COD 80, TSS 50, T-N 25, T-P 4,0, NH₄⁺-N 6,0 mg/L, coliform 3.000 MPN/100 mL) — cần chốt quy chuẩn áp dụng; mô phỏng 3D đang dùng QCVN 40:2011.",
   "Bản vẽ HTXLNT (12/10/2026): tờ 3 ghi “Sơ đồ công nghệ HTXLNT ADC, công suất 35 m³/ngày.đêm” trong khi hạng mục là 120 m³/ngày.đêm — cần kiểm tra tiêu đề bản vẽ.",
   "Quạt hút hệ thống Nguồn 04: CN-04-02 ghi 55.000 m³/h, 350 mmH₂O, 155 HP; Bảng so sánh thiết bị 29/06/2026 ghi hiện hữu 50.000 m³/h (450 mmH₂O) và điều chỉnh 40.000 m³/h, 37 kW (150 mmH₂O); BOQ NH₃ ghi quạt ly tâm 55.000 m³/h, 55 kW, hút −450 mmH₂O — cần thống nhất.",

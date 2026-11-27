@@ -146,3 +146,13 @@ Nạp từ 5 file `THONG_KE_NGUYEN_LIEU_THANG_04…08.2026.xls` của Phòng KT-
 ## Tab "Báo Cáo BVMT 2024–2025"
 
 `src/data/bvmtReports.ts` (số liệu nhập tay từ hai báo cáo công tác BVMT năm 2024 — bản scan — và 2025), `src/lib/bvmt.ts` (kiểm tra tự động: tuân thủ QCVN, giá trị trùng giữa hai năm, lưu lượng vượt thiết kế, mức tăng đều +8.000 t, tổng cộng, cột "năm gần nhất"), `src/bvmt/BvmtModule.tsx`, `tests/bvmt.test.ts`. Các điểm đánh dấu chỉ là dấu hiệu cần đối chiếu chứng từ gốc, không phải kết luận số liệu sai.
+
+## Tab "Kiểm Toán Môi Trường"
+
+`src/data/ktmt.ts` (5 tài liệu nguồn: đề cương 688/KH-ĐGS, Kế hoạch dự báo KTMT 2025, kế hoạch thu thập số liệu cân bằng vật chất – năng lượng, giáo trình KTMT 2020, bài giảng 4 chương), `src/lib/ktmt.ts` (đối chiếu nguồn số liệu, dự báo 2025 vs thực tế, kiểm tra cân bằng vật chất, hệ số ngầm định, hoàn vốn giải pháp), `src/ktmt/KtmtModule.tsx`, `tests/ktmt.test.ts`.
+
+- **Quy trình**: 3 giai đoạn theo giáo trình (trước / tại cơ sở / sau kiểm toán), checklist lưu `localStorage`; 9 bước kiểm toán rác thải sinh hoạt; nguồn thải cần cân bằng tại NM.
+- **Dự báo – thực tế**: dự báo 2025 của kế hoạch so với Báo cáo BVMT 2025 (dự báo điểm chấp nhận ±10 % — giả định của app); đối chiếu số liệu cơ sở 2023–2024 giữa kế hoạch, Báo cáo BVMT và Kiểm kê KNK.
+- **Cân bằng vật chất / Giải pháp**: tổng đầu vào cộng lại lệch 50 t so với số ghi; đầu ra gấp ~9 lần đầu vào (khí thải); hệ số CO₂ than 2,97 so với ≈ 2,62 của kiểm kê KNK 2023; hoàn vốn giải pháp giảm than theo đơn giá người dùng nhập (không tự giả định giá).
+- **Đề cương 688/KH-ĐGS**: bảng đối chiếu từng mục với dữ liệu đã có và phần còn thiếu.
+- KTMT là hoạt động khuyến khích (Điều 74 Luật BVMT 2020); mục "Lưu ý nguồn" liệt kê các căn cứ trong tài liệu cần cập nhật.
